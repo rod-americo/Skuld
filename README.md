@@ -33,6 +33,7 @@ Skuld provides that local control layer: explicit ownership, predictable lifecyc
 - Backfill missing registry fields from systemd with `skuld sync`.
 - Generate an equivalent `skuld create` command from an existing managed service with `skuld recreate`.
 - Show CPU, memory, GPU memory, and listening ports in `skuld list`.
+  - For services where `systemd` accounting is unavailable, Skuld falls back to `/proc/<pid>` for CPU/memory and ports.
 
 ## Requirements
 
@@ -209,6 +210,7 @@ skuld list
   `id | name | kind | service | timer | r/e | next_run`
 - `skuld list` shows the full view:
   `id | name | kind | service | timer | next_run | r/e | last_run | schedule | cpu | memory | gpu | ports`
+- `ports` is resolved from all PIDs in the service cgroup (not only `MainPID`), so wrapper processes like `npm start` still show the app listening port.
 - Both views include a top host panel with:
   `uptime | cpu(load1/5/15) | memory`
 - `r/e` means `restarts/executions` since last boot (from runtime stats JSON).
