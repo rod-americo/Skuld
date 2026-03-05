@@ -21,6 +21,8 @@ SKULD_HOME = Path(os.environ.get("SKULD_HOME", Path.home() / ".local/share/skuld
 REGISTRY_FILE = SKULD_HOME / "services.json"
 DEFAULT_ENV_FILE = Path(".env")
 USE_ENV_SUDO = True
+FORCE_TABLE_ASCII = False
+FORCE_TABLE_UNICODE = False
 SCHEDULE_PROMPT_SENTINEL = "__SKULD_PROMPT_SCHEDULE__"
 
 
@@ -216,6 +218,29 @@ def is_tty() -> bool:
     return sys.stdout.isatty()
 
 
+def supports_unicode_output() -> bool:
+    if FORCE_TABLE_ASCII:
+        return False
+    if FORCE_TABLE_UNICODE:
+        return True
+    if not is_tty():
+        return False
+    term = (os.environ.get("TERM") or "").strip().lower()
+    if term == "dumb":
+        return False
+    encoding = (sys.stdout.encoding or "").upper()
+    if "UTF-8" in encoding or "UTF8" in encoding:
+        return True
+    locale_text = " ".join(
+        [
+            os.environ.get("LC_ALL", ""),
+            os.environ.get("LC_CTYPE", ""),
+            os.environ.get("LANG", ""),
+        ]
+    ).upper()
+    return "UTF-8" in locale_text or "UTF8" in locale_text
+
+
 def colorize(text: str, color: str) -> str:
     if not is_tty():
         return text
@@ -374,9 +399,9 @@ def require_systemctl() -> None:
 
 
 def unit_exists(unit: str) -> bool:
-    proc = run(["systemctl", "list-unit-files", "--no-legend", unit], check=False, capture=True)
-    out = (proc.stdout or "").strip()
-    return bool(out and unit in out)
+    show = systemctl_show(unit, ["LoadState"])
+    load_state = (show.get("LoadState", "") or "").strip().lower()
+    return bool(load_state and load_state != "not-found")
 
 
 def unit_active(unit: str) -> str:
@@ -577,22 +602,52 @@ def render_table(headers: List[str], rows: List[List[str]]) -> None:
         for i, cell in enumerate(row):
             widths[i] = max(widths[i], visible_len(cell))
 
-    def hline(ch: str = "-") -> str:
-        return "+" + "+".join(ch * (w + 2) for w in widths) + "+"
+    unicode_box = supports_unicode_output()
+    if unicode_box:
+        box = {
+            "top_left": "╭",
+            "top_mid": "┬",
+            "top_right": "╮",
+            "mid_left": "├",
+            "mid_mid": "┼",
+            "mid_right": "┤",
+            "bottom_left": "╰",
+            "bottom_mid": "┴",
+            "bottom_right": "╯",
+            "vertical": "│",
+            "fill": "─",
+        }
+    else:
+        box = {
+            "top_left": "+",
+            "top_mid": "+",
+            "top_right": "+",
+            "mid_left": "+",
+            "mid_mid": "+",
+            "mid_right": "+",
+            "bottom_left": "+",
+            "bottom_mid": "+",
+            "bottom_right": "+",
+            "vertical": "|",
+            "fill": "-",
+        }
+
+    def hline(left: str, middle: str, right: str, fill: str) -> str:
+        return left + middle.join(fill * (w + 2) for w in widths) + right
 
     def format_row(cells: List[str]) -> str:
         padded = []
         for i, cell in enumerate(cells):
             pad = widths[i] - visible_len(cell)
             padded.append(f" {cell}{' ' * max(0, pad)} ")
-        return "|" + "|".join(padded) + "|"
+        return box["vertical"] + box["vertical"].join(padded) + box["vertical"]
 
-    print(hline("-"))
+    print(hline(box["top_left"], box["top_mid"], box["top_right"], box["fill"]))
     print(format_row(headers))
-    print(hline("="))
+    print(hline(box["mid_left"], box["mid_mid"], box["mid_right"], box["fill"]))
     for row in rows:
         print(format_row(row))
-    print(hline("-"))
+    print(hline(box["bottom_left"], box["bottom_mid"], box["bottom_right"], box["fill"]))
 
 
 def clip_text(text: str, width: int) -> str:
@@ -622,8 +677,6 @@ def shell_quote_pretty(value: str) -> str:
 
 def read_timer_schedule(name: str) -> str:
     timer_unit = f"{name}.timer"
-    if not unit_exists(timer_unit):
-        return ""
     show = systemctl_show(timer_unit, ["OnCalendar"])
     schedule = (show.get("OnCalendar", "") or "").strip()
     if schedule:
@@ -649,8 +702,6 @@ def read_timer_persistent(name: str, default: bool = True) -> bool:
 
 def read_timer_next_run(name: str) -> str:
     timer_unit = f"{name}.timer"
-    if not unit_exists(timer_unit):
-        return "-"
     show = systemctl_show(timer_unit, ["NextElapseUSecRealtime"])
     value = (show.get("NextElapseUSecRealtime", "") or "").strip()
     if not value or value.lower() == "n/a":
@@ -660,8 +711,6 @@ def read_timer_next_run(name: str) -> str:
 
 def read_timer_last_run(name: str) -> str:
     timer_unit = f"{name}.timer"
-    if not unit_exists(timer_unit):
-        return "-"
     show = systemctl_show(timer_unit, ["LastTriggerUSec"])
     value = (show.get("LastTriggerUSec", "") or "").strip()
     if not value or value.lower() == "n/a":
@@ -929,6 +978,33 @@ def list_services(_args: argparse.Namespace) -> None:
         ["id", "name", "kind", "service", "timer", "next_run", "last_run", "schedule", "cpu", "memory", "gpu", "ports"],
         rows,
     )
+    print()
+
+
+def list_services_compact() -> None:
+    require_systemctl()
+    sync_registry_from_systemd()
+    services = sorted(load_registry(), key=lambda s: s.name.lower())
+    if not services:
+        print("No services managed by skuld.")
+        return
+
+    rows: List[List[str]] = []
+    print()
+    for svc in services:
+        s_unit = f"{svc.name}.service"
+        s_state_raw = unit_active(s_unit) if unit_exists(s_unit) else "missing"
+        schedule = schedule_for_display(svc) or "-"
+        kind = "timer" if schedule != "-" else "daemon"
+        if s_state_raw == "active":
+            s_state = colorize("active", "green")
+        elif s_state_raw == "inactive":
+            s_state = colorize("inactive", "yellow")
+        else:
+            s_state = colorize(s_state_raw, "red")
+        next_run = read_timer_next_run(svc.name) if kind == "timer" else "-"
+        rows.append([str(svc.id), svc.name, kind, s_state, next_run])
+    render_table(["id", "name", "kind", "service", "next_run"], rows)
     print()
 
 
@@ -1354,6 +1430,8 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Disable SKULD_SUDO_PASSWORD from env/.env and use regular sudo behavior",
     )
+    p.add_argument("--ascii", action="store_true", help="Force ASCII table borders")
+    p.add_argument("--unicode", action="store_true", help="Force Unicode table borders")
     sub = p.add_subparsers(dest="command", required=False)
 
     c = sub.add_parser("create", help="Create and install .service and optional .timer")
@@ -1473,7 +1551,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main() -> int:
-    global USE_ENV_SUDO
+    global USE_ENV_SUDO, FORCE_TABLE_ASCII, FORCE_TABLE_UNICODE
     argv = list(sys.argv)
     known_commands = {"create", "list", "exec", "start", "stop", "restart", "status", "logs", "remove", "adopt", "doctor", "edit", "describe", "recreate", "sync", "version"}
     edit_flags = {
@@ -1493,11 +1571,15 @@ def main() -> int:
     parser = build_parser()
     args = parser.parse_args(argv[1:])
     USE_ENV_SUDO = not args.no_env_sudo
+    FORCE_TABLE_ASCII = bool(args.ascii)
+    FORCE_TABLE_UNICODE = bool(args.unicode)
+    if FORCE_TABLE_ASCII and FORCE_TABLE_UNICODE:
+        parser.error("choose only one of --ascii or --unicode")
     try:
         if getattr(args, "command", None) != "version":
             load_registry()
         if not getattr(args, "command", None):
-            list_services(argparse.Namespace())
+            list_services_compact()
             print("Quick help: skuld <id|name> commands: exec/start/stop/restart/status/logs/describe/edit/remove")
             print()
             return 0

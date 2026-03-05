@@ -196,10 +196,17 @@ For timer jobs and daemons, action routing is automatic:
 ### List managed services
 
 ```bash
+skuld
 skuld list
 ```
 
-`skuld list` output includes: `id | name | kind | service | timer | next_run | last_run | schedule | cpu | memory | gpu | ports`.
+- `skuld` (without subcommands) shows a compact view:
+  `id | name | kind | service | next_run`
+- `skuld list` shows the full view:
+  `id | name | kind | service | timer | next_run | last_run | schedule | cpu | memory | gpu | ports`
+- Table borders use Unicode automatically when supported by your terminal. You can override:
+  - `skuld --ascii`
+  - `skuld --unicode`
 
 ### Execute immediately
 
