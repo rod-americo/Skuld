@@ -1199,7 +1199,7 @@ def create(args: argparse.Namespace) -> None:
     ok(f"Service '{args.name}' created and registered.")
 
 
-def list_services(_args: argparse.Namespace) -> None:
+def _render_services_table(compact: bool) -> None:
     require_systemctl()
     sync_registry_from_systemd()
     services = sorted(load_registry(), key=lambda s: s.name.lower())
@@ -1251,50 +1251,23 @@ def list_services(_args: argparse.Namespace) -> None:
                 read_unit_ports(svc.name),
             ]
         )
-    render_table(
-        ["id", "name", "kind", "service", "timer", "next_run", "r/e", "last_run", "schedule", "cpu", "memory", "gpu", "ports"],
-        rows,
-    )
+    if compact:
+        compact_rows = [[r[0], r[1], r[2], r[3], r[4], r[9], r[10]] for r in rows]
+        render_table(["id", "name", "kind", "service", "timer", "cpu", "memory"], compact_rows)
+    else:
+        render_table(
+            ["id", "name", "kind", "service", "timer", "next_run", "r/e", "last_run", "schedule", "cpu", "memory", "gpu", "ports"],
+            rows,
+        )
     print()
+
+
+def list_services(_args: argparse.Namespace) -> None:
+    _render_services_table(compact=False)
 
 
 def list_services_compact() -> None:
-    require_systemctl()
-    sync_registry_from_systemd()
-    services = sorted(load_registry(), key=lambda s: s.name.lower())
-    if not services:
-        print("No services managed by skuld.")
-        return
-
-    rows: List[List[str]] = []
-    runtime_stats = load_runtime_stats()
-    print()
-    render_host_panel()
-    for svc in services:
-        s_unit = f"{svc.name}.service"
-        t_unit = f"{svc.name}.timer"
-        s_state_raw = unit_active(s_unit) if unit_exists(s_unit) else "missing"
-        t_state_raw = unit_active(t_unit) if unit_exists(t_unit) else "n/a"
-        schedule = schedule_for_display(svc) or "-"
-        kind = "timer" if schedule != "-" else "daemon"
-        if s_state_raw == "active":
-            s_state = colorize("active", "green")
-        elif s_state_raw == "inactive":
-            s_state = colorize("inactive", "yellow")
-        else:
-            s_state = colorize(s_state_raw, "red")
-        if t_state_raw == "active":
-            t_state = colorize("active", "green")
-        elif t_state_raw == "inactive":
-            t_state = colorize("inactive", "yellow")
-        elif t_state_raw == "n/a":
-            t_state = colorize("n/a", "gray")
-        else:
-            t_state = colorize(t_state_raw, "red")
-        next_run = read_timer_next_run(svc.name) if kind == "timer" else "-"
-        rows.append([str(svc.id), svc.name, kind, s_state, t_state, format_restarts_exec(svc.name, runtime_stats), next_run])
-    render_table(["id", "name", "kind", "service", "timer", "r/e", "next_run"], rows)
-    print()
+    _render_services_table(compact=True)
 
 
 def exec_now(args: argparse.Namespace) -> None:

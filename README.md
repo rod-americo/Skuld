@@ -224,6 +224,8 @@ To enable `r/e` collection every minute via `systemd` (outside the Skuld registr
 ./scripts/install_runtime_stats_timer.sh --registry "$HOME/.local/share/skuld/services.json"
 ```
 
+Running `skuld` without arguments shows a compact table: `id | name | kind | service | timer | cpu | memory`.
+
 ### Execute immediately
 
 ```bash
