@@ -246,6 +246,7 @@ skuld list
   `id | name | kind | service | timer | cpu | memory`
 - `skuld list` shows the full view:
   `id | name | kind | service | timer | next_run | r/e | last_run | schedule | cpu | memory | ports`
+- After operational commands like `create`, `exec`, `start`, `stop`, `restart`, `remove`, `edit`, and `sync`, Skuld refreshes using the compact view.
 - On Linux, `ports` is resolved from all PIDs in the service cgroup (not only `MainPID`).
 - On macOS, `ports` is resolved from the managed job PID and its descendant processes.
 - This allows wrapper processes like `npm start` to still show the app listening port.

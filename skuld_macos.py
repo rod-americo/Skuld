@@ -1763,7 +1763,7 @@ def main() -> int:
         args.func(args)
         if args.command in {"create", "exec", "start", "stop", "restart", "remove", "edit", "sync"}:
             print()
-            list_services(argparse.Namespace())
+            list_services_compact()
         return 0
     except RuntimeError as exc:
         err(str(exc))
