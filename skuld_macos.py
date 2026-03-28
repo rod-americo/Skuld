@@ -659,6 +659,31 @@ def read_pid(service: ManagedService) -> int:
     return parse_int(launchctl_service_info(service).get("PID", "0"))
 
 
+def read_process_tree_pids(root_pid: int) -> List[int]:
+    if root_pid <= 0:
+        return []
+    proc = run(["ps", "-axo", "pid=,ppid="], check=False, capture=True)
+    children_by_parent: Dict[int, Set[int]] = {}
+    for raw in (proc.stdout or "").splitlines():
+        parts = raw.split()
+        if len(parts) != 2:
+            continue
+        pid = parse_int(parts[0])
+        ppid = parse_int(parts[1])
+        if pid <= 0 or ppid <= 0:
+            continue
+        children_by_parent.setdefault(ppid, set()).add(pid)
+    seen: Set[int] = set()
+    queue = [root_pid]
+    while queue:
+        current = queue.pop(0)
+        if current in seen or current <= 0:
+            continue
+        seen.add(current)
+        queue.extend(sorted(children_by_parent.get(current, set())))
+    return sorted(seen)
+
+
 def restart_policy_to_keepalive(value: str) -> object:
     policy = (value or "on-failure").strip().lower()
     if policy in {"no", "never"}:
@@ -1090,9 +1115,14 @@ def read_cpu_memory(pid: int) -> Dict[str, str]:
 
 
 def read_ports(pid: int) -> str:
-    if pid <= 0:
+    pids = read_process_tree_pids(pid)
+    if not pids:
         return "-"
-    proc = run(["lsof", "-Pan", "-p", str(pid), "-iTCP", "-sTCP:LISTEN", "-iUDP"], check=False, capture=True)
+    proc = run(
+        ["lsof", "-Pan", "-p", ",".join(str(item) for item in pids), "-iTCP", "-sTCP:LISTEN", "-iUDP"],
+        check=False,
+        capture=True,
+    )
     tags: Set[str] = set()
     for raw in (proc.stdout or "").splitlines()[1:]:
         line = raw.strip()
