@@ -8,6 +8,7 @@ import pwd
 import readline
 import re
 import shlex
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -381,6 +382,10 @@ def events_root_for_scope(scope: str) -> Path:
 
 def log_dir_for_service(name: str, scope: str) -> Path:
     return logs_root_for_scope(scope) / name
+
+
+def runs_dir_for_service(service: ManagedService) -> Path:
+    return Path(service.log_dir or log_dir_for_service(service.name, service.scope)) / "runs"
 
 
 def event_file_for_service(name: str, scope: str) -> Path:
@@ -848,16 +853,29 @@ def format_restarts_exec(service: ManagedService, runtime_stats: Dict[str, Dict[
 def build_wrapper_script(service: ManagedService) -> str:
     event_file = event_file_for_service(service.name, service.scope)
     event_dir = event_file.parent
+    log_dir = Path(service.log_dir or log_dir_for_service(service.name, service.scope))
+    runs_dir = runs_dir_for_service(service)
     cmd = shell_quote_pretty(service.exec_cmd)
     return (
         "#!/bin/zsh\n"
         "set +e\n"
         f"EVENT_FILE={shell_quote_pretty(str(event_file))}\n"
+        f"LOG_DIR={shell_quote_pretty(str(log_dir))}\n"
+        f"RUNS_DIR={shell_quote_pretty(str(runs_dir))}\n"
         f"mkdir -p {shell_quote_pretty(str(event_dir))}\n"
+        "mkdir -p \"$RUNS_DIR\"\n"
         "ts_start=$(date -u +%Y-%m-%dT%H:%M:%SZ)\n"
-        'printf \'{"ts":"%s","event":"start","pid":%s}\\n\' "$ts_start" "$$" >> "$EVENT_FILE"\n'
+        "run_stamp=$(date -u +%Y%m%dT%H%M%SZ)\n"
+        'run_id="${run_stamp}_$$"\n'
+        'STDOUT_LOG="$RUNS_DIR/${run_id}.stdout.log"\n'
+        'STDERR_LOG="$RUNS_DIR/${run_id}.stderr.log"\n'
+        ': > "$STDOUT_LOG"\n'
+        ': > "$STDERR_LOG"\n'
+        'ln -sfn "$STDOUT_LOG" "$LOG_DIR/stdout.log"\n'
+        'ln -sfn "$STDERR_LOG" "$LOG_DIR/stderr.log"\n'
+        'printf \'{"ts":"%s","event":"start","pid":%s,"stdout_log":"%s","stderr_log":"%s"}\\n\' "$ts_start" "$$" "$STDOUT_LOG" "$STDERR_LOG" >> "$EVENT_FILE"\n'
         "exit_code=0\n"
-        f"/bin/zsh -lc {cmd}\n"
+        f"/bin/zsh -lc {cmd} >> \"$STDOUT_LOG\" 2>> \"$STDERR_LOG\"\n"
         "exit_code=$?\n"
         "ts_end=$(date -u +%Y-%m-%dT%H:%M:%SZ)\n"
         'printf \'{"ts":"%s","event":"end","exit_status":%s}\\n\' "$ts_end" "$exit_code" >> "$EVENT_FILE"\n'
@@ -889,8 +907,8 @@ def build_plist(service: ManagedService) -> Dict[str, object]:
     plist: Dict[str, object] = {
         "Label": service_label(service.name),
         "ProgramArguments": [str(wrapper_path)],
-        "StandardOutPath": str(log_dir / "stdout.log"),
-        "StandardErrorPath": str(log_dir / "stderr.log"),
+        "StandardOutPath": str(log_dir / "_launcher.stdout.log"),
+        "StandardErrorPath": str(log_dir / "_launcher.stderr.log"),
         "WorkingDirectory": service.working_dir or str(current_user_home()),
         "EnvironmentVariables": build_environment_variables(service),
         "ProcessType": "Background",
@@ -912,6 +930,7 @@ def build_plist(service: ManagedService) -> Dict[str, object]:
 def install_service_files(service: ManagedService) -> None:
     log_dir = Path(service.log_dir or log_dir_for_service(service.name, service.scope))
     ensure_directory(log_dir, service.scope)
+    ensure_directory(runs_dir_for_service(service), service.scope)
     ensure_directory(event_file_for_service(service.name, service.scope).parent, service.scope)
     write_text_file(wrapper_script_for_service(service.name, service.scope), build_wrapper_script(service), service.scope, executable=True)
     write_plist_file(plist_path_for_service(service), build_plist(service), service.scope)
@@ -1327,9 +1346,7 @@ def remove(args: argparse.Namespace) -> None:
             run_sudo(["rm", "-f", str(event_file_for_service(service.name, service.scope))], check=False)
         else:
             if log_dir.exists():
-                for child in log_dir.iterdir():
-                    child.unlink(missing_ok=True)
-                log_dir.rmdir()
+                shutil.rmtree(log_dir, ignore_errors=True)
             event_file_for_service(service.name, service.scope).unlink(missing_ok=True)
         remove_registry(service.name)
     ok(f"Removed: {service.name} (purge={args.purge})")
