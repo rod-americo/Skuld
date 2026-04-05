@@ -1,13 +1,13 @@
 # Skuld
 
-Skuld is a Python CLI for creating and managing local services with a registry.
+Skuld is a Python CLI for tracking local services, giving them human-friendly names, and exposing useful operational metrics.
 
 The entrypoint `skuld` dispatches internally by platform:
 
 - Linux: `skuld_linux.py`
 - macOS: `skuld_macos.py`
 
-It is designed to monitor only services that were created or explicitly adopted by Skuld.
+It is designed to monitor only services that you explicitly track in the Skuld registry.
 
 ## Named After
 
@@ -25,24 +25,27 @@ It watches only what you intentionally place in its care, then makes sure those 
 
 ## Why Skuld in the AI era
 
-AI can help you generate service files and commands faster, but operational clarity still needs a stable control plane.
-Skuld provides that local control layer: explicit ownership, predictable lifecycle commands, and an auditable view of what you chose to run.
+AI can generate service files, timers, and `sudo` commands faster than ever.
+Skuld does not need to be the author of those units anymore.
+Its value is the local control layer around what you chose to watch: friendly naming, stable operational commands, and an auditable view of what matters.
 
 ## Features
 
 - Linux backend via `systemd`.
 - macOS backend via `launchd`.
-- Persist managed service metadata in a local JSON registry.
+- Persist tracked service metadata in a local JSON registry.
+- Track existing services and assign a display alias.
 - Start, stop, restart, execute-now, inspect status, and read logs.
 - Run `doctor` checks to detect registry/backend mismatches.
-- Generate an equivalent `skuld create` command from an existing managed service with `skuld recreate`.
+- Run one-off privileged commands through `skuld sudo run -- ...`.
+- Generate an equivalent `skuld create` command from an existing tracked service with `skuld recreate`.
 - Show CPU, memory, and listening ports in `skuld list`.
 
 ## Requirements
 
 - Linux with `systemd` (`systemctl` + `journalctl`), or macOS with `launchd` (`launchctl`).
 - Python 3.9+.
-- `sudo` privileges for system-level unit/job installation or removal.
+- `sudo` privileges when you want to inspect privileged resources or perform system-level unit/job installation or removal.
 
 No external Python packages are required.
 
@@ -93,13 +96,22 @@ Example `.env`:
 SKULD_SUDO_PASSWORD=your_password_here
 ```
 
+For one-off agent usage, prefer:
+
+```bash
+skuld sudo check
+skuld sudo run -- systemctl daemon-reload
+```
+
+This avoids exporting the password back into shell history or command output.
+
 ## Registry
 
-Skuld stores managed services in:
+Skuld stores tracked services in:
 
 `~/.local/share/skuld/services.json`
 
-On macOS, Skuld stores managed services in:
+On macOS, Skuld stores tracked services in:
 
 `~/Library/Application Support/skuld/services.json`
 
@@ -115,12 +127,54 @@ Only services present in this file can be operated by:
 - `describe`
 - `edit`
 - `sync --name <service>`
+- `rename`
+- `untrack`
 
 On startup, Skuld normalizes this file automatically (canonical keys/order, pretty JSON, trailing newline, and valid unique IDs). This helps keep legacy or hand-edited registries consistent.
 
 ## Usage
 
+### Track an existing service
+
+```bash
+skuld track nginx
+skuld track sshd.service --alias access-ssh
+```
+
+On Linux, `track` inspects the existing `.service` and optional same-name `.timer`, then stores:
+
+- the real target name used by the backend
+- a friendly `display_name` used by Skuld
+- basic metadata used by `describe`, `stats`, and `doctor`
+
+On macOS, the first run without tracked services shows a numbered catalog from `launchctl list`. You can track from that catalog directly:
+
+```bash
+skuld
+skuld catalog
+skuld track 1 4 22
+skuld track com.apple.Finder --alias finder
+```
+
+When `--alias` is omitted, Skuld asks interactively for a friendly name for each selected service. Press `Enter` to accept the suggested default.
+
+### Rename a tracked service
+
+```bash
+skuld rename nginx edge-proxy
+skuld rename 3 nightly-sync
+```
+
+### Untrack without touching the backend
+
+```bash
+skuld untrack edge-proxy
+skuld untrack 3
+```
+
 ### Create a service
+
+`create`, `edit`, `remove`, and `recreate` remain available as legacy commands during the transition, but they are no longer the primary model for Skuld.
 
 ```bash
 skuld create \
@@ -230,38 +284,34 @@ skuld stop --name my-daemon
 For scheduled jobs and daemons, action routing is automatic:
 
 - Linux:
-  `start/stop/restart` act on `.timer` for scheduled jobs and on `.service` for daemons.
+  `start/stop/restart` act on `.timer` only when the managed service has a real schedule and an installed `.timer` unit; otherwise they act on `.service`.
 - macOS:
   `start/stop/restart` act on the `launchd` job itself.
 - To run a scheduled job immediately, use `exec <name>`.
 
-### List managed services
+### List tracked services
 
 ```bash
 skuld
 skuld list
+skuld --sort cpu
+skuld list --sort memory
 ```
 
-- `skuld` (without subcommands) shows a compact view:
-  `id | name | kind | service | timer | cpu | memory`
-- `skuld list` shows the full view:
-  `id | name | kind | service | timer | next_run | r/e | last_run | schedule | cpu | memory | ports`
-- After operational commands like `create`, `exec`, `start`, `stop`, `restart`, `remove`, `edit`, and `sync`, Skuld refreshes using the compact view.
-- On Linux, `ports` is resolved from all PIDs in the service cgroup (not only `MainPID`).
-- On macOS, `ports` is resolved from the managed job PID and its descendant processes.
-- This allows wrapper processes like `npm start` to still show the app listening port.
+- `skuld` and `skuld list` show the same operational view:
+  `id | name | service | timer | cpu | memory | ports`
+- Both accept `--sort id|name|cpu|memory`. The default is `id`. `cpu` and `memory` sort descending.
+- After operational commands like `track`, `rename`, `untrack`, `create`, `exec`, `start`, `stop`, `restart`, `remove`, `edit`, and `sync`, Skuld refreshes using the compact view.
+- `ports` is resolved from all PIDs in the service cgroup (not only `MainPID`), so wrapper processes like `npm start` still show the app listening port.
 - Both views include a top host panel with:
   `uptime | cpu(load1/5/15) | memory`
-- `r/e` means `restarts/executions`.
 - Table borders use Unicode automatically when supported by your terminal. You can override:
   - `skuld --ascii`
   - `skuld --unicode`
 
 On macOS:
 
-- `r/e` comes from Skuld's own event files.
-- `next_run` is available only for the supported `--schedule` subset.
-- `gpu` is omitted from the full table.
+- `ports` is `-` for jobs without listening sockets.
 
 On Linux, to enable `r/e` collection every minute via `systemd` (outside the Skuld registry), run:
 
@@ -269,7 +319,7 @@ On Linux, to enable `r/e` collection every minute via `systemd` (outside the Sku
 ./scripts/install_runtime_stats_timer.sh --registry "$HOME/.local/share/skuld/services.json"
 ```
 
-Running `skuld` without arguments shows a compact table: `id | name | kind | service | timer | cpu | memory`.
+Running `skuld` without arguments shows: `id | name | service | timer | cpu | memory | ports`.
 
 ### Execute immediately
 
@@ -333,7 +383,7 @@ skuld describe --name my-worker
 skuld describe my-worker
 ```
 
-### Recreate command from a managed service
+### Recreate command from a tracked service
 
 ```bash
 skuld recreate --name my-worker
@@ -363,9 +413,10 @@ skuld 3 --schedule
 ```bash
 skuld adopt --name existing-service
 skuld adopt existing-service
+skuld adopt existing-service --alias my-service
 ```
 
-`adopt` is currently supported on Linux only.
+`adopt` is now a legacy alias for `track` on Linux only.
 
 ### Doctor
 
@@ -387,6 +438,8 @@ skuld sync my-worker
 skuld remove --name my-worker
 skuld remove --name my-worker --purge
 ```
+
+`remove` is destructive. Prefer `untrack` when you only want to remove the Skuld mapping.
 
 ## Command Help
 

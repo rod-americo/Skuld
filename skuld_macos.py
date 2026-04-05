@@ -31,6 +31,7 @@ RUNTIME_STATS_FILE = SKULD_HOME / "runtime_stats.json"
 USE_ENV_SUDO = True
 FORCE_TABLE_ASCII = False
 FORCE_TABLE_UNICODE = False
+SORT_CHOICES = ("id", "name", "cpu", "memory")
 WEEKDAY_MAP = {
     "sun": 0,
     "mon": 1,
@@ -47,6 +48,10 @@ class ManagedService:
     name: str
     exec_cmd: str
     description: str
+    display_name: str = ""
+    launchd_label: str = ""
+    plist_path_hint: str = ""
+    managed_by_skuld: bool = True
     schedule: str = ""
     working_dir: str = ""
     user: str = ""
@@ -56,6 +61,14 @@ class ManagedService:
     backend: str = "launchd"
     scope: str = "agent"
     log_dir: str = ""
+
+
+@dataclass
+class DiscoverableService:
+    index: int
+    label: str
+    pid: str
+    status: str
 
 
 def ensure_storage() -> None:
@@ -127,6 +140,43 @@ def validate_name(name: str) -> None:
         raise ValueError("Invalid name. Use [a-zA-Z0-9._@-] and start with a letter/number.")
 
 
+def ensure_display_name_available(display_name: str, current_name: Optional[str] = None) -> None:
+    validate_name(display_name)
+    for svc in load_registry():
+        if svc.display_name != display_name:
+            continue
+        if current_name is not None and svc.name == current_name:
+            return
+        raise RuntimeError(f"Display name '{display_name}' is already in use.")
+
+
+def suggest_display_name(label: str) -> str:
+    raw = (label or "").strip()
+    tokens = [part for part in raw.split(".") if part]
+    if tokens and tokens[0] == "application":
+        tokens = tokens[1:]
+    while tokens and tokens[-1].isdigit():
+        tokens.pop()
+    if len(tokens) >= 2 and tokens[-1].lower() in {"mac", "desktop", "agent", "daemon", "helper"}:
+        suggestion = "-".join(tokens[-2:])
+    elif tokens:
+        suggestion = tokens[-1]
+    else:
+        suggestion = raw
+    suggestion = suggestion.replace(" ", "-")
+    validate_name(suggestion)
+    return suggestion
+
+
+def prompt_display_name(target: str, suggested: str) -> str:
+    if not sys.stdin.isatty():
+        return suggested
+    value = input(f"Display name for {target} [{suggested}]: ").strip()
+    chosen = value or suggested
+    validate_name(chosen)
+    return chosen
+
+
 def resolve_scope(value: str) -> str:
     scope = (value or "agent").strip().lower()
     if scope not in {"daemon", "agent"}:
@@ -190,6 +240,31 @@ def visible_len(text: str) -> int:
     return len(ANSI_RE.sub("", text))
 
 
+def parse_first_float(text: str) -> float:
+    match = re.search(r"\d+(?:\.\d+)?", ANSI_RE.sub("", text or ""))
+    if not match:
+        return -1.0
+    try:
+        return float(match.group(0))
+    except ValueError:
+        return -1.0
+
+
+def service_sort_key(sort_by: str, row: Dict[str, object]) -> Tuple[object, ...]:
+    if sort_by == "name":
+        return (str(row["name"]).lower(), int(row["id"]))
+    if sort_by == "cpu":
+        return (-parse_first_float(str(row["cpu"])), str(row["name"]).lower(), int(row["id"]))
+    if sort_by == "memory":
+        return (-parse_first_float(str(row["memory"])), str(row["name"]).lower(), int(row["id"]))
+    return (int(row["id"]),)
+
+
+def resolve_sort_arg(args: Optional[argparse.Namespace]) -> str:
+    sort_by = getattr(args, "sort", "id") if args is not None else "id"
+    return sort_by if sort_by in SORT_CHOICES else "id"
+
+
 def info(msg: str) -> None:
     print(f"[skuld] {msg}")
 
@@ -223,6 +298,37 @@ def run_sudo(cmd: List[str], check: bool = True, capture: bool = False) -> subpr
     return run(full, check=check, capture=capture)
 
 
+def warn_env_sudo_usage() -> None:
+    if get_sudo_password():
+        info("Warning: using SKULD_SUDO_PASSWORD from env/.env. Keep this for short-lived local use only.")
+
+
+def sudo_check(_args: argparse.Namespace) -> None:
+    warn_env_sudo_usage()
+    password = get_sudo_password()
+    if password:
+        proc = run(["sudo", "-S", "-k", "-p", "", "true"], check=False, capture=True, input_text=password + "\n")
+    else:
+        proc = run(["sudo", "-n", "true"], check=False, capture=True)
+    if proc.returncode == 0:
+        ok("sudo is available.")
+        return
+    details = (proc.stderr or proc.stdout or "").strip()
+    raise RuntimeError(f"sudo is not available non-interactively. {details}".strip())
+
+
+def sudo_run_command(args: argparse.Namespace) -> None:
+    command = list(args.command or [])
+    if command and command[0] == "--":
+        command = command[1:]
+    if not command:
+        raise RuntimeError("Use: skuld sudo run -- <command> [args...]")
+    warn_env_sudo_usage()
+    proc = run_sudo(command, check=False)
+    if proc.returncode != 0:
+        raise RuntimeError(f"sudo command failed with exit code {proc.returncode}.")
+
+
 def shell_quote_pretty(value: str) -> str:
     if value == "":
         return '""'
@@ -252,15 +358,8 @@ def format_bytes(value: str) -> str:
         return "-"
     if num < 0:
         return "-"
-    units = ["B", "KB", "MB", "GB", "TB"]
-    size = float(num)
-    idx = 0
-    while size >= 1024 and idx < len(units) - 1:
-        size /= 1024.0
-        idx += 1
-    if idx == 0:
-        return f"{int(size)}{units[idx]}"
-    return f"{size:.1f}{units[idx]}"
+    size_gb = num / (1024.0 ** 3)
+    return f"{size_gb:.2f}GB"
 
 
 def format_duration_human(seconds: int) -> str:
@@ -358,7 +457,13 @@ def service_label(name: str) -> str:
     return f"io.skuld.{name}"
 
 
+def launchd_label_for_service(service: ManagedService) -> str:
+    return service.launchd_label or service_label(service.name)
+
+
 def plist_path_for_service(service: ManagedService) -> Path:
+    if service.plist_path_hint:
+        return Path(service.plist_path_hint)
     if service.scope == "agent":
         return current_user_home() / "Library/LaunchAgents" / f"{service_label(service.name)}.plist"
     return Path("/Library/LaunchDaemons") / f"{service_label(service.name)}.plist"
@@ -401,11 +506,17 @@ def wrapper_script_for_service(name: str, scope: str) -> Path:
 def normalize_service(item: Dict[str, object]) -> ManagedService:
     scope = resolve_scope(str(item.get("scope", "daemon")))
     name = str(item.get("name", "")).strip()
-    log_dir = str(item.get("log_dir", "")).strip() or str(log_dir_for_service(name, scope))
+    managed_by_skuld = parse_bool(str(item.get("managed_by_skuld", True)))
+    log_dir_default = str(log_dir_for_service(name, scope)) if managed_by_skuld else ""
+    log_dir = str(item.get("log_dir", "")).strip() or log_dir_default
     return ManagedService(
         name=name,
         exec_cmd=str(item.get("exec_cmd", "")).strip(),
         description=str(item.get("description", "")).strip(),
+        display_name=str(item.get("display_name", name)).strip() or name,
+        launchd_label=str(item.get("launchd_label", service_label(name))).strip() or service_label(name),
+        plist_path_hint=str(item.get("plist_path_hint", "")).strip(),
+        managed_by_skuld=managed_by_skuld,
         schedule=str(item.get("schedule", "")).strip(),
         working_dir=str(item.get("working_dir", "")).strip(),
         user=str(item.get("user", "")).strip(),
@@ -438,6 +549,7 @@ def load_registry() -> List[ManagedService]:
                 f"Invalid registry entry #{idx}: fields 'name', 'exec_cmd' and 'description' are required."
             )
         validate_name(svc.name)
+        validate_name(svc.display_name)
         if svc.scope == "agent" and svc.user:
             raise RuntimeError(f"Invalid registry entry #{idx}: 'user' is only valid for daemon scope.")
         services.append(svc)
@@ -453,6 +565,11 @@ def load_registry() -> List[ManagedService]:
             svc.id = next_id
             changed = True
         used_ids.add(svc.id)
+    display_names = set()
+    for svc in services:
+        if svc.display_name in display_names:
+            raise RuntimeError(f"Duplicate display name in registry: '{svc.display_name}'.")
+        display_names.add(svc.display_name)
     ordered = sorted(services, key=lambda s: (s.name.lower(), s.id))
     canonical = json.dumps([asdict(s) for s in ordered], indent=2, ensure_ascii=False) + "\n"
     if changed or raw_text != canonical:
@@ -468,6 +585,12 @@ def save_registry(services: List[ManagedService]) -> None:
 
 def upsert_registry(service: ManagedService) -> None:
     services = load_registry()
+    for existing_service in services:
+        if existing_service.display_name != service.display_name:
+            continue
+        if existing_service.name == service.name:
+            continue
+        raise RuntimeError(f"Display name '{service.display_name}' is already in use.")
     by_name = {s.name: s for s in services}
     existing = by_name.get(service.name)
     if service.id <= 0 and existing:
@@ -490,6 +613,13 @@ def get_managed(name: str) -> Optional[ManagedService]:
     return None
 
 
+def get_managed_by_display_name(display_name: str) -> Optional[ManagedService]:
+    for svc in load_registry():
+        if svc.display_name == display_name:
+            return svc
+    return None
+
+
 def get_managed_by_id(service_id: int) -> Optional[ManagedService]:
     for svc in load_registry():
         if svc.id == service_id:
@@ -499,6 +629,9 @@ def get_managed_by_id(service_id: int) -> Optional[ManagedService]:
 
 def resolve_managed_from_token(token: str) -> Optional[ManagedService]:
     svc = get_managed(token)
+    if svc:
+        return svc
+    svc = get_managed_by_display_name(token)
     if svc:
         return svc
     if token.isdigit():
@@ -566,6 +699,73 @@ def resolve_lines_arg(args: argparse.Namespace, default: int = 100) -> int:
     if lines_pos is not None:
         return lines_pos
     return default
+
+
+def discover_launchd_services() -> List[DiscoverableService]:
+    proc = run(["launchctl", "list"], check=False, capture=True)
+    entries: List[DiscoverableService] = []
+    for raw in (proc.stdout or "").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("PID\tStatus\tLabel"):
+            continue
+        parts = line.split(None, 2)
+        if len(parts) != 3:
+            continue
+        pid, status, label = parts
+        entries.append(DiscoverableService(index=0, label=label.strip(), pid=pid.strip(), status=status.strip()))
+    entries.sort(key=lambda item: item.label.lower())
+    for idx, entry in enumerate(entries, start=1):
+        entry.index = idx
+    return entries
+
+
+def resolve_discoverable_targets(tokens: List[str]) -> List[DiscoverableService]:
+    catalog = discover_launchd_services()
+    by_index = {entry.index: entry for entry in catalog}
+    by_label = {entry.label: entry for entry in catalog}
+    resolved: List[DiscoverableService] = []
+    seen_labels = set()
+    for token in tokens:
+        entry = None
+        if token.isdigit():
+            entry = by_index.get(int(token))
+        else:
+            entry = by_label.get(token)
+        if not entry:
+            raise RuntimeError(f"Launchd service '{token}' not found in the current catalog.")
+        if entry.label in seen_labels:
+            continue
+        seen_labels.add(entry.label)
+        resolved.append(entry)
+    return resolved
+
+
+def launchctl_print_service_raw(label: str) -> str:
+    target = f"gui/{os.getuid()}/{label}"
+    proc = run(["launchctl", "print", target], check=False, capture=True)
+    if proc.returncode != 0:
+        return ""
+    return proc.stdout or ""
+
+
+def extract_launchctl_value(text: str, key: str) -> str:
+    match = re.search(rf"^\s*{re.escape(key)} = (.+)$", text, flags=re.MULTILINE)
+    return match.group(1).strip() if match else ""
+
+
+def render_discoverable_services_hint() -> None:
+    catalog = discover_launchd_services()
+    if not catalog:
+        print("No services tracked by skuld.")
+        print("No visible launchd services were discovered in the current session.")
+        return
+    print("No services tracked by skuld.")
+    print()
+    for entry in catalog[:60]:
+        pid = "-" if entry.pid == "-" else entry.pid
+        print(f"{entry.index:>3}. {entry.label}  pid={pid} status={entry.status}")
+    print()
+    print("Use `skuld track <id ...>` or `skuld track <label ...>` to start tracking services from this catalog.")
 
 
 def require_supported_scope_user(scope: str, user: str) -> None:
@@ -637,11 +837,11 @@ def domain_target(scope: str) -> str:
 
 
 def service_target(service: ManagedService) -> str:
-    return f"{domain_target(service.scope)}/{service_label(service.name)}"
+    return f"{domain_target(service.scope)}/{launchd_label_for_service(service)}"
 
 
 def service_loaded(service: ManagedService) -> bool:
-    proc = launchctl_cmd(service.scope, ["list", service_label(service.name)], check=False, capture=True)
+    proc = launchctl_cmd(service.scope, ["list", launchd_label_for_service(service)], check=False, capture=True)
     return proc.returncode == 0
 
 
@@ -657,7 +857,7 @@ def parse_launchctl_kv(text: str) -> Dict[str, str]:
 
 
 def launchctl_service_info(service: ManagedService) -> Dict[str, str]:
-    proc = launchctl_cmd(service.scope, ["list", service_label(service.name)], check=False, capture=True)
+    proc = launchctl_cmd(service.scope, ["list", launchd_label_for_service(service)], check=False, capture=True)
     if proc.returncode != 0:
         return {}
     return parse_launchctl_kv(proc.stdout or "")
@@ -988,7 +1188,7 @@ def build_plist(service: ManagedService) -> Dict[str, object]:
     log_dir = Path(service.log_dir or log_dir_for_service(service.name, service.scope))
     wrapper_path = wrapper_script_for_service(service.name, service.scope)
     plist: Dict[str, object] = {
-        "Label": service_label(service.name),
+        "Label": launchd_label_for_service(service),
         "ProgramArguments": [str(wrapper_path)],
         "StandardOutPath": str(log_dir / "_launcher.stdout.log"),
         "StandardErrorPath": str(log_dir / "_launcher.stderr.log"),
@@ -1063,7 +1263,9 @@ def sync_registry_from_launchd(name: Optional[str] = None) -> int:
                 plist = plistlib.load(handle)
             new_svc.working_dir = str(plist.get("WorkingDirectory", new_svc.working_dir))
             new_svc.user = str(plist.get("UserName", new_svc.user))
-            new_svc.log_dir = str(Path(str(plist.get("StandardOutPath", new_svc.log_dir))).parent)
+            stdout_path = str(plist.get("StandardOutPath", "")).strip()
+            if stdout_path:
+                new_svc.log_dir = str(Path(stdout_path).parent)
         if asdict(new_svc) != asdict(svc):
             changed += 1
             updated.append(new_svc)
@@ -1074,15 +1276,62 @@ def sync_registry_from_launchd(name: Optional[str] = None) -> int:
     return changed
 
 
+def track(args: argparse.Namespace) -> None:
+    targets = list(args.targets or [])
+    if not targets:
+        raise RuntimeError("Use: skuld track <id ...> or skuld track <label ...>")
+    if args.alias and len(targets) != 1:
+        raise RuntimeError("--alias can only be used when tracking exactly one service.")
+
+    resolved = resolve_discoverable_targets(targets)
+    for entry in resolved:
+        label = entry.label
+        suggested = suggest_display_name(label)
+        alias = (args.alias or prompt_display_name(label, suggested)).strip()
+        ensure_display_name_available(alias)
+        if get_managed(label):
+            raise RuntimeError(f"'{label}' is already tracked in skuld.")
+        raw = launchctl_print_service_raw(label)
+        if not raw:
+            raise RuntimeError(f"Could not inspect launchd service '{label}'.")
+        plist_path = extract_launchctl_value(raw, "path")
+        program = extract_launchctl_value(raw, "program") or label
+        state = extract_launchctl_value(raw, "state")
+        description = label if not state else f"{label} ({state})"
+        service = ManagedService(
+            name=label,
+            exec_cmd=program,
+            description=description,
+            display_name=alias,
+            launchd_label=label,
+            plist_path_hint=plist_path,
+            managed_by_skuld=False,
+            scope="agent",
+            log_dir="",
+        )
+        upsert_registry(service)
+        ok(f"Tracked '{label}' as '{alias}'.")
+
+
 def create(args: argparse.Namespace) -> None:
     validate_name(args.name)
     scope = resolve_scope(args.scope)
     require_supported_scope_user(scope, args.user or "")
     desc = args.description or f"Skuld service: {args.name}"
+    launchd_label = service_label(args.name)
+    plist_path = (
+        current_user_home() / "Library/LaunchAgents" / f"{launchd_label}.plist"
+        if scope == "agent"
+        else Path("/Library/LaunchDaemons") / f"{launchd_label}.plist"
+    )
     service = ManagedService(
         name=args.name,
         exec_cmd=args.exec,
         description=desc,
+        display_name=args.name,
+        launchd_label=launchd_label,
+        plist_path_hint=str(plist_path),
+        managed_by_skuld=True,
         schedule=args.schedule or "",
         working_dir=args.working_dir or "",
         user=args.user or "",
@@ -1097,7 +1346,7 @@ def create(args: argparse.Namespace) -> None:
     bootstrap_service(service)
     upsert_registry(service)
     update_runtime_stats(service)
-    ok(f"Service '{service.name}' created and registered.")
+    ok(f"Service '{service.display_name}' created and registered.")
 
 
 def managed_uses_schedule(service: ManagedService) -> bool:
@@ -1112,7 +1361,7 @@ def apply_action_for_managed(service: ManagedService, action: str) -> None:
             if proc.returncode != 0:
                 details = (proc.stderr or proc.stdout or "").strip()
                 raise RuntimeError(f"Failed to start {service.name}. {details}".strip())
-        ok(f"start -> {service.name}")
+        ok(f"start -> {service.display_name}")
         return
     if action == "stop":
         pid = read_pid(service)
@@ -1122,7 +1371,7 @@ def apply_action_for_managed(service: ManagedService, action: str) -> None:
         for extra_pid in extra_pids:
             if extra_pid != pid:
                 terminate_process_tree(extra_pid)
-        ok(f"stop -> {service.name}")
+        ok(f"stop -> {service.display_name}")
         return
     if action == "restart":
         pid = read_pid(service)
@@ -1138,7 +1387,7 @@ def apply_action_for_managed(service: ManagedService, action: str) -> None:
             if proc.returncode != 0:
                 details = (proc.stderr or proc.stdout or "").strip()
                 raise RuntimeError(f"Failed to restart {service.name}. {details}".strip())
-        ok(f"restart -> {service.name}")
+        ok(f"restart -> {service.display_name}")
         return
     raise RuntimeError(f"Unsupported action: {action}")
 
@@ -1161,7 +1410,7 @@ def exec_now(args: argparse.Namespace) -> None:
     if proc.returncode != 0:
         details = (proc.stderr or proc.stdout or "").strip()
         raise RuntimeError(f"Failed to execute {service.name}. {details}".strip())
-    ok(f"Execution started: {service.name}")
+    ok(f"Execution started: {service.display_name}")
 
 
 def status(args: argparse.Namespace) -> None:
@@ -1169,8 +1418,9 @@ def status(args: argparse.Namespace) -> None:
     if not service:
         raise RuntimeError("Service target is required.")
     info_map = launchctl_service_info(service)
-    print(f"name: {service.name}")
-    print(f"label: {service_label(service.name)}")
+    print(f"name: {service.display_name}")
+    print(f"target: {service.name}")
+    print(f"label: {launchd_label_for_service(service)}")
     print(f"scope: {service.scope}")
     print(f"domain: {domain_target(service.scope)}")
     print(f"loaded: {'yes' if info_map else 'no'}")
@@ -1194,6 +1444,8 @@ def logs(args: argparse.Namespace) -> None:
     service = resolve_managed_arg(args)
     if not service:
         raise RuntimeError("Service target is required.")
+    if not service.managed_by_skuld:
+        raise RuntimeError("Logs are only available for jobs created by skuld on macOS.")
     if args.since:
         raise RuntimeError("--since is not supported on macOS yet. Logs are read from files.")
     if args.timer:
@@ -1241,7 +1493,7 @@ def read_cpu_memory(pid: int) -> Dict[str, str]:
     parts = output.split()
     if len(parts) < 2:
         return {"cpu": "-", "memory": "-"}
-    cpu = parts[0]
+    cpu = parts[0].replace(",", ".")
     try:
         memory_kib = int(parts[1])
     except ValueError:
@@ -1275,6 +1527,13 @@ def read_ports(pid: int) -> str:
     return f"{','.join(ports[:2])}+{len(ports) - 2}"
 
 
+def parse_vm_stat_count(value: str) -> int:
+    digits = re.sub(r"[^0-9]", "", value or "")
+    if not digits:
+        return 0
+    return int(digits)
+
+
 def read_host_overview() -> Dict[str, str]:
     uptime = "-"
     proc = run(["sysctl", "-n", "kern.boottime"], check=False, capture=True)
@@ -1304,7 +1563,7 @@ def read_host_overview() -> Dict[str, str]:
             if ":" not in raw:
                 continue
             key, value = raw.split(":", 1)
-            count = int(value.strip().strip("."))
+            count = parse_vm_stat_count(value)
             if key.startswith("Pages free"):
                 pages_free = count
             elif key.startswith("Pages inactive"):
@@ -1327,14 +1586,14 @@ def render_host_panel() -> None:
     print()
 
 
-def _render_services_table(compact: bool) -> None:
+def _render_services_table(compact: bool, sort_by: str = "id") -> None:
     sync_registry_from_launchd()
-    services = sorted(load_registry(), key=lambda s: s.name.lower())
+    services = list(load_registry())
     if not services:
-        print("No services managed by skuld.")
+        render_discoverable_services_hint()
         return
     runtime_stats: Dict[str, Dict[str, object]] = {}
-    rows: List[List[str]] = []
+    rows: List[Dict[str, object]] = []
     print()
     render_host_panel()
     for service in services:
@@ -1352,38 +1611,45 @@ def _render_services_table(compact: bool) -> None:
         timer_state = colorize("scheduled", "green") if service.schedule and loaded else (colorize("inactive", "yellow") if service.schedule else colorize("n/a", "gray"))
         stats = runtime_stats[service.name]
         rows.append(
+            {
+                "id": service.id,
+                "name": service.display_name,
+                "service": service_state,
+                "timer": timer_state,
+                "cpu": usage["cpu"],
+                "memory": usage["memory"],
+                "ports": read_ports(pid),
+            }
+        )
+    ordered_rows = sorted(rows, key=lambda row: service_sort_key(sort_by, row))
+    render_table(
+        ["id", "name", "service", "timer", "cpu", "memory", "ports"],
+        [
             [
-                str(service.id),
-                service.name,
-                kind,
-                service_state,
-                timer_state,
-                compute_next_run(service.schedule),
-                format_restarts_exec(service, runtime_stats),
-                str(stats.get("last_run", "-")),
-                service.schedule or "-",
-                usage["cpu"],
-                usage["memory"],
-                read_ports(pid),
+                str(row["id"]),
+                str(row["name"]),
+                str(row["service"]),
+                str(row["timer"]),
+                str(row["cpu"]),
+                str(row["memory"]),
+                str(row["ports"]),
             ]
-        )
-    if compact:
-        compact_rows = [[row[0], row[1], row[2], row[3], row[4], row[9], row[10]] for row in rows]
-        render_table(["id", "name", "kind", "service", "timer", "cpu", "memory"], compact_rows)
-    else:
-        render_table(
-            ["id", "name", "kind", "service", "timer", "next_run", "r/e", "last_run", "schedule", "cpu", "memory", "ports"],
-            rows,
-        )
+            for row in ordered_rows
+        ],
+    )
     print()
 
 
-def list_services(_args: argparse.Namespace) -> None:
-    _render_services_table(compact=False)
+def list_services(args: argparse.Namespace) -> None:
+    _render_services_table(compact=False, sort_by=resolve_sort_arg(args))
 
 
-def list_services_compact() -> None:
-    _render_services_table(compact=True)
+def list_services_compact(sort_by: str = "id") -> None:
+    _render_services_table(compact=True, sort_by=sort_by)
+
+
+def catalog(_args: argparse.Namespace) -> None:
+    render_discoverable_services_hint()
 
 
 def stats(args: argparse.Namespace) -> None:
@@ -1391,7 +1657,8 @@ def stats(args: argparse.Namespace) -> None:
     if not service:
         raise RuntimeError("Service target is required.")
     item = update_runtime_stats(service)[service.name]
-    print(f"name: {service.name}")
+    print(f"name: {service.display_name}")
+    print(f"target: {service.name}")
     print(f"scope: {service.scope}")
     print(f"window: all retained event entries")
     print(f"executions: {item.get('executions', 0)}")
@@ -1424,6 +1691,8 @@ def recreate(args: argparse.Namespace) -> None:
     service = resolve_managed_arg(args)
     if not service:
         raise RuntimeError("Service target is required.")
+    if not service.managed_by_skuld:
+        raise RuntimeError("recreate is only available for jobs created by skuld on macOS.")
     print(build_recreate_command(service))
 
 
@@ -1431,6 +1700,8 @@ def remove(args: argparse.Namespace) -> None:
     service = resolve_managed_arg(args)
     if not service:
         raise RuntimeError("Service target is required.")
+    if not service.managed_by_skuld:
+        raise RuntimeError("remove is only available for jobs created by skuld on macOS. Use untrack instead.")
     bootout_service(service)
     rm_file(plist_path_for_service(service), service.scope)
     rm_file(wrapper_script_for_service(service.name, service.scope), service.scope)
@@ -1450,18 +1721,18 @@ def remove(args: argparse.Namespace) -> None:
 def doctor(_args: argparse.Namespace) -> None:
     services = load_registry()
     if not services:
-        print("No services managed by skuld.")
+        render_discoverable_services_hint()
         return
     issues = 0
     for service in services:
-        prefix = f"[{service.name}]"
+        prefix = f"[{service.display_name}|{service.name}]"
         plist_path = plist_path_for_service(service)
         if not plist_path.exists():
             print(f"{prefix} ERROR missing plist ({plist_path})")
             issues += 1
         else:
             print(f"{prefix} plist=ok")
-        if not wrapper_script_for_service(service.name, service.scope).exists():
+        if service.managed_by_skuld and not wrapper_script_for_service(service.name, service.scope).exists():
             print(f"{prefix} ERROR missing wrapper script")
             issues += 1
         loaded = service_loaded(service)
@@ -1488,6 +1759,8 @@ def apply_managed_update(
     clear_schedule: bool = False,
     scope: Optional[str] = None,
 ) -> bool:
+    if not current.managed_by_skuld:
+        raise RuntimeError("edit is only available for jobs created by skuld on macOS.")
     new_scope = resolve_scope(scope or current.scope)
     new_exec = exec_cmd if exec_cmd is not None else current.exec_cmd
     new_description = description if description is not None else current.description
@@ -1503,6 +1776,10 @@ def apply_managed_update(
         name=current.name,
         exec_cmd=new_exec,
         description=new_description,
+        display_name=current.display_name,
+        launchd_label=current.launchd_label,
+        plist_path_hint=current.plist_path_hint,
+        managed_by_skuld=current.managed_by_skuld,
         schedule=new_schedule,
         working_dir=new_workdir,
         user=new_user,
@@ -1547,7 +1824,47 @@ def edit(args: argparse.Namespace) -> None:
     if not changed:
         info("No changes detected.")
         return
-    ok(f"Service '{service.name}' updated.")
+    ok(f"Service '{service.display_name}' updated.")
+
+
+def rename(args: argparse.Namespace) -> None:
+    service = resolve_managed_arg(args)
+    if not service:
+        raise RuntimeError("Service target is required.")
+    new_name = (args.new_name or "").strip()
+    ensure_display_name_available(new_name, current_name=service.name)
+    if service.display_name == new_name:
+        info("No changes detected.")
+        return
+    upsert_registry(
+        ManagedService(
+            name=service.name,
+            exec_cmd=service.exec_cmd,
+            description=service.description,
+            display_name=new_name,
+            launchd_label=service.launchd_label,
+            plist_path_hint=service.plist_path_hint,
+            managed_by_skuld=service.managed_by_skuld,
+            schedule=service.schedule,
+            working_dir=service.working_dir,
+            user=service.user,
+            restart=service.restart,
+            timer_persistent=service.timer_persistent,
+            id=service.id,
+            backend=service.backend,
+            scope=service.scope,
+            log_dir=service.log_dir,
+        )
+    )
+    ok(f"Renamed '{service.display_name}' to '{new_name}'.")
+
+
+def untrack(args: argparse.Namespace) -> None:
+    service = resolve_managed_arg(args)
+    if not service:
+        raise RuntimeError("Service target is required.")
+    remove_registry(service.name)
+    ok(f"Removed '{service.display_name}' from the skuld registry.")
 
 
 def describe(args: argparse.Namespace) -> None:
@@ -1556,7 +1873,8 @@ def describe(args: argparse.Namespace) -> None:
         raise RuntimeError("Service target is required.")
     info_map = launchctl_service_info(service)
     stats_map = read_event_stats(service)
-    print(f"name: {service.name}")
+    print(f"name: {service.display_name}")
+    print(f"target: {service.name}")
     print(f"description: {service.description}")
     print(f"exec: {service.exec_cmd}")
     print(f"scope: {service.scope}")
@@ -1590,7 +1908,7 @@ def adopt(_args: argparse.Namespace) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="skuld", description="CLI for managing launchd services")
+    parser = argparse.ArgumentParser(prog="skuld", description="CLI for tracking and operating launchd jobs")
     parser.add_argument(
         "--no-env-sudo",
         action="store_true",
@@ -1598,9 +1916,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--ascii", action="store_true", help="Force ASCII table borders")
     parser.add_argument("--unicode", action="store_true", help="Force Unicode table borders")
+    parser.add_argument("--sort", choices=SORT_CHOICES, default="id", help="Sort service views by id, name, cpu, or memory")
     sub = parser.add_subparsers(dest="command", required=False)
 
-    create_parser = sub.add_parser("create", help="Create and install a launchd job")
+    create_parser = sub.add_parser("create", help="Legacy: create and install a launchd job")
     create_parser.add_argument("--name", required=True)
     create_parser.add_argument("--exec", required=True, help="Program command")
     create_parser.add_argument("--description")
@@ -1612,8 +1931,30 @@ def build_parser() -> argparse.ArgumentParser:
     create_parser.add_argument("--scope", choices=["daemon", "agent"], default="agent")
     create_parser.set_defaults(func=create)
 
-    list_parser = sub.add_parser("list", help="List services managed by skuld")
+    list_parser = sub.add_parser("list", help="List services tracked by skuld")
+    list_parser.add_argument("--sort", choices=SORT_CHOICES, default="id", help="Sort by id, name, cpu, or memory")
     list_parser.set_defaults(func=list_services)
+
+    catalog_parser = sub.add_parser("catalog", help="Show the current launchd discovery catalog")
+    catalog_parser.set_defaults(func=catalog)
+
+    track_parser = sub.add_parser("track", help="Track launchd services from the current session catalog")
+    track_parser.add_argument("targets", nargs="+", help="Catalog ids or launchd labels")
+    track_parser.add_argument("--alias", help="Friendly name shown by skuld when tracking a single service")
+    track_parser.set_defaults(func=track)
+
+    rename_parser = sub.add_parser("rename", help="Change the display name of a tracked service")
+    rename_parser.add_argument("name", nargs="?")
+    rename_parser.add_argument("new_name")
+    rename_parser.add_argument("--name", dest="name_flag")
+    rename_parser.add_argument("--id", dest="id_flag", type=int)
+    rename_parser.set_defaults(func=rename)
+
+    untrack_parser = sub.add_parser("untrack", help="Remove a service from the skuld registry without touching launchd")
+    untrack_parser.add_argument("name", nargs="?")
+    untrack_parser.add_argument("--name", dest="name_flag")
+    untrack_parser.add_argument("--id", dest="id_flag", type=int)
+    untrack_parser.set_defaults(func=untrack)
 
     exec_parser = sub.add_parser("exec", help="Execute a service immediately")
     exec_parser.add_argument("name", nargs="?")
@@ -1659,7 +2000,7 @@ def build_parser() -> argparse.ArgumentParser:
     logs_parser.add_argument("--plain", action="store_true", help="Ignored on macOS file logs")
     logs_parser.set_defaults(func=logs)
 
-    stats_parser = sub.add_parser("stats", help="Show execution/restart counters for a managed service")
+    stats_parser = sub.add_parser("stats", help="Show execution/restart counters for a tracked service")
     stats_parser.add_argument("name", nargs="?")
     stats_parser.add_argument("--name", dest="name_flag")
     stats_parser.add_argument("--id", dest="id_flag", type=int)
@@ -1667,7 +2008,7 @@ def build_parser() -> argparse.ArgumentParser:
     stats_parser.add_argument("--boot", action="store_true", help="Ignored on macOS event stats")
     stats_parser.set_defaults(func=stats)
 
-    remove_parser = sub.add_parser("remove", help="Remove jobs")
+    remove_parser = sub.add_parser("remove", help="Legacy: remove jobs")
     remove_parser.add_argument("name", nargs="?")
     remove_parser.add_argument("--name", dest="name_flag")
     remove_parser.add_argument("--id", dest="id_flag", type=int)
@@ -1682,7 +2023,7 @@ def build_parser() -> argparse.ArgumentParser:
     doctor_parser = sub.add_parser("doctor", help="Check registry/launchd inconsistencies")
     doctor_parser.set_defaults(func=doctor)
 
-    edit_parser = sub.add_parser("edit", help="Edit a managed service definition")
+    edit_parser = sub.add_parser("edit", help="Legacy: edit a managed service definition")
     edit_parser.add_argument("name", nargs="?")
     edit_parser.add_argument("--name", dest="name_flag")
     edit_parser.add_argument("--id", dest="id_flag", type=int)
@@ -1702,13 +2043,13 @@ def build_parser() -> argparse.ArgumentParser:
     edit_parser.add_argument("--scope", choices=["daemon", "agent"])
     edit_parser.set_defaults(func=edit)
 
-    describe_parser = sub.add_parser("describe", help="Show details for a managed service")
+    describe_parser = sub.add_parser("describe", help="Show details for a tracked service")
     describe_parser.add_argument("name", nargs="?")
     describe_parser.add_argument("--name", dest="name_flag")
     describe_parser.add_argument("--id", dest="id_flag", type=int)
     describe_parser.set_defaults(func=describe)
 
-    recreate_parser = sub.add_parser("recreate", help="Print equivalent skuld create command for a managed service")
+    recreate_parser = sub.add_parser("recreate", help="Legacy: print equivalent skuld create command for a managed service")
     recreate_parser.add_argument("name", nargs="?")
     recreate_parser.add_argument("--name", dest="name_flag")
     recreate_parser.add_argument("--id", dest="id_flag", type=int)
@@ -1723,13 +2064,23 @@ def build_parser() -> argparse.ArgumentParser:
     version_parser = sub.add_parser("version", help="Show version")
     version_parser.set_defaults(func=lambda _args: print(VERSION))
 
+    sudo_parser = sub.add_parser("sudo", help="Helpers for one-off sudo usage")
+    sudo_sub = sudo_parser.add_subparsers(dest="sudo_command", required=True)
+
+    sudo_check_parser = sudo_sub.add_parser("check", help="Check whether sudo can run non-interactively")
+    sudo_check_parser.set_defaults(func=sudo_check)
+
+    sudo_run_parser = sudo_sub.add_parser("run", help="Run one command through sudo")
+    sudo_run_parser.add_argument("command", nargs=argparse.REMAINDER)
+    sudo_run_parser.set_defaults(func=sudo_run_command)
+
     return parser
 
 
 def main() -> int:
     global USE_ENV_SUDO, FORCE_TABLE_ASCII, FORCE_TABLE_UNICODE
     argv = list(sys.argv)
-    known_commands = {"create", "list", "exec", "start", "stop", "restart", "status", "logs", "stats", "remove", "adopt", "doctor", "edit", "describe", "recreate", "sync", "version"}
+    known_commands = {"create", "list", "catalog", "track", "rename", "untrack", "exec", "start", "stop", "restart", "status", "logs", "stats", "remove", "adopt", "doctor", "edit", "describe", "recreate", "sync", "sudo", "version"}
     edit_flags = {
         "--exec",
         "--description",
@@ -1756,14 +2107,14 @@ def main() -> int:
         if getattr(args, "command", None) != "version":
             load_registry()
         if not getattr(args, "command", None):
-            list_services_compact()
-            print("Quick help: skuld <id|name> commands: exec/start/stop/restart/status/logs/stats/describe/edit/remove")
+            list_services_compact(resolve_sort_arg(args))
+            print("Quick help: skuld track <id ...> | skuld <id|name> exec/start/stop/restart/status/logs/stats/describe/rename/untrack")
             print()
             return 0
         args.func(args)
-        if args.command in {"create", "exec", "start", "stop", "restart", "remove", "edit", "sync"}:
+        if args.command in {"create", "track", "rename", "untrack", "exec", "start", "stop", "restart", "remove", "edit", "sync"}:
             print()
-            list_services_compact()
+            list_services_compact(resolve_sort_arg(args))
         return 0
     except RuntimeError as exc:
         err(str(exc))

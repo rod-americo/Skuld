@@ -26,6 +26,7 @@ FORCE_TABLE_ASCII = False
 FORCE_TABLE_UNICODE = False
 SCHEDULE_PROMPT_SENTINEL = "__SKULD_PROMPT_SCHEDULE__"
 SYSTEMD_UNIT_STARTED_MESSAGE_ID = "39f53479d3a045ac8e11786248231fbf"
+SORT_CHOICES = ("id", "name", "cpu", "memory")
 
 
 @dataclass
@@ -33,6 +34,7 @@ class ManagedService:
     name: str
     exec_cmd: str
     description: str
+    display_name: str = ""
     schedule: str = ""
     working_dir: str = ""
     user: str = ""
@@ -105,6 +107,7 @@ def load_registry() -> List[ManagedService]:
         "name",
         "exec_cmd",
         "description",
+        "display_name",
         "schedule",
         "working_dir",
         "user",
@@ -122,6 +125,7 @@ def load_registry() -> List[ManagedService]:
             "name": str(item.get("name", "")).strip(),
             "exec_cmd": str(item.get("exec_cmd", "")).strip(),
             "description": str(item.get("description", "")).strip(),
+            "display_name": str(item.get("display_name", item.get("name", ""))).strip(),
             "schedule": str(item.get("schedule", "")).strip(),
             "working_dir": str(item.get("working_dir", "")).strip(),
             "user": str(item.get("user", "")).strip(),
@@ -134,6 +138,9 @@ def load_registry() -> List[ManagedService]:
                 f"Invalid registry entry #{idx}: fields 'name', 'exec_cmd' and 'description' are required."
             )
         validate_name(normalized["name"])
+        validate_name(normalized["display_name"] or normalized["name"])
+        if not normalized["display_name"]:
+            normalized["display_name"] = normalized["name"]
         if normalized != {k: item.get(k) for k in known_keys if k in item}:
             changed = True
         services.append(ManagedService(**normalized))
@@ -147,6 +154,13 @@ def load_registry() -> List[ManagedService]:
             svc.id = next_id
             changed = True
         used_ids.add(svc.id)
+
+    display_names = set()
+    for svc in services:
+        if svc.display_name in display_names:
+            raise RuntimeError(f"Duplicate display name in registry: '{svc.display_name}'.")
+        display_names.add(svc.display_name)
+
     normalized_services = sorted(services, key=lambda s: (s.name.lower(), s.id))
     if normalized_services != services:
         changed = True
@@ -164,6 +178,12 @@ def save_registry(services: List[ManagedService]) -> None:
 
 def upsert_registry(service: ManagedService) -> None:
     services = load_registry()
+    for existing_service in services:
+        if existing_service.display_name != service.display_name:
+            continue
+        if existing_service.name == service.name:
+            continue
+        raise RuntimeError(f"Display name '{service.display_name}' is already in use.")
     by_name = {s.name: s for s in services}
     existing = by_name.get(service.name)
     if service.id <= 0 and existing:
@@ -187,6 +207,13 @@ def get_managed(name: str) -> Optional[ManagedService]:
     return None
 
 
+def get_managed_by_display_name(display_name: str) -> Optional[ManagedService]:
+    for svc in load_registry():
+        if svc.display_name == display_name:
+            return svc
+    return None
+
+
 def get_managed_by_id(service_id: int) -> Optional[ManagedService]:
     for svc in load_registry():
         if svc.id == service_id:
@@ -199,7 +226,7 @@ def require_managed(name: str) -> ManagedService:
     if not svc:
         raise RuntimeError(
             f"'{name}' is not in the skuld registry. "
-            "Only services created or adopted via skuld can be monitored."
+            "Only services tracked by skuld can be monitored."
         )
     return svc
 
@@ -261,9 +288,72 @@ def visible_len(text: str) -> int:
     return len(ANSI_RE.sub("", text))
 
 
+def parse_first_float(text: str) -> float:
+    match = re.search(r"\d+(?:\.\d+)?", ANSI_RE.sub("", text or ""))
+    if not match:
+        return -1.0
+    try:
+        return float(match.group(0))
+    except ValueError:
+        return -1.0
+
+
+def service_sort_key(sort_by: str, row: Dict[str, object]) -> tuple:
+    if sort_by == "name":
+        return (str(row["name"]).lower(), int(row["id"]))
+    if sort_by == "cpu":
+        return (-parse_first_float(str(row["cpu"])), str(row["name"]).lower(), int(row["id"]))
+    if sort_by == "memory":
+        return (-parse_first_float(str(row["memory"])), str(row["name"]).lower(), int(row["id"]))
+    return (int(row["id"]),)
+
+
+def resolve_sort_arg(args: Optional[argparse.Namespace]) -> str:
+    sort_by = getattr(args, "sort", "id") if args is not None else "id"
+    return sort_by if sort_by in SORT_CHOICES else "id"
+
+
 def validate_name(name: str) -> None:
     if not NAME_RE.match(name):
         raise ValueError("Invalid name. Use [a-zA-Z0-9._@-] and start with a letter/number.")
+
+
+def ensure_display_name_available(display_name: str, current_name: Optional[str] = None) -> None:
+    validate_name(display_name)
+    for svc in load_registry():
+        if svc.display_name != display_name:
+            continue
+        if current_name is not None and svc.name == current_name:
+            return
+        raise RuntimeError(f"Display name '{display_name}' is already in use.")
+
+
+def normalize_service_name(value: str) -> str:
+    raw = (value or "").strip()
+    if raw.endswith(".service"):
+        raw = raw[:-8]
+    validate_name(raw)
+    return raw
+
+
+def suggest_display_name(value: str) -> str:
+    raw = normalize_service_name(value)
+    tokens = [part for part in raw.split(".") if part]
+    if len(tokens) >= 2 and tokens[-1].isdigit():
+        while tokens and tokens[-1].isdigit():
+            tokens.pop()
+    if len(tokens) >= 2:
+        return "-".join(tokens[-2:])
+    return raw
+
+
+def prompt_display_name(target: str, suggested: str) -> str:
+    if not sys.stdin.isatty():
+        return suggested
+    value = input(f"Display name for {target} [{suggested}]: ").strip()
+    chosen = value or suggested
+    validate_name(chosen)
+    return chosen
 
 
 def resolve_name_arg(args: argparse.Namespace, required: bool = True) -> Optional[str]:
@@ -279,6 +369,9 @@ def resolve_name_arg(args: argparse.Namespace, required: bool = True) -> Optiona
 
 def resolve_managed_from_token(token: str) -> Optional[ManagedService]:
     svc = get_managed(token)
+    if svc:
+        return svc
+    svc = get_managed_by_display_name(token)
     if svc:
         return svc
     if token.isdigit():
@@ -393,6 +486,37 @@ def run_sudo(cmd: List[str], check: bool = True, capture: bool = False) -> subpr
     return run(full, check=check, capture=capture)
 
 
+def warn_env_sudo_usage() -> None:
+    if get_sudo_password():
+        info("Warning: using SKULD_SUDO_PASSWORD from env/.env. Keep this for short-lived local use only.")
+
+
+def sudo_check(_args: argparse.Namespace) -> None:
+    warn_env_sudo_usage()
+    password = get_sudo_password()
+    if password:
+        proc = run(["sudo", "-S", "-k", "-p", "", "true"], check=False, capture=True, input_text=password + "\n")
+    else:
+        proc = run(["sudo", "-n", "true"], check=False, capture=True)
+    if proc.returncode == 0:
+        ok("sudo is available.")
+        return
+    details = (proc.stderr or proc.stdout or "").strip()
+    raise RuntimeError(f"sudo is not available non-interactively. {details}".strip())
+
+
+def sudo_run_command(args: argparse.Namespace) -> None:
+    command = list(args.command or [])
+    if command and command[0] == "--":
+        command = command[1:]
+    if not command:
+        raise RuntimeError("Use: skuld sudo run -- <command> [args...]")
+    warn_env_sudo_usage()
+    proc = run_sudo(command, check=False)
+    if proc.returncode != 0:
+        raise RuntimeError(f"sudo command failed with exit code {proc.returncode}.")
+
+
 def journal_permission_hint(stderr_text: str) -> bool:
     lower = stderr_text.lower()
     return (
@@ -430,15 +554,8 @@ def format_bytes(value: str) -> str:
         return "-"
     if num < 0:
         return "-"
-    units = ["B", "KB", "MB", "GB", "TB"]
-    size = float(num)
-    idx = 0
-    while size >= 1024 and idx < len(units) - 1:
-        size /= 1024.0
-        idx += 1
-    if idx == 0:
-        return f"{int(size)}{units[idx]}"
-    return f"{size:.1f}{units[idx]}"
+    size_gb = num / (1024.0 ** 3)
+    return f"{size_gb:.2f}GB"
 
 
 def format_cpu_nsec(value: str) -> str:
@@ -616,8 +733,7 @@ def read_gpu_memory_by_pid() -> Optional[Dict[int, int]]:
     return by_pid
 
 
-def read_unit_usage(name: str, gpu_memory_by_pid: Optional[Dict[int, int]] = None) -> Dict[str, str]:
-    service_unit = f"{name}.service"
+def read_unit_usage(service_unit: str, gpu_memory_by_pid: Optional[Dict[int, int]] = None) -> Dict[str, str]:
     if not unit_exists(service_unit):
         return {"cpu": "-", "memory": "-", "gpu": "-"}
     show = systemctl_show(service_unit, ["CPUUsageNSec", "MemoryCurrent", "MainPID"])
@@ -642,19 +758,17 @@ def read_unit_usage(name: str, gpu_memory_by_pid: Optional[Dict[int, int]] = Non
     }
 
 
-def get_main_pid(name: str) -> int:
-    unit = f"{name}.service"
-    if not unit_exists(unit):
+def get_main_pid(service_unit: str) -> int:
+    if not unit_exists(service_unit):
         return 0
-    show = systemctl_show(unit, ["MainPID"])
+    show = systemctl_show(service_unit, ["MainPID"])
     return parse_int(show.get("MainPID", ""))
 
 
-def read_unit_pids(name: str) -> List[int]:
-    unit = f"{name}.service"
-    if not unit_exists(unit):
+def read_unit_pids(service_unit: str) -> List[int]:
+    if not unit_exists(service_unit):
         return []
-    show = systemctl_show(unit, ["MainPID", "ControlGroup"])
+    show = systemctl_show(service_unit, ["MainPID", "ControlGroup"])
     pids: Set[int] = set()
     main_pid = parse_int(show.get("MainPID", ""))
     if main_pid > 0:
@@ -798,8 +912,8 @@ def read_unit_ports_from_proc_pids(pids: List[int]) -> List[str]:
     return sorted(tags)
 
 
-def read_unit_ports(name: str) -> str:
-    pids = read_unit_pids(name)
+def read_unit_ports(service_unit: str) -> str:
+    pids = read_unit_pids(service_unit)
     if not pids:
         return "-"
 
@@ -1189,6 +1303,7 @@ def create(args: argparse.Namespace) -> None:
             name=args.name,
             exec_cmd=args.exec,
             description=desc,
+            display_name=args.name,
             schedule=args.schedule or "",
             working_dir=args.working_dir or "",
             user=args.user or "",
@@ -1199,15 +1314,15 @@ def create(args: argparse.Namespace) -> None:
     ok(f"Service '{args.name}' created and registered.")
 
 
-def _render_services_table(compact: bool) -> None:
+def _render_services_table(compact: bool, sort_by: str = "id") -> None:
     require_systemctl()
     sync_registry_from_systemd()
-    services = sorted(load_registry(), key=lambda s: s.name.lower())
+    services = list(load_registry())
     if not services:
-        print("No services managed by skuld.")
+        print("No services tracked by skuld.")
         return
 
-    rows: List[List[str]] = []
+    rows: List[Dict[str, object]] = []
     gpu_memory_by_pid = read_gpu_memory_by_pid()
     runtime_stats = load_runtime_stats()
     print()
@@ -1218,7 +1333,7 @@ def _render_services_table(compact: bool) -> None:
         s_state_raw = unit_active(s_unit) if unit_exists(s_unit) else "missing"
         t_state_raw = unit_active(t_unit) if unit_exists(t_unit) else "n/a"
         schedule = schedule_for_display(svc) or "-"
-        usage = read_unit_usage(svc.name, gpu_memory_by_pid)
+        usage = read_unit_usage(s_unit, gpu_memory_by_pid)
         kind = "timer" if schedule != "-" else "daemon"
         if s_state_raw == "active":
             s_state = colorize("active", "green")
@@ -1235,39 +1350,41 @@ def _render_services_table(compact: bool) -> None:
         else:
             t_state = colorize(t_state_raw, "red")
         rows.append(
+            {
+                "id": svc.id,
+                "name": svc.display_name,
+                "service": s_state,
+                "timer": t_state,
+                "cpu": usage["cpu"],
+                "memory": usage["memory"],
+                "ports": read_unit_ports(s_unit),
+            }
+        )
+    ordered_rows = sorted(rows, key=lambda row: service_sort_key(sort_by, row))
+    render_table(
+        ["id", "name", "service", "timer", "cpu", "memory", "ports"],
+        [
             [
-                str(svc.id),
-                svc.name,
-                kind,
-                s_state,
-                t_state,
-                read_timer_next_run(svc.name),
-                format_restarts_exec(svc.name, runtime_stats),
-                read_timer_last_run(svc.name),
-                schedule,
-                usage["cpu"],
-                usage["memory"],
-                usage["gpu"],
-                read_unit_ports(svc.name),
+                str(row["id"]),
+                str(row["name"]),
+                str(row["service"]),
+                str(row["timer"]),
+                str(row["cpu"]),
+                str(row["memory"]),
+                str(row["ports"]),
             ]
-        )
-    if compact:
-        compact_rows = [[r[0], r[1], r[2], r[3], r[4], r[9], r[10]] for r in rows]
-        render_table(["id", "name", "kind", "service", "timer", "cpu", "memory"], compact_rows)
-    else:
-        render_table(
-            ["id", "name", "kind", "service", "timer", "next_run", "r/e", "last_run", "schedule", "cpu", "memory", "gpu", "ports"],
-            rows,
-        )
+            for row in ordered_rows
+        ],
+    )
     print()
 
 
-def list_services(_args: argparse.Namespace) -> None:
-    _render_services_table(compact=False)
+def list_services(args: argparse.Namespace) -> None:
+    _render_services_table(compact=False, sort_by=resolve_sort_arg(args))
 
 
-def list_services_compact() -> None:
-    _render_services_table(compact=True)
+def list_services_compact(sort_by: str = "id") -> None:
+    _render_services_table(compact=True, sort_by=sort_by)
 
 
 def exec_now(args: argparse.Namespace) -> None:
@@ -1275,11 +1392,19 @@ def exec_now(args: argparse.Namespace) -> None:
     name = svc.name
     require_systemctl()
     run_sudo(["systemctl", "start", f"{name}.service"])
-    ok(f"Execution started: {name}.service")
+    ok(f"Execution started: {name}.service ({svc.display_name})")
+
+
+def managed_has_schedule(svc: ManagedService) -> bool:
+    return bool((svc.schedule or "").strip())
+
+
+def timer_unit_exists(name: str) -> bool:
+    return unit_exists(f"{name}.timer")
 
 
 def managed_uses_timer(svc: ManagedService) -> bool:
-    return bool(svc.schedule) or unit_exists(f"{svc.name}.timer")
+    return managed_has_schedule(svc) and timer_unit_exists(svc.name)
 
 
 def apply_action_for_managed(svc: ManagedService, action: str) -> None:
@@ -1324,6 +1449,7 @@ def status(args: argparse.Namespace) -> None:
     svc = resolve_managed_arg(args)
     name = svc.name
     require_systemctl()
+    print(f"[skuld] {svc.display_name} -> {name}")
     run(["systemctl", "status", f"{name}.service", "--no-pager"], check=False)
     run(["systemctl", "status", f"{name}.timer", "--no-pager"], check=False)
 
@@ -1417,7 +1543,8 @@ def stats(args: argparse.Namespace) -> None:
     executions = count_unit_starts(service_unit, since=args.since, boot=args.boot)
     restarts = read_restart_count(name)
 
-    print(f"name: {name}")
+    print(f"name: {svc.display_name}")
+    print(f"target: {name}")
     print(f"service_unit: {service_unit}")
     if args.boot:
         print("window: current boot")
@@ -1462,6 +1589,84 @@ def build_recreate_command(svc: ManagedService) -> str:
     return "\n".join(lines)
 
 
+def track(args: argparse.Namespace) -> None:
+    name = normalize_service_name(args.service)
+    suggested = suggest_display_name(name)
+    alias = (args.alias or prompt_display_name(name, suggested)).strip()
+    ensure_display_name_available(alias)
+    require_systemctl()
+    if get_managed(name):
+        raise RuntimeError(f"'{name}' is already tracked in skuld.")
+
+    service_unit = f"{name}.service"
+    timer_unit = f"{name}.timer"
+    if not unit_exists(service_unit):
+        raise RuntimeError(f"Service '{service_unit}' does not exist in systemd.")
+
+    service_text = systemctl_cat(service_unit)
+    directives = parse_unit_directives(service_text)
+    exec_line = directives.get("ExecStart", "")
+    if exec_line.startswith("/bin/bash -lc "):
+        exec_line = exec_line[len("/bin/bash -lc "):].strip()
+        if len(exec_line) >= 2 and exec_line[0] == exec_line[-1] and exec_line[0] in ("'", '"'):
+            exec_line = exec_line[1:-1]
+    if not exec_line:
+        exec_line = service_unit
+
+    show_service = systemctl_show(service_unit, ["Description", "WorkingDirectory", "User", "Restart"])
+    schedule = ""
+    timer_persistent = True
+    if unit_exists(timer_unit):
+        show_timer = systemctl_show(timer_unit, ["OnCalendar", "Persistent"])
+        schedule = show_timer.get("OnCalendar", "") or ""
+        timer_persistent = parse_bool(show_timer.get("Persistent", "true"), default=True)
+
+    upsert_registry(
+        ManagedService(
+            name=name,
+            exec_cmd=exec_line,
+            description=show_service.get("Description", f"Tracked service: {name}"),
+            display_name=alias,
+            schedule=schedule,
+            working_dir=show_service.get("WorkingDirectory", "") or "",
+            user=show_service.get("User", "") or "",
+            restart=show_service.get("Restart", "on-failure") or "on-failure",
+            timer_persistent=timer_persistent,
+        )
+    )
+    ok(f"Tracked '{name}' as '{alias}'.")
+
+
+def rename(args: argparse.Namespace) -> None:
+    svc = resolve_managed_arg(args)
+    new_name = (args.new_name or "").strip()
+    ensure_display_name_available(new_name, current_name=svc.name)
+    if svc.display_name == new_name:
+        info("No changes detected.")
+        return
+    upsert_registry(
+        ManagedService(
+            name=svc.name,
+            exec_cmd=svc.exec_cmd,
+            description=svc.description,
+            display_name=new_name,
+            schedule=svc.schedule,
+            working_dir=svc.working_dir,
+            user=svc.user,
+            restart=svc.restart,
+            timer_persistent=svc.timer_persistent,
+            id=svc.id,
+        )
+    )
+    ok(f"Renamed '{svc.display_name}' to '{new_name}'.")
+
+
+def untrack(args: argparse.Namespace) -> None:
+    svc = resolve_managed_arg(args)
+    remove_registry(svc.name)
+    ok(f"Removed '{svc.display_name}' from the skuld registry.")
+
+
 def remove(args: argparse.Namespace) -> None:
     svc = resolve_managed_arg(args)
     name = svc.name
@@ -1493,48 +1698,12 @@ def remove(args: argparse.Namespace) -> None:
 
 
 def adopt(args: argparse.Namespace) -> None:
-    name = resolve_name_arg(args)
-    require_systemctl()
-    validate_name(name)
-    if get_managed(name):
-        raise RuntimeError(f"'{name}' is already registered in skuld.")
-
-    service_unit = f"{name}.service"
-    timer_unit = f"{name}.timer"
-    if not unit_exists(service_unit):
-        raise RuntimeError(f"Service '{service_unit}' does not exist in systemd.")
-
-    service_text = systemctl_cat(service_unit)
-    directives = parse_unit_directives(service_text)
-    exec_line = directives.get("ExecStart", "")
-    if exec_line.startswith("/bin/bash -lc "):
-        exec_line = exec_line[len("/bin/bash -lc "):].strip()
-        if len(exec_line) >= 2 and exec_line[0] == exec_line[-1] and exec_line[0] in ("'", '"'):
-            exec_line = exec_line[1:-1]
-    if not exec_line:
-        raise RuntimeError("Could not infer ExecStart for adopt.")
-
-    show_service = systemctl_show(service_unit, ["Description", "WorkingDirectory", "User", "Restart"])
-    schedule = ""
-    timer_persistent = True
-    if unit_exists(timer_unit):
-        show_timer = systemctl_show(timer_unit, ["OnCalendar", "Persistent"])
-        schedule = show_timer.get("OnCalendar", "") or ""
-        timer_persistent = parse_bool(show_timer.get("Persistent", "true"), default=True)
-
-    upsert_registry(
-        ManagedService(
-            name=name,
-            exec_cmd=exec_line,
-            description=show_service.get("Description", f"Skuld service: {name}"),
-            schedule=schedule,
-            working_dir=show_service.get("WorkingDirectory", "") or "",
-            user=show_service.get("User", "") or "",
-            restart=show_service.get("Restart", "on-failure") or "on-failure",
-            timer_persistent=timer_persistent,
+    track(
+        argparse.Namespace(
+            service=resolve_name_arg(args),
+            alias=getattr(args, "alias", None),
         )
     )
-    ok(f"Service '{name}' adopted into the skuld registry.")
 
 
 def doctor(_args: argparse.Namespace) -> None:
@@ -1542,14 +1711,14 @@ def doctor(_args: argparse.Namespace) -> None:
     sync_registry_from_systemd()
     services = load_registry()
     if not services:
-        print("No services managed by skuld.")
+        print("No services tracked by skuld.")
         return
 
     issues = 0
     for svc in services:
         service_unit = f"{svc.name}.service"
         timer_unit = f"{svc.name}.timer"
-        line_prefix = f"[{svc.name}]"
+        line_prefix = f"[{svc.display_name}|{svc.name}]"
 
         if not unit_exists(service_unit):
             print(f"{line_prefix} ERROR missing service unit ({service_unit})")
@@ -1599,6 +1768,9 @@ def apply_managed_update(
     clear_schedule: bool = False,
 ) -> bool:
     name = current.name
+    service_unit = f"{name}.service"
+    timer_unit = f"{name}.timer"
+    timer_path = f"/etc/systemd/system/{name}.timer"
     new_exec = exec_cmd if exec_cmd is not None else current.exec_cmd
     new_description = description if description is not None else current.description
     new_workdir = working_dir if working_dir is not None else current.working_dir
@@ -1630,7 +1802,11 @@ def apply_managed_update(
     )
     write_systemd_file(f"/etc/systemd/system/{name}.service", service_content)
 
-    timer_path = f"/etc/systemd/system/{name}.timer"
+    timer_exists_before = timer_unit_exists(name)
+    if (not new_schedule) and timer_exists_before:
+        run_sudo(["systemctl", "stop", timer_unit], check=False, capture=True)
+        run_sudo(["systemctl", "disable", timer_unit], check=False, capture=True)
+
     if new_schedule:
         timer_content = render_timer(name, new_schedule, new_timer_persistent)
         write_systemd_file(timer_path, timer_content)
@@ -1640,17 +1816,17 @@ def apply_managed_update(
     run_sudo(["systemctl", "daemon-reload"])
     if new_schedule:
         # Timer jobs should be enabled via .timer only.
-        run_sudo(["systemctl", "disable", f"{name}.service"], check=False)
-        run_sudo(["systemctl", "enable", f"{name}.timer"], check=False)
+        run_sudo(["systemctl", "disable", service_unit], check=False)
+        run_sudo(["systemctl", "enable", timer_unit], check=False)
     else:
-        run_sudo(["systemctl", "enable", f"{name}.service"], check=False)
-        run_sudo(["systemctl", "disable", f"{name}.timer"], check=False)
+        run_sudo(["systemctl", "enable", service_unit], check=False)
 
     upsert_registry(
         ManagedService(
             name=name,
             exec_cmd=new_exec,
             description=new_description,
+            display_name=current.display_name,
             schedule=new_schedule,
             working_dir=new_workdir,
             user=new_user,
@@ -1685,7 +1861,7 @@ def edit(args: argparse.Namespace) -> None:
     if not changed:
         info("No changes detected.")
         return
-    ok(f"Service '{name}' updated.")
+    ok(f"Service '{current.display_name}' updated.")
 
 
 def describe(args: argparse.Namespace) -> None:
@@ -1706,7 +1882,8 @@ def describe(args: argparse.Namespace) -> None:
         ["Id", "ActiveState", "SubState", "NextElapseUSecRealtime", "LastTriggerUSec"],
     ) if unit_exists(timer_unit) else {}
 
-    print(f"name: {svc.name}")
+    print(f"name: {svc.display_name}")
+    print(f"target: {svc.name}")
     print(f"description: {svc.description}")
     print(f"exec: {svc.exec_cmd}")
     print(f"working_dir: {svc.working_dir or '-'}")
@@ -1740,7 +1917,7 @@ def sync(args: argparse.Namespace) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="skuld", description="CLI for managing systemd services")
+    p = argparse.ArgumentParser(prog="skuld", description="CLI for tracking and operating systemd services")
     p.add_argument(
         "--no-env-sudo",
         action="store_true",
@@ -1748,9 +1925,10 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument("--ascii", action="store_true", help="Force ASCII table borders")
     p.add_argument("--unicode", action="store_true", help="Force Unicode table borders")
+    p.add_argument("--sort", choices=SORT_CHOICES, default="id", help="Sort service views by id, name, cpu, or memory")
     sub = p.add_subparsers(dest="command", required=False)
 
-    c = sub.add_parser("create", help="Create and install .service and optional .timer")
+    c = sub.add_parser("create", help="Legacy: create and install .service and optional .timer")
     c.add_argument("--name", required=True)
     c.add_argument("--exec", required=True, help="ExecStart command")
     c.add_argument("--description")
@@ -1761,8 +1939,27 @@ def build_parser() -> argparse.ArgumentParser:
     c.add_argument("--timer-persistent", action=argparse.BooleanOptionalAction, default=True)
     c.set_defaults(func=create)
 
-    l = sub.add_parser("list", help="List services managed by skuld")
+    l = sub.add_parser("list", help="List services tracked by skuld")
+    l.add_argument("--sort", choices=SORT_CHOICES, default="id", help="Sort by id, name, cpu, or memory")
     l.set_defaults(func=list_services)
+
+    tr = sub.add_parser("track", help="Track an existing systemd service with an optional display alias")
+    tr.add_argument("service", help="Existing service name or unit (example: nginx or nginx.service)")
+    tr.add_argument("--alias", help="Friendly name shown by skuld")
+    tr.set_defaults(func=track)
+
+    rn = sub.add_parser("rename", help="Change the display name of a tracked service")
+    rn.add_argument("name", nargs="?")
+    rn.add_argument("new_name")
+    rn.add_argument("--name", dest="name_flag")
+    rn.add_argument("--id", dest="id_flag", type=int)
+    rn.set_defaults(func=rename)
+
+    ut = sub.add_parser("untrack", help="Remove a service from the skuld registry without touching systemd")
+    ut.add_argument("name", nargs="?")
+    ut.add_argument("--name", dest="name_flag")
+    ut.add_argument("--id", dest="id_flag", type=int)
+    ut.set_defaults(func=untrack)
 
     e = sub.add_parser("exec", help="Execute a service immediately")
     e.add_argument("name", nargs="?")
@@ -1808,7 +2005,7 @@ def build_parser() -> argparse.ArgumentParser:
     lg.add_argument("--plain", action="store_true", help="Shortcut for --output cat (message only)")
     lg.set_defaults(func=logs)
 
-    stt = sub.add_parser("stats", help="Show execution/restart counters for a managed service")
+    stt = sub.add_parser("stats", help="Show execution/restart counters for a tracked service")
     stt.add_argument("name", nargs="?")
     stt.add_argument("--name", dest="name_flag")
     stt.add_argument("--id", dest="id_flag", type=int)
@@ -1816,22 +2013,23 @@ def build_parser() -> argparse.ArgumentParser:
     stt.add_argument("--boot", action="store_true", help="Count entries from current boot only")
     stt.set_defaults(func=stats)
 
-    rm = sub.add_parser("remove", help="Remove units")
+    rm = sub.add_parser("remove", help="Legacy: remove units from systemd")
     rm.add_argument("name", nargs="?")
     rm.add_argument("--name", dest="name_flag")
     rm.add_argument("--id", dest="id_flag", type=int)
     rm.add_argument("--purge", action="store_true")
     rm.set_defaults(func=remove)
 
-    ad = sub.add_parser("adopt", help="Adopt an existing systemd service into skuld registry")
+    ad = sub.add_parser("adopt", help="Legacy alias for track")
     ad.add_argument("name", nargs="?")
     ad.add_argument("--name", dest="name_flag")
+    ad.add_argument("--alias")
     ad.set_defaults(func=adopt)
 
     dr = sub.add_parser("doctor", help="Check registry/systemd inconsistencies")
     dr.set_defaults(func=doctor)
 
-    ed = sub.add_parser("edit", help="Edit a managed service definition")
+    ed = sub.add_parser("edit", help="Legacy: edit a managed service definition")
     ed.add_argument("name", nargs="?")
     ed.add_argument("--name", dest="name_flag")
     ed.add_argument("--id", dest="id_flag", type=int)
@@ -1850,13 +2048,13 @@ def build_parser() -> argparse.ArgumentParser:
     ed.add_argument("--timer-persistent", action=argparse.BooleanOptionalAction, default=None)
     ed.set_defaults(func=edit)
 
-    ds = sub.add_parser("describe", help="Show details for a managed service")
+    ds = sub.add_parser("describe", help="Show details for a tracked service")
     ds.add_argument("name", nargs="?")
     ds.add_argument("--name", dest="name_flag")
     ds.add_argument("--id", dest="id_flag", type=int)
     ds.set_defaults(func=describe)
 
-    rc = sub.add_parser("recreate", help="Print equivalent skuld create command for a managed service")
+    rc = sub.add_parser("recreate", help="Legacy: print equivalent skuld create command for a managed service")
     rc.add_argument("name", nargs="?")
     rc.add_argument("--name", dest="name_flag")
     rc.add_argument("--id", dest="id_flag", type=int)
@@ -1871,13 +2069,23 @@ def build_parser() -> argparse.ArgumentParser:
     v = sub.add_parser("version", help="Show version")
     v.set_defaults(func=lambda _a: print(VERSION))
 
+    sd = sub.add_parser("sudo", help="Helpers for one-off sudo usage")
+    sd_sub = sd.add_subparsers(dest="sudo_command", required=True)
+
+    sd_check = sd_sub.add_parser("check", help="Check whether sudo can run non-interactively")
+    sd_check.set_defaults(func=sudo_check)
+
+    sd_run = sd_sub.add_parser("run", help="Run one command through sudo")
+    sd_run.add_argument("command", nargs=argparse.REMAINDER)
+    sd_run.set_defaults(func=sudo_run_command)
+
     return p
 
 
 def main() -> int:
     global USE_ENV_SUDO, FORCE_TABLE_ASCII, FORCE_TABLE_UNICODE
     argv = list(sys.argv)
-    known_commands = {"create", "list", "exec", "start", "stop", "restart", "status", "logs", "stats", "remove", "adopt", "doctor", "edit", "describe", "recreate", "sync", "version"}
+    known_commands = {"create", "list", "track", "rename", "untrack", "exec", "start", "stop", "restart", "status", "logs", "stats", "remove", "adopt", "doctor", "edit", "describe", "recreate", "sync", "sudo", "version"}
     edit_flags = {
         "--exec",
         "--description",
@@ -1903,15 +2111,15 @@ def main() -> int:
         if getattr(args, "command", None) != "version":
             load_registry()
         if not getattr(args, "command", None):
-            list_services_compact()
-            print("Quick help: skuld <id|name> commands: exec/start/stop/restart/status/logs/stats/describe/edit/remove")
+            list_services_compact(resolve_sort_arg(args))
+            print("Quick help: skuld track <service ...> | skuld <id|name> exec/start/stop/restart/status/logs/stats/describe/rename/untrack")
             print()
             return 0
 
         args.func(args)
-        if args.command in {"create", "exec", "start", "stop", "restart", "remove", "adopt", "edit", "sync"}:
+        if args.command in {"create", "track", "rename", "untrack", "exec", "start", "stop", "restart", "remove", "adopt", "edit", "sync"}:
             print()
-            list_services_compact()
+            list_services_compact(resolve_sort_arg(args))
         return 0
     except KeyboardInterrupt:
         return 130
