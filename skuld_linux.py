@@ -536,6 +536,12 @@ def unit_active(unit: str) -> str:
     return status if status else "inactive"
 
 
+def display_unit_state(status: str) -> str:
+    if status == "activating":
+        return "running"
+    return status
+
+
 def format_bytes(value: str) -> str:
     raw = (value or "").strip()
     if not raw or raw in ("[not set]", "n/a"):
@@ -1279,23 +1285,29 @@ def _render_services_table(compact: bool, sort_by: str = "id") -> None:
         t_unit = f"{svc.name}.timer"
         s_state_raw = unit_active(s_unit) if unit_exists(s_unit) else "missing"
         t_state_raw = unit_active(t_unit) if unit_exists(t_unit) else "n/a"
+        s_state_display = display_unit_state(s_state_raw)
+        t_state_display = display_unit_state(t_state_raw)
         schedule = schedule_for_display(svc) or "-"
         usage = read_unit_usage(s_unit, gpu_memory_by_pid)
         kind = "timer" if schedule != "-" else "daemon"
         if s_state_raw == "active":
             s_state = colorize("active", "green")
+        elif s_state_raw == "activating":
+            s_state = colorize(s_state_display, "green")
         elif s_state_raw == "inactive":
             s_state = colorize("inactive", "yellow")
         else:
-            s_state = colorize(s_state_raw, "red")
+            s_state = colorize(s_state_display, "red")
         if t_state_raw == "active":
             t_state = colorize("active", "green")
+        elif t_state_raw == "activating":
+            t_state = colorize(t_state_display, "green")
         elif t_state_raw == "inactive":
             t_state = colorize("inactive", "yellow")
         elif t_state_raw == "n/a":
             t_state = colorize("n/a", "gray")
         else:
-            t_state = colorize(t_state_raw, "red")
+            t_state = colorize(t_state_display, "red")
         rows.append(
             {
                 "id": svc.id,
@@ -1609,7 +1621,7 @@ def doctor(_args: argparse.Namespace) -> None:
             issues += 1
         else:
             st = unit_active(service_unit)
-            print(f"{line_prefix} service={st}")
+            print(f"{line_prefix} service={display_unit_state(st)}")
 
         has_timer = bool(svc.schedule)
         runtime_schedule = read_timer_schedule(svc.name)
