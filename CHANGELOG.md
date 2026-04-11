@@ -19,9 +19,9 @@ The format is inspired by Keep a Changelog and follows semantic versioning inten
   - timer jobs act on `.timer`
   - daemons act on `.service`
 - `list` output redesigned with table formatting and clearer status rendering.
+- Documentation now treats `systemd --user` as the default Linux persistence path and frames `sudo` as optional for `system` scope operations.
 
 ### Fixed
 
 - ANSI-aware table alignment when colors are enabled.
 - Cleaner shell quoting in `recreate` output.
-

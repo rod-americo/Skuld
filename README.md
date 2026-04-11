@@ -29,7 +29,7 @@ It watches only what you intentionally place in its care, then keeps those servi
 
 ## Why Skuld in the AI era
 
-AI can generate service files, timers, and `sudo` commands faster than ever.
+AI can generate service files, timers, `systemd --user` setups, and privileged commands faster than ever.
 Skuld does not need to be the author of those units.
 Its value is the local control layer around what you chose to watch:
 
@@ -43,6 +43,7 @@ Its value is the local control layer around what you chose to watch:
 - Linux backend via `systemd`.
 - macOS backend via `launchd`.
 - Persist tracked service metadata in a local JSON registry.
+- Work across both `system` and `user` `systemd` scopes on Linux.
 - Discover available services and track them from a catalog.
 - Track existing services and assign a display alias.
 - Start, stop, restart, execute-now, inspect status, and read logs.
@@ -54,9 +55,24 @@ Its value is the local control layer around what you chose to watch:
 
 - Linux with `systemd` (`systemctl` + `journalctl`), or macOS with `launchd` (`launchctl`).
 - Python 3.9+.
-- `sudo` privileges when you want to inspect privileged resources or operate services that require elevation.
+- `sudo` only when you need to operate `system` units or inspect privileged resources.
+- No `sudo` is required for normal `systemd --user` workflows.
 
 No external Python packages are required.
+
+## Linux Scopes and Persistence
+
+On Linux, persistence does not imply root.
+
+- Prefer `systemd --user` for per-user daemons and timers.
+- If you want the user manager to keep running after logout, enable linger for that account:
+
+```bash
+loginctl enable-linger "$USER"
+```
+
+- Use `system` scope only for machine-wide services, boot-time startup before login, or workloads that genuinely need elevated access.
+- In Skuld, `sudo` is an operational helper for `system` scope. It is not the default persistence model.
 
 ## Installation
 
@@ -74,13 +90,22 @@ Run from project root:
 
 `./skuld` dispatches to the internal backend automatically.
 
-Optional: place it on your `PATH`.
+Optional: place it on your `PATH` without root.
+
+```bash
+mkdir -p "$HOME/.local/bin"
+ln -s "$(pwd)/skuld" "$HOME/.local/bin/skuld"
+```
+
+If you explicitly want a system-wide install, use:
 
 ```bash
 sudo ln -s "$(pwd)/skuld" /usr/local/bin/skuld
 ```
 
 ## Security Note
+
+Most user-scoped workflows do not need this section.
 
 You can set `SKULD_SUDO_PASSWORD` in `.env` (or environment variables), but this is not recommended for production systems.
 When present, Skuld runs `sudo` non-interactively.
@@ -168,6 +193,7 @@ skuld sudo run -- <command>
 
 ```bash
 skuld track nginx
+skuld track system:nginx --alias edge-proxy
 skuld track sshd.service --alias access-ssh
 skuld track user:syncthing --alias sync-home
 skuld catalog
@@ -184,6 +210,8 @@ On Linux, `track` inspects the existing `.service` and optional same-name `.time
 When there are no tracked services yet, `skuld` shows a numbered catalog from both `systemctl list-unit-files` and `systemctl --user list-unit-files`. You can also reopen that catalog later with `skuld catalog`.
 
 If the same service name exists in both scopes, use an explicit target such as `system:nginx` or `user:nginx`.
+
+For Linux services you own, prefer tracking the `user:` unit. Reach for `system:` only when the service is intentionally machine-wide or privileged.
 
 On macOS, the first run without tracked services shows a numbered catalog from `launchctl list`. You can track from that catalog directly:
 
