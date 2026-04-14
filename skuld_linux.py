@@ -1234,34 +1234,78 @@ def humanize_systemd_duration(value: str) -> str:
     return " ".join(parts) if parts else raw
 
 
+def humanize_calendar_prefix(value: str) -> Optional[str]:
+    raw = re.sub(r"\s+", " ", (value or "").strip())
+    if not raw or raw == "*-*-*":
+        return ""
+
+    match = re.fullmatch(r"([A-Za-z]{3}(?:\.\.[A-Za-z]{3})?(?:,[A-Za-z]{3})*) \*-\*-\*", raw)
+    if match:
+        return re.sub(r",\s*", ", ", match.group(1).replace("..", "-"))
+
+    match = re.fullmatch(r"\*-\*-(\d{2})", raw)
+    if match:
+        return f"monthly on day {int(match.group(1))}"
+
+    return None
+
+
+def with_calendar_prefix(prefix: str, phrase: str) -> str:
+    cleaned_prefix = (prefix or "").strip()
+    if not cleaned_prefix:
+        return phrase
+    if phrase.startswith("every "):
+        return f"{cleaned_prefix} {phrase}"
+    return f"{cleaned_prefix} {phrase}"
+
+
 def humanize_timer_calendar(value: str) -> str:
     raw = re.sub(r"\s+", " ", (value or "").strip())
     if not raw:
         return "-"
-    if raw == "*-*-* *:*:00":
-        return "every minute"
+    parts = raw.split(" ")
+    if len(parts) < 2:
+        cleaned = raw.replace("..", "-")
+        cleaned = re.sub(r",\s*", ", ", cleaned)
+        cleaned = re.sub(r"(\d{2}:\d{2}):00\b", r"\1", cleaned)
+        return cleaned
 
-    match = re.fullmatch(r"\*-\*-\* \*:00/(\d{1,2}):00", raw)
-    if match:
-        minutes = int(match.group(1))
-        return f"every {minutes} minute{'s' if minutes != 1 else ''}"
+    time_expr = parts[-1]
+    prefix = humanize_calendar_prefix(" ".join(parts[:-1]))
+    if prefix is not None:
+        if time_expr == "*:*:00":
+            return with_calendar_prefix(prefix, "every minute")
 
-    match = re.fullmatch(r"\*-\*-\* \*:(\d{2}):00", raw)
-    if match:
-        return f"hourly at :{match.group(1)}"
+        match = re.fullmatch(r"\*:(\d{1,2})/(\d{1,2}):00", time_expr)
+        if match:
+            start_minute = int(match.group(1))
+            every_minutes = int(match.group(2))
+            phrase = f"every {every_minutes} minute{'s' if every_minutes != 1 else ''}"
+            if start_minute != 0:
+                phrase = f"{phrase} from :{start_minute:02d}"
+            return with_calendar_prefix(prefix, phrase)
 
-    match = re.fullmatch(r"\*-\*-\* (\d{2}):(\d{2}):00", raw)
-    if match:
-        return f"daily at {match.group(1)}:{match.group(2)}"
+        match = re.fullmatch(r"(\d{1,2})/(\d{1,2}):(\d{2}):00", time_expr)
+        if match:
+            start_hour = int(match.group(1))
+            every_hours = int(match.group(2))
+            minute = int(match.group(3))
+            phrase = f"every {every_hours} hour{'s' if every_hours != 1 else ''}"
+            if start_hour != 0 or minute != 0:
+                phrase = f"{phrase} from {start_hour:02d}:{minute:02d}"
+            return with_calendar_prefix(prefix, phrase)
 
-    match = re.fullmatch(r"([A-Za-z]{3}(?:\.\.[A-Za-z]{3})?(?:,[A-Za-z]{3})*) \*-\*-\* (\d{2}):(\d{2}):00", raw)
-    if match:
-        weekdays = re.sub(r",\s*", ", ", match.group(1).replace("..", "-"))
-        return f"{weekdays} at {match.group(2)}:{match.group(3)}"
+        match = re.fullmatch(r"\*:(\d{1,2}):00", time_expr)
+        if match:
+            return with_calendar_prefix(prefix, f"hourly at :{int(match.group(1)):02d}")
 
-    match = re.fullmatch(r"\*-\*-(\d{2}) (\d{2}):(\d{2}):00", raw)
-    if match:
-        return f"monthly on day {int(match.group(1))} at {match.group(2)}:{match.group(3)}"
+        match = re.fullmatch(r"(\d{2}):(\d{2}):00", time_expr)
+        if match:
+            if not prefix:
+                return f"daily at {match.group(1)}:{match.group(2)}"
+            if prefix.startswith("monthly on day "):
+                return f"{prefix} at {match.group(1)}:{match.group(2)}"
+            return f"{prefix} at {match.group(1)}:{match.group(2)}"
 
     cleaned = raw.replace("..", "-")
     cleaned = re.sub(r",\s*", ", ", cleaned)
