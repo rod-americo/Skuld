@@ -268,8 +268,8 @@ def service_sort_key(sort_by: str, row: Dict[str, object]) -> Tuple[object, ...]
 
 
 def resolve_sort_arg(args: Optional[argparse.Namespace]) -> str:
-    sort_by = getattr(args, "sort", "id") if args is not None else "id"
-    return sort_by if sort_by in SORT_CHOICES else "id"
+    sort_by = getattr(args, "sort", "name") if args is not None else "name"
+    return sort_by if sort_by in SORT_CHOICES else "name"
 
 
 def info(msg: str) -> None:
@@ -1575,7 +1575,7 @@ def render_host_panel() -> None:
     print()
 
 
-def _render_services_table(compact: bool, sort_by: str = "id") -> None:
+def _render_services_table(compact: bool, sort_by: str = "name") -> None:
     sync_registry_from_launchd()
     services = list(load_registry())
     if not services:
@@ -1635,7 +1635,7 @@ def list_services(args: argparse.Namespace) -> None:
     _render_services_table(compact=False, sort_by=resolve_sort_arg(args))
 
 
-def list_services_compact(sort_by: str = "id") -> None:
+def list_services_compact(sort_by: str = "name") -> None:
     _render_services_table(compact=True, sort_by=sort_by)
 
 
@@ -1768,11 +1768,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--ascii", action="store_true", help="Force ASCII table borders")
     parser.add_argument("--unicode", action="store_true", help="Force Unicode table borders")
-    parser.add_argument("--sort", choices=SORT_CHOICES, default="id", help="Sort service views by id, name, cpu, or memory")
+    parser.add_argument("--sort", choices=SORT_CHOICES, default="name", help="Sort service views by name, id, cpu, or memory")
     sub = parser.add_subparsers(dest="command", required=False)
 
     list_parser = sub.add_parser("list", help="List services tracked by skuld")
-    list_parser.add_argument("--sort", choices=SORT_CHOICES, default="id", help="Sort by id, name, cpu, or memory")
+    list_parser.add_argument("--sort", choices=SORT_CHOICES, default="name", help="Sort by name, id, cpu, or memory")
     list_parser.set_defaults(func=list_services)
 
     catalog_parser = sub.add_parser("catalog", help="Show the current launchd discovery catalog")

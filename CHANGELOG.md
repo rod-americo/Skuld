@@ -20,6 +20,7 @@ The format is inspired by Keep a Changelog and follows semantic versioning inten
   - daemons act on `.service`
 - `list` output redesigned with table formatting and clearer status rendering.
 - `list` now shows a human-readable `triggers` column and drops the redundant Linux `scope` column.
+- `list` now sorts by `name` by default.
 - Documentation now treats `systemd --user` as the default Linux persistence path and frames `sudo` as optional for `system` scope operations.
 
 ### Fixed

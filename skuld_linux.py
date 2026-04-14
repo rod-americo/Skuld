@@ -431,8 +431,8 @@ def service_sort_key(sort_by: str, row: Dict[str, object]) -> tuple:
 
 
 def resolve_sort_arg(args: Optional[argparse.Namespace]) -> str:
-    sort_by = getattr(args, "sort", "id") if args is not None else "id"
-    return sort_by if sort_by in SORT_CHOICES else "id"
+    sort_by = getattr(args, "sort", "name") if args is not None else "name"
+    return sort_by if sort_by in SORT_CHOICES else "name"
 
 
 def validate_name(name: str) -> None:
@@ -1769,7 +1769,7 @@ def parse_bool(value: str, default: bool = True) -> bool:
     return default
 
 
-def _render_services_table(compact: bool, sort_by: str = "id") -> None:
+def _render_services_table(compact: bool, sort_by: str = "name") -> None:
     require_systemctl()
     sync_registry_from_systemd()
     services = list(load_registry())
@@ -1844,7 +1844,7 @@ def list_services(args: argparse.Namespace) -> None:
     _render_services_table(compact=False, sort_by=resolve_sort_arg(args))
 
 
-def list_services_compact(sort_by: str = "id") -> None:
+def list_services_compact(sort_by: str = "name") -> None:
     _render_services_table(compact=True, sort_by=sort_by)
 
 
@@ -2229,11 +2229,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     p.add_argument("--ascii", action="store_true", help="Force ASCII table borders")
     p.add_argument("--unicode", action="store_true", help="Force Unicode table borders")
-    p.add_argument("--sort", choices=SORT_CHOICES, default="id", help="Sort service views by id, name, cpu, or memory")
+    p.add_argument("--sort", choices=SORT_CHOICES, default="name", help="Sort service views by name, id, cpu, or memory")
     sub = p.add_subparsers(dest="command", required=False)
 
     l = sub.add_parser("list", help="List services tracked by skuld")
-    l.add_argument("--sort", choices=SORT_CHOICES, default="id", help="Sort by id, name, cpu, or memory")
+    l.add_argument("--sort", choices=SORT_CHOICES, default="name", help="Sort by name, id, cpu, or memory")
     l.set_defaults(func=list_services)
 
     ct = sub.add_parser("catalog", help="Show the current system + user systemd discovery catalog")
