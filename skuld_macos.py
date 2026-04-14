@@ -237,6 +237,16 @@ def visible_len(text: str) -> int:
     return len(ANSI_RE.sub("", text))
 
 
+def clip_text(text: str, width: int) -> str:
+    if width <= 0:
+        return ""
+    if len(text) <= width:
+        return text
+    if width <= 3:
+        return text[:width]
+    return text[: width - 3] + "..."
+
+
 def parse_first_float(text: str) -> float:
     match = re.search(r"\d+(?:\.\d+)?", ANSI_RE.sub("", text or ""))
     if not match:
@@ -972,6 +982,39 @@ def parse_schedule(schedule: str) -> Tuple[Optional[str], object]:
     )
 
 
+def humanize_schedule_for_display(schedule: str, timer_persistent: bool, max_width: int = 48) -> str:
+    value = (schedule or "").strip()
+    if not value:
+        return "-"
+
+    match = re.match(r"^\*-\*-\* \*:00/(\d{1,2}):00$", value)
+    if match:
+        minutes = int(match.group(1))
+        summary = f"every {minutes} minute{'s' if minutes != 1 else ''}"
+    else:
+        match = re.match(r"^\*-\*-\* \*:(\d{2}):00$", value)
+        if match:
+            summary = f"hourly at :{match.group(1)}"
+        else:
+            match = re.match(r"^\*-\*-\* (\d{2}):(\d{2}):00$", value)
+            if match:
+                summary = f"daily at {match.group(1)}:{match.group(2)}"
+            else:
+                match = re.match(r"^(Mon|Tue|Wed|Thu|Fri|Sat|Sun) \*-\*-\* (\d{2}):(\d{2}):00$", value)
+                if match:
+                    summary = f"{match.group(1)} at {match.group(2)}:{match.group(3)}"
+                else:
+                    match = re.match(r"^\*-\*-(\d{2}) (\d{2}):(\d{2}):00$", value)
+                    if match:
+                        summary = f"monthly on day {int(match.group(1))} at {match.group(2)}:{match.group(3)}"
+                    else:
+                        summary = value
+
+    if timer_persistent:
+        summary = f"{summary}; run at load"
+    return clip_text(summary, max_width)
+
+
 def compute_next_run(schedule: str, now: Optional[dt.datetime] = None) -> str:
     if not schedule:
         return "-"
@@ -1564,6 +1607,7 @@ def _render_services_table(compact: bool, sort_by: str = "id") -> None:
                 "name": service.display_name,
                 "service": service_state,
                 "timer": timer_state,
+                "triggers": humanize_schedule_for_display(service.schedule, service.timer_persistent),
                 "cpu": usage["cpu"],
                 "memory": usage["memory"],
                 "ports": read_ports(pid),
@@ -1571,13 +1615,14 @@ def _render_services_table(compact: bool, sort_by: str = "id") -> None:
         )
     ordered_rows = sorted(rows, key=lambda row: service_sort_key(sort_by, row))
     render_table(
-        ["id", "name", "service", "timer", "cpu", "memory", "ports"],
+        ["id", "name", "service", "timer", "triggers", "cpu", "memory", "ports"],
         [
             [
                 str(row["id"]),
                 str(row["name"]),
                 str(row["service"]),
                 str(row["timer"]),
+                str(row["triggers"]),
                 str(row["cpu"]),
                 str(row["memory"]),
                 str(row["ports"]),

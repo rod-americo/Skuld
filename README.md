@@ -267,9 +267,10 @@ skuld list --sort memory
 ```
 
 - `skuld` and `skuld list` show the same operational view:
-  `id | name | service | timer | cpu | memory | ports`
+  `id | name | service | timer | triggers | cpu | memory | ports`
 - Both accept `--sort id|name|cpu|memory`. The default is `id`. `cpu` and `memory` sort descending.
 - After operational commands like `track`, `rename`, `untrack`, `exec`, `start`, `stop`, `restart`, and `sync`, Skuld refreshes using the compact view.
+- `triggers` summarizes the schedule in human-readable form. On Linux it includes timer directives such as `OnCalendar`, `OnBootSec`, and `OnUnitActiveSec` when available.
 - `ports` is resolved from all PIDs in the service cgroup (not only `MainPID`), so wrapper processes like `npm start` still show the app listening port.
 - Both views include a top host panel with:
   `uptime | cpu(load1/5/15) | memory`
@@ -287,7 +288,7 @@ On Linux, to keep runtime execution counters fresh via `systemd` (outside the Sk
 ./scripts/install_runtime_stats_timer.sh --registry "$HOME/.local/share/skuld/services.json"
 ```
 
-Running `skuld` without arguments shows: `id | name | service | timer | cpu | memory | ports`.
+Running `skuld` without arguments shows: `id | name | service | timer | triggers | cpu | memory | ports`.
 
 ### Execute immediately
 

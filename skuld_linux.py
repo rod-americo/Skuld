@@ -25,6 +25,38 @@ SYSTEMD_UNIT_STARTED_MESSAGE_ID = "39f53479d3a045ac8e11786248231fbf"
 SORT_CHOICES = ("id", "name", "cpu", "memory")
 VALID_SCOPES = ("system", "user")
 SCOPE_ALIASES = {"system": "system", "root": "system", "user": "user"}
+SYSTEMD_DURATION_LABELS = {
+    "us": ("microsecond", "microseconds"),
+    "usec": ("microsecond", "microseconds"),
+    "ms": ("millisecond", "milliseconds"),
+    "msec": ("millisecond", "milliseconds"),
+    "s": ("second", "seconds"),
+    "sec": ("second", "seconds"),
+    "secs": ("second", "seconds"),
+    "second": ("second", "seconds"),
+    "seconds": ("second", "seconds"),
+    "m": ("minute", "minutes"),
+    "min": ("minute", "minutes"),
+    "mins": ("minute", "minutes"),
+    "minute": ("minute", "minutes"),
+    "minutes": ("minute", "minutes"),
+    "h": ("hour", "hours"),
+    "hr": ("hour", "hours"),
+    "hrs": ("hour", "hours"),
+    "hour": ("hour", "hours"),
+    "hours": ("hour", "hours"),
+    "d": ("day", "days"),
+    "day": ("day", "days"),
+    "days": ("day", "days"),
+    "w": ("week", "weeks"),
+    "week": ("week", "weeks"),
+    "weeks": ("week", "weeks"),
+    "month": ("month", "months"),
+    "months": ("month", "months"),
+    "y": ("year", "years"),
+    "year": ("year", "years"),
+    "years": ("year", "years"),
+}
 
 
 @dataclass
@@ -1163,6 +1195,120 @@ def clip_text(text: str, width: int) -> str:
     return text[: width - 3] + "..."
 
 
+def parse_unit_directive_values(unit_text: str) -> Dict[str, List[str]]:
+    directives: Dict[str, List[str]] = {}
+    for raw in unit_text.splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        directives.setdefault(key, []).append(value.strip())
+    return directives
+
+
+def humanize_count_and_unit(amount_text: str, singular: str, plural: str) -> str:
+    try:
+        amount = float(amount_text)
+    except ValueError:
+        return f"{amount_text} {plural}"
+    if amount.is_integer():
+        whole = int(amount)
+        return f"{whole} {singular if whole == 1 else plural}"
+    return f"{amount_text} {plural}"
+
+
+def humanize_systemd_duration(value: str) -> str:
+    raw = re.sub(r"\s+", " ", (value or "").strip())
+    if not raw:
+        return "-"
+    if re.sub(r"\d+(?:\.\d+)?[A-Za-z]+\s*", "", raw).strip():
+        return raw
+
+    parts: List[str] = []
+    for amount_text, unit in re.findall(r"(\d+(?:\.\d+)?)([A-Za-z]+)", raw):
+        labels = SYSTEMD_DURATION_LABELS.get(unit.lower())
+        if not labels:
+            return raw
+        singular, plural = labels
+        parts.append(humanize_count_and_unit(amount_text, singular, plural))
+    return " ".join(parts) if parts else raw
+
+
+def humanize_timer_calendar(value: str) -> str:
+    raw = re.sub(r"\s+", " ", (value or "").strip())
+    if not raw:
+        return "-"
+    if raw == "*-*-* *:*:00":
+        return "every minute"
+
+    match = re.fullmatch(r"\*-\*-\* \*:00/(\d{1,2}):00", raw)
+    if match:
+        minutes = int(match.group(1))
+        return f"every {minutes} minute{'s' if minutes != 1 else ''}"
+
+    match = re.fullmatch(r"\*-\*-\* \*:(\d{2}):00", raw)
+    if match:
+        return f"hourly at :{match.group(1)}"
+
+    match = re.fullmatch(r"\*-\*-\* (\d{2}):(\d{2}):00", raw)
+    if match:
+        return f"daily at {match.group(1)}:{match.group(2)}"
+
+    match = re.fullmatch(r"([A-Za-z]{3}(?:\.\.[A-Za-z]{3})?(?:,[A-Za-z]{3})*) \*-\*-\* (\d{2}):(\d{2}):00", raw)
+    if match:
+        weekdays = re.sub(r",\s*", ", ", match.group(1).replace("..", "-"))
+        return f"{weekdays} at {match.group(2)}:{match.group(3)}"
+
+    match = re.fullmatch(r"\*-\*-(\d{2}) (\d{2}):(\d{2}):00", raw)
+    if match:
+        return f"monthly on day {int(match.group(1))} at {match.group(2)}:{match.group(3)}"
+
+    cleaned = raw.replace("..", "-")
+    cleaned = re.sub(r",\s*", ", ", cleaned)
+    cleaned = re.sub(r"(\d{2}:\d{2}):00\b", r"\1", cleaned)
+    return cleaned
+
+
+def timer_triggers_for_display(svc: ManagedService, max_width: int = 48) -> str:
+    timer_unit = f"{svc.name}.timer"
+    parts: List[str] = []
+
+    def add_part(text: str) -> None:
+        cleaned = (text or "").strip()
+        if cleaned and cleaned not in parts:
+            parts.append(cleaned)
+
+    if unit_exists(timer_unit, scope=svc.scope):
+        directives = parse_unit_directive_values(systemctl_cat(timer_unit, scope=svc.scope))
+        for raw in directives.get("OnCalendar", []):
+            add_part(humanize_timer_calendar(raw))
+        for raw in directives.get("OnBootSec", []):
+            add_part(f"{humanize_systemd_duration(raw)} after boot")
+        for raw in directives.get("OnStartupSec", []):
+            add_part(f"{humanize_systemd_duration(raw)} after startup")
+        for raw in directives.get("OnActiveSec", []):
+            add_part(f"{humanize_systemd_duration(raw)} after timer starts")
+        for raw in directives.get("OnUnitActiveSec", []):
+            add_part(f"every {humanize_systemd_duration(raw)} after last run")
+        for raw in directives.get("OnUnitInactiveSec", []):
+            add_part(f"{humanize_systemd_duration(raw)} after service stops")
+        for raw in directives.get("RandomizedDelaySec", []):
+            add_part(f"jitter up to {humanize_systemd_duration(raw)}")
+        for raw in directives.get("AccuracySec", []):
+            add_part(f"accuracy {humanize_systemd_duration(raw)}")
+        for raw in directives.get("Persistent", []):
+            if parse_bool(raw, default=False):
+                add_part("catch up if missed")
+
+    if not parts:
+        schedule = schedule_for_display(svc)
+        if schedule:
+            add_part(humanize_timer_calendar(schedule))
+
+    summary = "; ".join(parts) if parts else "-"
+    return clip_text(summary, max_width) if max_width > 0 else summary
+
+
 def read_timer_schedule(name: str, scope: str = "system") -> str:
     timer_unit = f"{name}.timer"
     show = systemctl_show(timer_unit, ["OnCalendar"], scope=scope)
@@ -1465,7 +1611,6 @@ def _render_services_table(compact: bool, sort_by: str = "id") -> None:
         t_state_raw = unit_active(t_unit, scope=svc.scope) if unit_exists(t_unit, scope=svc.scope) else "n/a"
         s_state_display = display_unit_state(s_state_raw)
         t_state_display = display_unit_state(t_state_raw)
-        schedule = schedule_for_display(svc) or "-"
         usage = read_unit_usage(s_unit, scope=svc.scope, gpu_memory_by_pid=gpu_memory_by_pid)
         if s_state_raw == "active":
             s_state = colorize("active", "green")
@@ -1489,9 +1634,9 @@ def _render_services_table(compact: bool, sort_by: str = "id") -> None:
             {
                 "id": svc.id,
                 "name": svc.display_name,
-                "scope": svc.scope,
                 "service": s_state,
                 "timer": t_state,
+                "triggers": timer_triggers_for_display(svc),
                 "cpu": usage["cpu"],
                 "memory": usage["memory"],
                 "ports": read_unit_ports(s_unit, scope=svc.scope),
@@ -1499,14 +1644,14 @@ def _render_services_table(compact: bool, sort_by: str = "id") -> None:
         )
     ordered_rows = sorted(rows, key=lambda row: service_sort_key(sort_by, row))
     render_table(
-        ["id", "name", "scope", "service", "timer", "cpu", "memory", "ports"],
+        ["id", "name", "service", "timer", "triggers", "cpu", "memory", "ports"],
         [
             [
                 str(row["id"]),
                 str(row["name"]),
-                str(row["scope"]),
                 str(row["service"]),
                 str(row["timer"]),
+                str(row["triggers"]),
                 str(row["cpu"]),
                 str(row["memory"]),
                 str(row["ports"]),
