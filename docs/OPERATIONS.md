@@ -73,7 +73,7 @@ python3 scripts/check_project_gate.py
 python3 scripts/project_doctor.py
 python3 scripts/project_doctor.py --strict
 python3 scripts/project_doctor.py --audit-config
-bash -n .githooks/pre-commit scripts/install_git_hooks.sh scripts/install_runtime_stats_timer.sh scripts/smoke_macos_launchd.sh scripts/smoke_linux_systemd_user.sh
+bash -n .githooks/pre-commit scripts/install_git_hooks.sh scripts/install_runtime_stats_timer.sh scripts/smoke_macos_launchd.sh scripts/smoke_linux_systemd_user.sh scripts/run_live_smokes.sh
 ```
 
 For a changed subcommand, also run:
@@ -115,6 +115,12 @@ macOS live smoke creates a disposable LaunchAgent:
 
 ```bash
 scripts/smoke_macos_launchd.sh
+```
+
+To run selected live smokes through one command:
+
+```bash
+scripts/run_live_smokes.sh --macos --linux-host <ssh-host>
 ```
 
 The smoke scripts use temporary `SKULD_HOME` directories, track the disposable
@@ -253,7 +259,11 @@ Runtime stats timer preview or removal:
 
 - Preview install:
   `./scripts/install_runtime_stats_timer.sh --dry-run --registry "$HOME/.local/share/skuld/services.json"`
+- Preview status: `./scripts/install_runtime_stats_timer.sh --dry-run --status`
+- Preview verification: `./scripts/install_runtime_stats_timer.sh --dry-run --verify`
 - Preview removal: `./scripts/install_runtime_stats_timer.sh --dry-run --uninstall`
+- Show installed status: `./scripts/install_runtime_stats_timer.sh --status`
+- Verify installed files/timer state: `./scripts/install_runtime_stats_timer.sh --verify`
 - Remove installed timer: `./scripts/install_runtime_stats_timer.sh --uninstall`
 - Removal deletes installed unit files and collector copy, then leaves the stats
   output JSON in place for operator review or manual cleanup.

@@ -31,6 +31,7 @@ If the change touches host operations, also read:
 - `scripts/skuld_journal_stats_collector.py`
 - `scripts/smoke_macos_launchd.sh`
 - `scripts/smoke_linux_systemd_user.sh`
+- `scripts/run_live_smokes.sh`
 - `scripts/smoke_process.sh`
 - `scripts/smoke_trigger.sh`
 
@@ -149,7 +150,7 @@ python3 scripts/check_project_gate.py
 python3 scripts/project_doctor.py
 python3 scripts/project_doctor.py --strict
 python3 scripts/project_doctor.py --audit-config
-bash -n .githooks/pre-commit scripts/install_git_hooks.sh scripts/install_runtime_stats_timer.sh scripts/smoke_macos_launchd.sh scripts/smoke_linux_systemd_user.sh
+bash -n .githooks/pre-commit scripts/install_git_hooks.sh scripts/install_runtime_stats_timer.sh scripts/smoke_macos_launchd.sh scripts/smoke_linux_systemd_user.sh scripts/run_live_smokes.sh
 ```
 
 For new or changed CLI commands, also run:
@@ -169,6 +170,7 @@ authorizes live host validation:
 scripts/smoke_macos_launchd.sh
 scripts/smoke_linux_systemd_user.sh
 scripts/smoke_linux_systemd_user.sh --host <ssh-host>
+scripts/run_live_smokes.sh --macos --linux-host <ssh-host>
 ```
 
 ## Hotspots

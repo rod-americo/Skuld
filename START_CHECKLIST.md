@@ -62,6 +62,9 @@ is not a greenfield scaffold checklist.
   Linux and a disposable LaunchAgent on macOS.
 - [x] Add `--dry-run` and `--uninstall` paths for the Linux stats timer
   installer.
+- [x] Add `--status` and `--verify` paths for the Linux stats timer installer.
+- [x] Add one-command live smoke orchestration through
+  `scripts/run_live_smokes.sh`.
 - [x] Move registry canonicalization behind explicit write paths instead of
   default read side effects.
 - [x] Extract Linux `systemd` low-level adapter behavior into

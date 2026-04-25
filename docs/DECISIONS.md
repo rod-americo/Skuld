@@ -258,12 +258,13 @@ inspect the planned unit files and have a documented removal path.
 
 **Decision**
 
-Add `--dry-run` and `--uninstall` modes to
+Add `--dry-run`, `--status`, `--verify`, and `--uninstall` modes to
 `scripts/install_runtime_stats_timer.sh`.
 
 **Impact**
 
 - Operators can audit generated units before writing to `/etc/systemd/system`.
+- Operators can inspect and verify installed timer state after setup.
 - The installed timer, service, and collector copy can be removed without
   deleting stats output.
 
@@ -275,6 +276,32 @@ Add `--dry-run` and `--uninstall` modes to
 
 - Installing the timer implicitly from `./skuld`.
 - Removing generated stats automatically during uninstall.
+
+## 2026-04-25 - Keep Live Smokes Explicit But Repeatable
+
+**Context**
+
+Disposable live smoke scripts prove real service-manager behavior, but running
+them one by one is easy to do inconsistently.
+
+**Decision**
+
+Add `scripts/run_live_smokes.sh` as an explicit orchestrator for selected live
+smoke targets.
+
+**Impact**
+
+- Operators can run macOS and Linux smoke checks through one command.
+- The default remains non-mutating unless a target flag is provided.
+
+**Tradeoff**
+
+- Live smokes are still host-dependent and remain outside pre-commit.
+
+**Alternatives rejected**
+
+- Running live smokes automatically from the project doctor.
+- Hiding service-manager mutations behind default validation commands.
 
 ## 2026-04-25 - Make Registry Reads Non-Mutating By Default
 

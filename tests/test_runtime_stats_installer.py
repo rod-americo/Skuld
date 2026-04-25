@@ -32,6 +32,23 @@ class RuntimeStatsInstallerTest(unittest.TestCase):
         self.assertIn("+ sudo systemctl disable --now skuld-journal-stats.timer", proc.stdout)
         self.assertIn("+ sudo rm -f", proc.stdout)
 
+    def test_dry_run_status_prints_status_commands(self) -> None:
+        proc = self.run_script("--dry-run", "--status")
+
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertIn("Skuld journal stats timer status.", proc.stdout)
+        self.assertIn("+ sudo systemctl status skuld-journal-stats.timer --no-pager", proc.stdout)
+        self.assertIn("+ sudo systemctl status skuld-journal-stats.service --no-pager", proc.stdout)
+
+    def test_dry_run_verify_prints_verification_commands(self) -> None:
+        proc = self.run_script("--dry-run", "--verify")
+
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertIn("Verifying Skuld journal stats timer installation.", proc.stdout)
+        self.assertIn("+ sudo test -f /etc/systemd/system/skuld-journal-stats.service", proc.stdout)
+        self.assertIn("+ sudo systemctl is-active --quiet skuld-journal-stats.timer", proc.stdout)
+        self.assertIn("Verify complete.", proc.stdout)
+
 
 if __name__ == "__main__":
     unittest.main()

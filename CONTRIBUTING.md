@@ -27,7 +27,7 @@ python3 scripts/check_project_gate.py
 python3 scripts/project_doctor.py
 python3 scripts/project_doctor.py --strict
 python3 scripts/project_doctor.py --audit-config
-bash -n .githooks/pre-commit scripts/install_git_hooks.sh scripts/install_runtime_stats_timer.sh scripts/smoke_macos_launchd.sh scripts/smoke_linux_systemd_user.sh
+bash -n .githooks/pre-commit scripts/install_git_hooks.sh scripts/install_runtime_stats_timer.sh scripts/smoke_macos_launchd.sh scripts/smoke_linux_systemd_user.sh scripts/run_live_smokes.sh
 ```
 
 Live smoke checks are intentionally separate because they mutate disposable
@@ -37,6 +37,7 @@ service-manager state:
 scripts/smoke_macos_launchd.sh
 scripts/smoke_linux_systemd_user.sh
 scripts/smoke_linux_systemd_user.sh --host <ssh-host>
+scripts/run_live_smokes.sh --macos --linux-host <ssh-host>
 ```
 
 ## Pull Request Expectations

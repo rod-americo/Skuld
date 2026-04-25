@@ -122,6 +122,8 @@ that module's `main()`.
   write aggregate execution/restart counters.
 - `scripts/smoke_process.sh` and `scripts/smoke_trigger.sh` are disposable
   helpers for externally defined smoke services.
+- `scripts/run_live_smokes.sh` orchestrates explicit disposable live smokes for
+  selected macOS and Linux targets.
 - `scripts/check_project_gate.py` validates the repository gate document.
 - `scripts/project_doctor.py` validates structural docs and consistency.
 

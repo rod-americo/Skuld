@@ -240,6 +240,8 @@ previewing or removing the installed timer:
 
 ```bash
 ./scripts/install_runtime_stats_timer.sh --dry-run --uninstall
+./scripts/install_runtime_stats_timer.sh --dry-run --status
+./scripts/install_runtime_stats_timer.sh --dry-run --verify
 ./scripts/install_runtime_stats_timer.sh --uninstall
 ```
 
@@ -288,6 +290,7 @@ host service manager.
 Live smoke scripts create disposable services and then remove them:
 
 ```bash
+scripts/run_live_smokes.sh --macos --linux-host <ssh-host>
 scripts/smoke_macos_launchd.sh
 scripts/smoke_linux_systemd_user.sh
 scripts/smoke_linux_systemd_user.sh --host <ssh-host>

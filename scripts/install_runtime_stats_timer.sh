@@ -14,13 +14,15 @@ MODE="install"
 
 usage() {
   cat <<EOF
-Usage: $0 [--dry-run] [--uninstall] [--registry PATH] [--output PATH]
+Usage: $0 [--dry-run] [--status] [--verify] [--uninstall] [--registry PATH] [--output PATH]
 
 Installs or removes a systemd service+timer that collects restart/execution
 counters for managed Skuld services every minute.
 
 Options:
   --dry-run      Print planned commands and generated units without changing the host.
+  --status       Show installed timer/service status.
+  --verify       Check installed files and timer/service state.
   --uninstall    Stop/disable the timer and remove installed unit files.
   --registry     Registry path read by the collector.
   --output       Stats JSON path written by the collector.
@@ -97,6 +99,14 @@ while [[ $# -gt 0 ]]; do
       MODE="uninstall"
       shift
       ;;
+    --status)
+      MODE="status"
+      shift
+      ;;
+    --verify)
+      MODE="verify"
+      shift
+      ;;
     --registry)
       require_value "$1" "${2:-}"
       REGISTRY_PATH="$2"
@@ -122,6 +132,28 @@ done
 if [[ "$MODE" == "install" && ! -f "$COLLECTOR_SRC" ]]; then
   echo "Collector script not found: $COLLECTOR_SRC" >&2
   exit 1
+fi
+
+if [[ "$MODE" == "status" ]]; then
+  echo "Skuld journal stats timer status."
+  run_cmd sudo systemctl status skuld-journal-stats.timer --no-pager
+  run_cmd sudo systemctl status skuld-journal-stats.service --no-pager
+  echo "Collector: $INSTALL_COLLECTOR"
+  echo "Registry: $REGISTRY_PATH"
+  echo "Output: $OUTPUT_PATH"
+  exit 0
+fi
+
+if [[ "$MODE" == "verify" ]]; then
+  echo "Verifying Skuld journal stats timer installation."
+  run_cmd sudo test -f "$SERVICE_FILE"
+  run_cmd sudo test -f "$TIMER_FILE"
+  run_cmd sudo test -x "$INSTALL_COLLECTOR"
+  run_cmd sudo systemctl is-enabled --quiet skuld-journal-stats.timer
+  run_cmd sudo systemctl is-active --quiet skuld-journal-stats.timer
+  run_cmd sudo python3 "$INSTALL_COLLECTOR" --help
+  echo "Verify complete."
+  exit 0
 fi
 
 if [[ "$MODE" == "uninstall" ]]; then

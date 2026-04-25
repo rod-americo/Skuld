@@ -36,6 +36,9 @@ intent.
 - Disposable live smoke scripts for macOS LaunchAgent and Linux
   `systemd --user` validation, including SSH host mode for Linux.
 - Dry-run and uninstall modes for the Linux journal stats timer installer.
+- `scripts/run_live_smokes.sh` to run selected disposable live smokes through
+  one explicit command.
+- Status and verify modes for the Linux journal stats timer installer.
 
 ### Changed
 
