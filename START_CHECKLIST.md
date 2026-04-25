@@ -52,9 +52,9 @@ is not a greenfield scaffold checklist.
 - [x] Add focused tests around registry normalization and target resolution.
 - [x] Add tests for command routing: timer-backed services versus direct
   services on Linux.
-- [ ] Decide whether legacy macOS wrapper/plist helper code should be retained,
-  removed, or promoted behind explicit contracts.
-- [ ] Extract shared table rendering or registry helpers only after tests exist.
+- [x] Remove unused legacy macOS wrapper/plist creation helpers that were not
+  exposed by the CLI.
+- [x] Extract shared table rendering and registry helpers after tests exist.
 - [ ] Add smoke documentation for a real disposable user service on Linux and a
   disposable launchd agent on macOS, if those workflows are used regularly.
 

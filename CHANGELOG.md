@@ -38,6 +38,11 @@ intent.
   but does not create or edit service definitions.
 - Expanded `.gitignore` for local runtime, logs, caches, and local config
   overrides.
+- Extracted shared CLI helper and registry storage mechanics into
+  `skuld_common.py` and `skuld_registry.py`, reducing backend duplication
+  without changing public commands.
+- Removed unused macOS plist/wrapper creation helpers that were not reachable
+  from the public CLI.
 
 ### Notes
 

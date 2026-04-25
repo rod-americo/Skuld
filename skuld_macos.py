@@ -4,24 +4,21 @@ import datetime as dt
 import json
 import os
 import plistlib
-import pwd
 import re
-import shlex
-import shutil
 import signal
 import subprocess
 import sys
-import tempfile
 import threading
 import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
 
+import skuld_common as common
+from skuld_registry import RegistryStore
+
 VERSION = "0.3.0"
 NAME_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9._@-]*$")
-ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
-SHELL_SAFE_RE = re.compile(r"^[A-Za-z0-9_@%+=:,./-]+$")
 DEFAULT_ENV_FILE = Path(".env")
 SKULD_HOME = Path(os.environ.get("SKULD_HOME", Path.home() / "Library/Application Support/skuld"))
 REGISTRY_FILE = SKULD_HOME / "services.json"
@@ -90,59 +87,25 @@ def ensure_storage() -> None:
 
 
 def load_dotenv(path: Path) -> Dict[str, str]:
-    if not path.exists():
-        return {}
-    env: Dict[str, str] = {}
-    for raw in path.read_text(encoding="utf-8").splitlines():
-        line = raw.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, value = line.split("=", 1)
-        env[key.strip()] = value.strip().strip('"').strip("'")
-    return env
+    return common.load_dotenv(path)
 
 
 def get_sudo_password() -> Optional[str]:
-    if not USE_ENV_SUDO:
-        return None
-    from_env = os.environ.get("SKULD_SUDO_PASSWORD")
-    if from_env:
-        return from_env
-    env_path_override = os.environ.get("SKULD_ENV_FILE")
-    candidates = []
-    if env_path_override:
-        candidates.append(Path(env_path_override))
-    candidates.extend(
-        [
-            Path.cwd() / DEFAULT_ENV_FILE,
-            Path(__file__).resolve().parent / DEFAULT_ENV_FILE,
-            SKULD_HOME / ".env",
-        ]
+    return common.find_sudo_password(
+        use_env_sudo=USE_ENV_SUDO,
+        env_file_override=os.environ.get("SKULD_ENV_FILE"),
+        default_env_file=DEFAULT_ENV_FILE,
+        script_dir=Path(__file__).resolve().parent,
+        state_home=SKULD_HOME,
     )
-    for candidate in candidates:
-        if not candidate.exists():
-            continue
-        value = load_dotenv(candidate).get("SKULD_SUDO_PASSWORD")
-        if value:
-            return value
-    return None
 
 
 def parse_bool(value: str, default: bool = True) -> bool:
-    raw = (value or "").strip().lower()
-    if raw in ("1", "true", "yes", "on"):
-        return True
-    if raw in ("0", "false", "no", "off"):
-        return False
-    return default
+    return common.parse_bool(value, default=default)
 
 
 def parse_int(value: str) -> int:
-    try:
-        num = int((value or "").strip())
-    except ValueError:
-        return 0
-    return num if num > 0 else 0
+    return common.parse_int(value)
 
 
 def validate_name(name: str) -> None:
@@ -206,83 +169,38 @@ def resolve_name_arg(args: argparse.Namespace, required: bool = True) -> Optiona
 
 
 def is_tty() -> bool:
-    return sys.stdout.isatty()
+    return common.is_tty()
 
 
 def supports_unicode_output() -> bool:
-    if FORCE_TABLE_ASCII:
-        return False
-    if FORCE_TABLE_UNICODE:
-        return True
-    if not is_tty():
-        return False
-    term = (os.environ.get("TERM") or "").strip().lower()
-    if term == "dumb":
-        return False
-    encoding = (sys.stdout.encoding or "").upper()
-    if "UTF-8" in encoding or "UTF8" in encoding:
-        return True
-    locale_text = " ".join(
-        [
-            os.environ.get("LC_ALL", ""),
-            os.environ.get("LC_CTYPE", ""),
-            os.environ.get("LANG", ""),
-        ]
-    ).upper()
-    return "UTF-8" in locale_text or "UTF8" in locale_text
+    return common.supports_unicode_output(
+        force_ascii=FORCE_TABLE_ASCII,
+        force_unicode=FORCE_TABLE_UNICODE,
+    )
 
 
 def colorize(text: str, color: str) -> str:
-    if not is_tty():
-        return text
-    palette = {
-        "green": "\033[32m",
-        "red": "\033[31m",
-        "yellow": "\033[33m",
-        "cyan": "\033[36m",
-        "gray": "\033[90m",
-        "reset": "\033[0m",
-    }
-    return f"{palette.get(color, '')}{text}{palette['reset']}"
+    return common.colorize(text, color, enabled=is_tty())
 
 
 def visible_len(text: str) -> int:
-    return len(ANSI_RE.sub("", text))
+    return common.visible_len(text)
 
 
 def clip_text(text: str, width: int) -> str:
-    if width <= 0:
-        return ""
-    if len(text) <= width:
-        return text
-    if width <= 3:
-        return text[:width]
-    return text[: width - 3] + "..."
+    return common.clip_text(text, width)
 
 
 def parse_first_float(text: str) -> float:
-    match = re.search(r"\d+(?:\.\d+)?", ANSI_RE.sub("", text or ""))
-    if not match:
-        return -1.0
-    try:
-        return float(match.group(0))
-    except ValueError:
-        return -1.0
+    return common.parse_first_float(text)
 
 
 def service_sort_key(sort_by: str, row: Dict[str, object]) -> Tuple[object, ...]:
-    if sort_by == "name":
-        return (str(row["name"]).lower(), int(row["id"]))
-    if sort_by == "cpu":
-        return (-parse_first_float(str(row["cpu"])), str(row["name"]).lower(), int(row["id"]))
-    if sort_by == "memory":
-        return (-parse_first_float(str(row["memory"])), str(row["name"]).lower(), int(row["id"]))
-    return (int(row["id"]),)
+    return common.service_sort_key(sort_by, row)
 
 
 def resolve_sort_arg(args: Optional[argparse.Namespace]) -> str:
-    sort_by = getattr(args, "sort", "name") if args is not None else "name"
-    return sort_by if sort_by in SORT_CHOICES else "name"
+    return common.resolve_sort_arg(args, SORT_CHOICES)
 
 
 def info(msg: str) -> None:
@@ -298,24 +216,21 @@ def err(msg: str) -> None:
 
 
 def run(cmd: List[str], check: bool = True, capture: bool = False, input_text: Optional[str] = None) -> subprocess.CompletedProcess:
-    kwargs = {"text": True}
-    if capture:
-        kwargs["capture_output"] = True
-    if input_text is not None:
-        kwargs["input"] = input_text
-    proc = subprocess.run(cmd, **kwargs)
-    if check and proc.returncode != 0:
-        raise RuntimeError(f"Command failed: {' '.join(shlex.quote(c) for c in cmd)}")
-    return proc
+    return common.run_command(
+        cmd,
+        check=check,
+        capture=capture,
+        input_text=input_text,
+    )
 
 
 def run_sudo(cmd: List[str], check: bool = True, capture: bool = False) -> subprocess.CompletedProcess:
-    password = get_sudo_password()
-    full = ["sudo"] + cmd
-    if password:
-        full = ["sudo", "-S", "-k", "-p", ""] + cmd
-        return run(full, check=check, capture=capture, input_text=password + "\n")
-    return run(full, check=check, capture=capture)
+    return common.run_sudo_command(
+        cmd,
+        sudo_password=get_sudo_password(),
+        check=check,
+        capture=capture,
+    )
 
 
 def warn_env_sudo_usage() -> None:
@@ -349,207 +264,54 @@ def sudo_run_command(args: argparse.Namespace) -> None:
         raise RuntimeError(f"sudo command failed with exit code {proc.returncode}.")
 
 
-def shell_quote_pretty(value: str) -> str:
-    if value == "":
-        return '""'
-    if SHELL_SAFE_RE.match(value):
-        return value
-    escaped = (
-        value.replace("\\", "\\\\")
-        .replace('"', '\\"')
-        .replace("$", "\\$")
-        .replace("`", "\\`")
-        .replace("\n", "\\n")
-    )
-    return f'"{escaped}"'
-
-
 def format_bytes_from_kib(kib: int) -> str:
     return format_bytes(str(kib * 1024))
 
 
 def format_bytes(value: str) -> str:
-    raw = (value or "").strip()
-    if not raw:
-        return "-"
-    try:
-        num = int(raw)
-    except ValueError:
-        return "-"
-    if num < 0:
-        return "-"
-    size_gb = num / (1024.0 ** 3)
-    return f"{size_gb:.2f}GB"
+    return common.format_bytes(value)
 
 
 def format_duration_human(seconds: int) -> str:
-    if seconds < 0:
-        return "-"
-    days, rem = divmod(seconds, 86400)
-    hours, rem = divmod(rem, 3600)
-    minutes, _ = divmod(rem, 60)
-    if days > 0:
-        return f"{days}d {hours:02d}h {minutes:02d}m"
-    if hours > 0:
-        return f"{hours}h {minutes:02d}m"
-    return f"{minutes}m"
+    return common.format_duration_human(seconds)
 
 
 def render_table(headers: List[str], rows: List[List[str]]) -> None:
-    if not rows:
-        return
-    widths = [visible_len(h) for h in headers]
-    for row in rows:
-        for i, cell in enumerate(row):
-            widths[i] = max(widths[i], visible_len(cell))
-    if supports_unicode_output():
-        box = {
-            "top_left": "╭",
-            "top_mid": "┬",
-            "top_right": "╮",
-            "mid_left": "├",
-            "mid_mid": "┼",
-            "mid_right": "┤",
-            "bottom_left": "╰",
-            "bottom_mid": "┴",
-            "bottom_right": "╯",
-            "vertical": "│",
-            "fill": "─",
-        }
-    else:
-        box = {
-            "top_left": "+",
-            "top_mid": "+",
-            "top_right": "+",
-            "mid_left": "+",
-            "mid_mid": "+",
-            "mid_right": "+",
-            "bottom_left": "+",
-            "bottom_mid": "+",
-            "bottom_right": "+",
-            "vertical": "|",
-            "fill": "-",
-        }
-
-    def hline(left: str, middle: str, right: str) -> str:
-        return left + middle.join(box["fill"] * (w + 2) for w in widths) + right
-
-    def format_row(cells: List[str]) -> str:
-        padded = []
-        for i, cell in enumerate(cells):
-            pad = widths[i] - visible_len(cell)
-            padded.append(f" {cell}{' ' * max(0, pad)} ")
-        return box["vertical"] + box["vertical"].join(padded) + box["vertical"]
-
-    print(hline(box["top_left"], box["top_mid"], box["top_right"]))
-    print(format_row(headers))
-    print(hline(box["mid_left"], box["mid_mid"], box["mid_right"]))
-    for row in rows:
-        print(format_row(row))
-    print(hline(box["bottom_left"], box["bottom_mid"], box["bottom_right"]))
+    common.render_table(headers, rows, unicode_box=supports_unicode_output())
 
 
 def current_terminal_columns() -> Optional[int]:
-    if not is_tty():
-        return None
-    try:
-        columns = shutil.get_terminal_size().columns
-    except OSError:
-        return None
-    return columns if columns > 0 else None
+    return common.current_terminal_columns()
 
 
 def table_widths(headers: List[str], rows: List[List[str]]) -> List[int]:
-    widths = [visible_len(h) for h in headers]
-    for row in rows:
-        for idx, cell in enumerate(row):
-            widths[idx] = max(widths[idx], visible_len(cell))
-    return widths
+    return common.table_widths(headers, rows)
 
 
 def table_render_width(widths: List[int]) -> int:
-    if not widths:
-        return 0
-    return sum(widths) + (3 * len(widths)) + 1
+    return common.table_render_width(widths)
 
 
 def clip_plain_text(text: str, width: int) -> str:
-    if visible_len(text) <= width:
-        return text
-    return clip_text(text, width)
+    return common.clip_plain_text(text, width)
 
 
 def shrink_service_table_widths(columns: List[Dict[str, object]], widths: Dict[str, int], max_width: int) -> Dict[str, int]:
-    adjusted = dict(widths)
-    while True:
-        total_width = table_render_width([adjusted[col["key"]] for col in columns])
-        if total_width <= max_width:
-            return adjusted
-        changed = False
-        for key in SERVICE_TABLE_SHRINK_ORDER:
-            column = next((item for item in columns if item["key"] == key), None)
-            if not column:
-                continue
-            min_width = max(int(column["min_width"]), visible_len(str(column["header"])))
-            current_width = adjusted[key]
-            if current_width <= min_width:
-                continue
-            adjusted[key] = current_width - 1
-            changed = True
-            break
-        if not changed:
-            return adjusted
+    return common.shrink_table_widths(columns, widths, max_width, SERVICE_TABLE_SHRINK_ORDER)
 
 
 def fit_service_table(rows: List[Dict[str, object]], max_width: Optional[int] = None) -> Tuple[List[str], List[List[str]]]:
-    columns = [dict(item) for item in SERVICE_TABLE_COLUMNS]
-    if max_width is None:
-        max_width = current_terminal_columns()
-
-    while True:
-        headers = [str(column["header"]) for column in columns]
-        raw_rows = [
-            [str(row[str(column["key"])]) for column in columns]
-            for row in rows
-        ]
-        if not raw_rows or max_width is None:
-            return headers, raw_rows
-
-        current_widths = table_widths(headers, raw_rows)
-        width_map = {str(column["key"]): current_widths[idx] for idx, column in enumerate(columns)}
-        width_map = shrink_service_table_widths(columns, width_map, max_width)
-        fitted_rows = []
-        for row in rows:
-            fitted_row: List[str] = []
-            for column in columns:
-                key = str(column["key"])
-                value = str(row[key])
-                target_width = width_map[key]
-                if column.get("shrink"):
-                    value = clip_plain_text(value, target_width)
-                fitted_row.append(value)
-            fitted_rows.append(fitted_row)
-
-        fitted_widths = table_widths(headers, fitted_rows)
-        if table_render_width(fitted_widths) <= max_width:
-            return headers, fitted_rows
-
-        drop_key = next((key for key in SERVICE_TABLE_HIDE_ORDER if any(col["key"] == key for col in columns)), None)
-        if drop_key is None:
-            return headers, fitted_rows
-        columns = [column for column in columns if column["key"] != drop_key]
-
-
-def current_user_name() -> str:
-    return pwd.getpwuid(os.getuid()).pw_name
+    return common.fit_table(
+        rows,
+        service_columns=SERVICE_TABLE_COLUMNS,
+        shrink_order=SERVICE_TABLE_SHRINK_ORDER,
+        hide_order=SERVICE_TABLE_HIDE_ORDER,
+        max_width=max_width,
+    )
 
 
 def current_user_home() -> Path:
     return Path.home()
-
-
-def home_for_user(user: str) -> Path:
-    return Path(pwd.getpwnam(user).pw_dir)
 
 
 def service_label(name: str) -> str:
@@ -590,10 +352,6 @@ def log_dir_for_service(name: str, scope: str) -> Path:
     return logs_root_for_scope(scope) / name
 
 
-def runs_dir_for_service(service: ManagedService) -> Path:
-    return Path(service.log_dir or log_dir_for_service(service.name, service.scope)) / "runs"
-
-
 def event_file_for_service(name: str, scope: str) -> Path:
     return events_root_for_scope(scope) / f"{name}.jsonl"
 
@@ -628,81 +386,47 @@ def normalize_service(item: Dict[str, object]) -> ManagedService:
     )
 
 
+def validate_registry_service(service: ManagedService, index: int) -> None:
+    validate_name(service.name)
+    validate_name(service.display_name)
+    if service.scope == "agent" and service.user:
+        raise RuntimeError(f"Invalid registry entry #{index}: 'user' is only valid for daemon scope.")
+
+
+def managed_sort_key(service: ManagedService) -> tuple:
+    return (service.name.lower(), service.id)
+
+
+def registry_store() -> RegistryStore[ManagedService]:
+    return RegistryStore(
+        home=SKULD_HOME,
+        registry_file=REGISTRY_FILE,
+        normalize_item=normalize_service,
+        validate_service=validate_registry_service,
+        sort_key=managed_sort_key,
+        service_key=lambda service: service.name,
+        required_fields=("name", "exec_cmd", "description"),
+    )
+
+
 def load_registry() -> List[ManagedService]:
     ensure_storage()
-    raw_text = REGISTRY_FILE.read_text(encoding="utf-8")
-    try:
-        data = json.loads(raw_text)
-    except json.JSONDecodeError as exc:
-        raise RuntimeError(f"Invalid registry JSON at {REGISTRY_FILE}: {exc}") from exc
-    if not isinstance(data, list):
-        raise RuntimeError(f"Invalid registry format at {REGISTRY_FILE}: root must be an array.")
-    services: List[ManagedService] = []
-    changed = False
-    for idx, item in enumerate(data, start=1):
-        if not isinstance(item, dict):
-            raise RuntimeError(f"Invalid registry entry #{idx}: expected object.")
-        svc = normalize_service(item)
-        if not svc.name or not svc.exec_cmd or not svc.description:
-            raise RuntimeError(
-                f"Invalid registry entry #{idx}: fields 'name', 'exec_cmd' and 'description' are required."
-            )
-        validate_name(svc.name)
-        validate_name(svc.display_name)
-        if svc.scope == "agent" and svc.user:
-            raise RuntimeError(f"Invalid registry entry #{idx}: 'user' is only valid for daemon scope.")
-        services.append(svc)
-        normalized = asdict(svc)
-        if normalized != {k: item.get(k) for k in normalized.keys() if k in item}:
-            changed = True
-    used_ids = set()
-    next_id = 1
-    for svc in services:
-        if svc.id <= 0 or svc.id in used_ids:
-            while next_id in used_ids:
-                next_id += 1
-            svc.id = next_id
-            changed = True
-        used_ids.add(svc.id)
-    display_names = set()
-    for svc in services:
-        if svc.display_name in display_names:
-            raise RuntimeError(f"Duplicate display name in registry: '{svc.display_name}'.")
-        display_names.add(svc.display_name)
-    ordered = sorted(services, key=lambda s: (s.name.lower(), s.id))
-    canonical = json.dumps([asdict(s) for s in ordered], indent=2, ensure_ascii=False) + "\n"
-    if changed or raw_text != canonical:
-        REGISTRY_FILE.write_text(canonical, encoding="utf-8")
-    return ordered
+    return registry_store().load()
 
 
 def save_registry(services: List[ManagedService]) -> None:
     ensure_storage()
-    ordered = sorted(services, key=lambda s: (s.name.lower(), s.id))
-    REGISTRY_FILE.write_text(json.dumps([asdict(s) for s in ordered], indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    registry_store().save(services)
 
 
 def upsert_registry(service: ManagedService) -> None:
-    services = load_registry()
-    for existing_service in services:
-        if existing_service.display_name != service.display_name:
-            continue
-        if existing_service.name == service.name:
-            continue
-        raise RuntimeError(f"Display name '{service.display_name}' is already in use.")
-    by_name = {s.name: s for s in services}
-    existing = by_name.get(service.name)
-    if service.id <= 0 and existing:
-        service.id = existing.id
-    if service.id <= 0:
-        max_id = max((s.id for s in services), default=0)
-        service.id = max_id + 1
-    by_name[service.name] = service
-    save_registry(list(by_name.values()))
+    ensure_storage()
+    registry_store().upsert(service)
 
 
 def remove_registry(name: str) -> None:
-    save_registry([svc for svc in load_registry() if svc.name != name])
+    ensure_storage()
+    registry_store().remove(name)
 
 
 def get_managed(name: str) -> Optional[ManagedService]:
@@ -867,62 +591,6 @@ def render_discoverable_services_hint() -> None:
     print("Use `skuld track <id ...>` or `skuld track <label ...>` to start tracking services from this catalog.")
 
 
-def require_supported_scope_user(scope: str, user: str) -> None:
-    if user:
-        raise RuntimeError(
-            "--user is not supported on macOS. Use --scope agent for per-user services "
-            "or omit --user for system daemons."
-        )
-
-
-def ensure_directory(path: Path, scope: str) -> None:
-    if scope == "daemon":
-        run_sudo(["mkdir", "-p", str(path)])
-    else:
-        path.mkdir(parents=True, exist_ok=True)
-
-
-def write_text_file(path: Path, content: str, scope: str, executable: bool = False) -> None:
-    ensure_directory(path.parent, scope)
-    with tempfile.NamedTemporaryFile("w", delete=False, encoding="utf-8") as handle:
-        handle.write(content)
-        tmp_path = Path(handle.name)
-    try:
-        if scope == "daemon":
-            run_sudo(["cp", str(tmp_path), str(path)])
-            if executable:
-                run_sudo(["chmod", "755", str(path)])
-        else:
-            tmp_path.replace(path)
-            if executable:
-                path.chmod(0o755)
-    finally:
-        tmp_path.unlink(missing_ok=True)
-
-
-def write_plist_file(path: Path, content: Dict[str, object], scope: str) -> None:
-    ensure_directory(path.parent, scope)
-    with tempfile.NamedTemporaryFile("wb", delete=False) as handle:
-        plistlib.dump(content, handle)
-        tmp_path = Path(handle.name)
-    try:
-        if scope == "daemon":
-            run_sudo(["cp", str(tmp_path), str(path)])
-            run_sudo(["chmod", "644", str(path)])
-        else:
-            tmp_path.replace(path)
-            path.chmod(0o644)
-    finally:
-        tmp_path.unlink(missing_ok=True)
-
-
-def rm_file(path: Path, scope: str) -> None:
-    if scope == "daemon":
-        run_sudo(["rm", "-f", str(path)], check=False)
-    else:
-        path.unlink(missing_ok=True)
-
-
 def launchctl_cmd(scope: str, args: List[str], check: bool = True, capture: bool = False) -> subprocess.CompletedProcess:
     if scope == "daemon":
         return run_sudo(["launchctl"] + args, check=check, capture=capture)
@@ -1028,15 +696,6 @@ def terminate_process_tree(root_pid: int, grace_seconds: float = 2.0) -> None:
             continue
         except PermissionError:
             continue
-
-
-def restart_policy_to_keepalive(value: str) -> object:
-    policy = (value or "on-failure").strip().lower()
-    if policy in {"no", "never"}:
-        return False
-    if policy == "always":
-        return True
-    return {"SuccessfulExit": False}
 
 
 def restart_policy_allows_restart(value: str) -> bool:
@@ -1250,103 +909,6 @@ def format_restarts_exec(service: ManagedService, runtime_stats: Dict[str, Dict[
     if not item:
         return "-"
     return f"{item.get('restarts', 0)}/{item.get('executions', 0)}"
-
-
-def build_wrapper_script(service: ManagedService) -> str:
-    event_file = event_file_for_service(service.name, service.scope)
-    event_dir = event_file.parent
-    log_dir = Path(service.log_dir or log_dir_for_service(service.name, service.scope))
-    runs_dir = runs_dir_for_service(service)
-    cmd = shell_quote_pretty(service.exec_cmd)
-    return (
-        "#!/bin/zsh\n"
-        "set +e\n"
-        f"EVENT_FILE={shell_quote_pretty(str(event_file))}\n"
-        f"LOG_DIR={shell_quote_pretty(str(log_dir))}\n"
-        f"RUNS_DIR={shell_quote_pretty(str(runs_dir))}\n"
-        f"mkdir -p {shell_quote_pretty(str(event_dir))}\n"
-        "mkdir -p \"$RUNS_DIR\"\n"
-        "ts_start=$(date -u +%Y-%m-%dT%H:%M:%SZ)\n"
-        "run_stamp=$(date -u +%Y%m%dT%H%M%SZ)\n"
-        'run_id="${run_stamp}_$$"\n'
-        'STDOUT_LOG="$RUNS_DIR/${run_id}.stdout.log"\n'
-        'STDERR_LOG="$RUNS_DIR/${run_id}.stderr.log"\n'
-        ': > "$STDOUT_LOG"\n'
-        ': > "$STDERR_LOG"\n'
-        'ln -sfn "$STDOUT_LOG" "$LOG_DIR/stdout.log"\n'
-        'ln -sfn "$STDERR_LOG" "$LOG_DIR/stderr.log"\n'
-        "exit_code=0\n"
-        "child_pid=''\n"
-        "cleanup() {\n"
-        "  if [[ -n \"$child_pid\" ]]; then\n"
-        "    kill -TERM \"$child_pid\" >/dev/null 2>&1 || true\n"
-        "    wait \"$child_pid\" >/dev/null 2>&1 || true\n"
-        "  fi\n"
-        "}\n"
-        "trap cleanup TERM INT EXIT\n"
-        f"/bin/zsh -lc {cmd} >> \"$STDOUT_LOG\" 2>> \"$STDERR_LOG\" &\n"
-        "child_pid=$!\n"
-        'printf \'{"ts":"%s","event":"start","pid":%s,"child_pid":%s,"stdout_log":"%s","stderr_log":"%s"}\\n\' "$ts_start" "$$" "$child_pid" "$STDOUT_LOG" "$STDERR_LOG" >> "$EVENT_FILE"\n'
-        "wait \"$child_pid\"\n"
-        "exit_code=$?\n"
-        "trap - TERM INT EXIT\n"
-        "ts_end=$(date -u +%Y-%m-%dT%H:%M:%SZ)\n"
-        'printf \'{"ts":"%s","event":"end","exit_status":%s}\\n\' "$ts_end" "$exit_code" >> "$EVENT_FILE"\n'
-        "exit \"$exit_code\"\n"
-    )
-
-
-def build_environment_variables(service: ManagedService) -> Dict[str, str]:
-    env = {}
-    if service.scope == "daemon" and service.user:
-        home = str(home_for_user(service.user))
-        env["HOME"] = home
-        env["USER"] = service.user
-        env["LOGNAME"] = service.user
-        env["PATH"] = f"{home}/.local/bin:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
-    else:
-        home = str(current_user_home())
-        env["HOME"] = home
-        env["USER"] = current_user_name()
-        env["LOGNAME"] = current_user_name()
-        env["PATH"] = f"{home}/.local/bin:/usr/local/bin:/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin"
-    return env
-
-
-def build_plist(service: ManagedService) -> Dict[str, object]:
-    schedule_type, schedule_value = parse_schedule(service.schedule) if service.schedule else (None, None)
-    log_dir = Path(service.log_dir or log_dir_for_service(service.name, service.scope))
-    wrapper_path = wrapper_script_for_service(service.name, service.scope)
-    plist: Dict[str, object] = {
-        "Label": launchd_label_for_service(service),
-        "ProgramArguments": [str(wrapper_path)],
-        "StandardOutPath": str(log_dir / "_launcher.stdout.log"),
-        "StandardErrorPath": str(log_dir / "_launcher.stderr.log"),
-        "WorkingDirectory": service.working_dir or str(current_user_home()),
-        "EnvironmentVariables": build_environment_variables(service),
-        "ProcessType": "Background",
-    }
-    if service.scope == "daemon" and service.user:
-        plist["UserName"] = service.user
-    if schedule_type:
-        plist[schedule_type] = schedule_value
-        if service.timer_persistent:
-            plist["RunAtLoad"] = True
-    else:
-        plist["RunAtLoad"] = True
-        keepalive = restart_policy_to_keepalive(service.restart)
-        if keepalive:
-            plist["KeepAlive"] = keepalive
-    return plist
-
-
-def install_service_files(service: ManagedService) -> None:
-    log_dir = Path(service.log_dir or log_dir_for_service(service.name, service.scope))
-    ensure_directory(log_dir, service.scope)
-    ensure_directory(runs_dir_for_service(service), service.scope)
-    ensure_directory(event_file_for_service(service.name, service.scope).parent, service.scope)
-    write_text_file(wrapper_script_for_service(service.name, service.scope), build_wrapper_script(service), service.scope, executable=True)
-    write_plist_file(plist_path_for_service(service), build_plist(service), service.scope)
 
 
 def bootstrap_service(service: ManagedService) -> None:

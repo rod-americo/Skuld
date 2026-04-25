@@ -35,9 +35,10 @@ tool around `systemd` on Linux and `launchd` on macOS.
 - Primary platform integrations:
   - Linux: `systemd`, `systemctl`, `journalctl`, `/proc`, and optional `sudo`.
   - macOS: `launchd`, `launchctl`, `tail`, `lsof`, and optional `sudo`.
-- Test maturity: no dedicated unit test suite is currently versioned.
-- Validation maturity: syntax checks, CLI help checks, project gate checks, and
-  a structural project doctor are available.
+- Test maturity: behavior-focused `unittest` suite is versioned with faked
+  service-manager interactions.
+- Validation maturity: syntax checks, unit tests, CLI help checks, project gate
+  checks, and a structural project doctor are available.
 - Operational maturity: local single-host operation is documented; there is no
   remote deployment, fleet rollout, or backup automation.
 
@@ -62,6 +63,8 @@ Primary entrypoints:
 - `./skuld`
 - `skuld_linux.py`
 - `skuld_macos.py`
+- `skuld_common.py`
+- `skuld_registry.py`
 - `scripts/skuld_journal_stats_collector.py`
 - `scripts/check_project_gate.py`
 - `scripts/project_doctor.py`
@@ -71,9 +74,10 @@ Primary entrypoints:
 - `darwin` imports `skuld_macos.py`
 - every other platform imports `skuld_linux.py`
 
-Each backend currently contains its own CLI parser, registry model, registry
-normalization, backend command adapters, command handlers, table rendering, and
-runtime statistics helpers.
+Each backend contains its own CLI parser, backend-specific model, command
+adapters, command handlers, and runtime statistics helpers. Shared formatting,
+subprocess, table, sudo env, and registry storage mechanics live in
+`skuld_common.py` and `skuld_registry.py`.
 
 ## Quick Start
 
@@ -237,16 +241,16 @@ Current macOS logs are file-based only for jobs that Skuld itself marks as
 managed by Skuld. Jobs tracked from `launchctl list` may not have log files
 available through `skuld logs`.
 
-The macOS backend still contains legacy helper functions for wrapper scripts and
-plists. They are compatibility code paths, not exposed as public create/edit CLI
-commands in the current parser.
+The macOS backend can inspect compatible Skuld-managed log/event paths when a
+registry entry points at them, but the current public parser does not create or
+edit launchd jobs.
 
 ## Validation
 
 Minimum validation for this repository:
 
 ```bash
-python3 -m py_compile ./skuld ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py
+python3 -m py_compile ./skuld ./skuld_common.py ./skuld_registry.py ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py
 python3 -m unittest discover -s tests
 ./skuld --help
 python3 scripts/check_project_gate.py
@@ -274,10 +278,8 @@ host service manager.
 
 ## Known Weak Spots
 
-- The Linux and macOS backends duplicate parsing, registry handling, table
-  rendering, and command orchestration.
-- The macOS backend contains legacy creation-oriented helpers that are no longer
-  exposed as public CLI commands.
+- The Linux and macOS backends still duplicate CLI orchestration and
+  backend-specific command flow.
 - Operational stats are useful but partial: Linux depends on journald/systemd
   availability, while macOS uses local event/log files only for compatible
   registry entries.

@@ -79,27 +79,26 @@ that module's `main()`.
 `skuld_linux.py` owns the Linux implementation:
 
 - `ManagedService` and `DiscoverableService` dataclasses.
-- Registry loading, validation, normalization, and writes.
+- Linux registry schema and validation rules.
 - Target resolution by ID, display name, backend name, and `system:` or `user:`
   scope.
 - `systemctl` and `journalctl` command construction.
-- `sudo` handling and environment file lookup.
 - Linux stats from journald, `systemctl show`, `/proc`, `ss`, and optional
   `nvidia-smi`.
-- Linux command handlers and table rendering.
+- Linux command handlers and backend state rendering.
 
 ### 4.3 macOS Backend
 
 `skuld_macos.py` owns the macOS implementation:
 
 - `ManagedService` and `DiscoverableService` dataclasses.
-- Registry loading, validation, normalization, and writes.
+- macOS registry schema and validation rules.
 - Target resolution by ID, display name, and launchd label.
 - `launchctl` command execution and local process inspection.
 - macOS stats from event files, `ps`, `sysctl`, and `lsof`.
-- macOS command handlers and table rendering.
-- Legacy helper functions for wrapper scripts and plist generation. These are
-  not exposed as current public create/edit CLI commands.
+- macOS command handlers and backend state rendering.
+- Compatible log/event path inspection for registry entries that point at
+  Skuld-managed macOS files.
 
 ### 4.4 Operational Scripts
 
@@ -112,6 +111,15 @@ that module's `main()`.
   helpers for externally defined smoke services.
 - `scripts/check_project_gate.py` validates the repository gate document.
 - `scripts/project_doctor.py` validates structural docs and consistency.
+
+### 4.5 Shared Helpers
+
+- `skuld_common.py` provides IO-agnostic helper functions used by both backends:
+  env file parsing, sudo password lookup, subprocess wrappers, output
+  formatting, byte/duration formatting, sorting, clipping, table rendering, and
+  responsive table fitting.
+- `skuld_registry.py` provides generic registry storage mechanics while leaving
+  backend schemas and validation rules in each backend.
 
 ## 5. Main Flow
 
@@ -205,21 +213,18 @@ Host-local configuration:
 
 ## 10. Hotspots And Technical Debt
 
-- The Linux and macOS files duplicate many helpers and command patterns.
+- The Linux and macOS files still duplicate command orchestration and
+  backend-specific command patterns.
 - Registry normalization writes to disk during reads.
 - Backend command execution, target resolution, and CLI presentation are tightly
   coupled in each backend.
 - Live service operation is high-impact and only lightly covered by automated
   validation.
-- The macOS backend still has legacy creation-oriented helper code without a
-  public create/edit CLI contract.
-- Current validation is structural and syntactic; behavior-level tests are not
-  yet versioned.
+- Automated tests cover registry normalization, target resolution, command
+  routing, log fallback, stats output, doctor findings, and entrypoint dispatch
+  through faked backend interactions.
 
 ## 11. Open Decisions
 
-- Whether to extract shared registry and table rendering helpers.
-- Whether to keep, remove, or formally expose legacy macOS managed-job helpers.
-- Which minimal behavior tests should come first before any backend split.
 - Whether the optional Linux stats timer should become a documented install
   mode with stronger safety checks.

@@ -21,6 +21,7 @@ Before significant changes, read these files in order:
 5. `docs/OPERATIONS.md`
 6. `docs/DECISIONS.md`
 7. The touched backend file: `skuld_linux.py`, `skuld_macos.py`, or `./skuld`
+8. Shared helpers when relevant: `skuld_common.py` and `skuld_registry.py`
 
 If the change touches host operations, also read:
 
@@ -63,6 +64,10 @@ inside the existing files until a tested extraction is justified.
 - Infrastructure adapters:
   - `systemctl`, `journalctl`, `launchctl`, `sudo`, `/proc`, `ss`, `lsof`,
     filesystem reads and writes
+- Shared support:
+  - `skuld_common.py` owns IO-agnostic CLI helpers, formatting, table fitting,
+    subprocess wrappers, and sudo env lookup.
+  - `skuld_registry.py` owns generic registry load/save/upsert/remove mechanics.
 - Interface:
   - CLI arguments, help text, stdout/stderr output, table rendering
 
@@ -124,7 +129,7 @@ files are large; avoid making them larger through unrelated refactors.
 Run this before finalizing repository-wide structural or operational changes:
 
 ```bash
-python3 -m py_compile ./skuld ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py
+python3 -m py_compile ./skuld ./skuld_common.py ./skuld_registry.py ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py
 python3 -m unittest discover -s tests
 ./skuld --help
 python3 scripts/check_project_gate.py
@@ -143,14 +148,13 @@ backend validation as complete.
 
 ## Hotspots
 
-- `skuld_linux.py` and `skuld_macos.py` duplicate many responsibilities.
+- `skuld_linux.py` and `skuld_macos.py` still duplicate command orchestration
+  and backend-specific flow.
 - `load_registry()` normalizes and writes the registry as a side effect.
 - `start`, `stop`, `restart`, and `exec` can mutate host service state.
 - Linux journal and port inspection can require permissions that vary by host.
 - macOS logs are only reliable for jobs with compatible Skuld-managed log paths.
 - `SKULD_SUDO_PASSWORD` support is convenient but sensitive.
-- Legacy macOS plist/wrapper helpers remain in code but are not exposed as
-  public create/edit commands.
 - The unit suite fakes service-manager commands; live backend smokes still need
   disposable services and explicit operator intent.
 

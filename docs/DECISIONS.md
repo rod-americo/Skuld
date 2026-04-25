@@ -134,3 +134,33 @@ filesystem state, subprocess execution, and validation scripts.
 **Alternatives rejected**
 
 - Adding dependencies before a clear behavior or maintenance need exists.
+
+## 2026-04-25 - Extract Shared Helpers Without Repackaging The CLI
+
+**Context**
+
+After adding behavior tests, the most obvious duplication was in IO-agnostic
+helpers and registry storage mechanics shared by both backends.
+
+**Decision**
+
+Create `skuld_common.py` and `skuld_registry.py` while keeping backend-specific
+schemas, command handlers, and service-manager adapters in `skuld_linux.py` and
+`skuld_macos.py`.
+
+**Impact**
+
+- Registry load/save/upsert/remove behavior now has one storage implementation.
+- Table fitting, formatting, subprocess, sudo env lookup, and related helpers
+  are shared.
+- The public CLI and registry schemas remain unchanged.
+
+**Tradeoff**
+
+- Backends still own orchestration and adapter behavior.
+- The repository is not repackaged into `src/`; imports remain root-local.
+
+**Alternatives rejected**
+
+- Moving the whole project into a package layout in the same refactor.
+- Forcing backend schemas into a single dataclass.

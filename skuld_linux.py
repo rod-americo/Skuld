@@ -3,17 +3,17 @@ import argparse
 import json
 import os
 import re
-import shlex
-import shutil
 import subprocess
 import sys
 from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import Dict, List, Optional, Set
 
+import skuld_common as common
+from skuld_registry import RegistryStore
+
 VERSION = "0.3.0"
 NAME_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9._@-]*$")
-ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
 SHELL_SAFE_RE = re.compile(r"^[A-Za-z0-9_@%+=:,./-]+$")
 SKULD_HOME = Path(os.environ.get("SKULD_HOME", Path.home() / ".local/share/skuld"))
 REGISTRY_FILE = SKULD_HOME / "services.json"
@@ -135,45 +135,17 @@ def ensure_storage() -> None:
 
 
 def load_dotenv(path: Path) -> Dict[str, str]:
-    if not path.exists():
-        return {}
-    env: Dict[str, str] = {}
-    for raw in path.read_text(encoding="utf-8").splitlines():
-        line = raw.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        k, v = line.split("=", 1)
-        env[k.strip()] = v.strip().strip('"').strip("'")
-    return env
+    return common.load_dotenv(path)
 
 
 def get_sudo_password() -> Optional[str]:
-    if not USE_ENV_SUDO:
-        return None
-
-    from_env = os.environ.get("SKULD_SUDO_PASSWORD")
-    if from_env:
-        return from_env
-
-    env_path_override = os.environ.get("SKULD_ENV_FILE")
-    candidate_files = []
-    if env_path_override:
-        candidate_files.append(Path(env_path_override))
-    candidate_files.extend(
-        [
-            Path.cwd() / DEFAULT_ENV_FILE,
-            Path(__file__).resolve().parent / DEFAULT_ENV_FILE,
-            SKULD_HOME / ".env",
-        ]
+    return common.find_sudo_password(
+        use_env_sudo=USE_ENV_SUDO,
+        env_file_override=os.environ.get("SKULD_ENV_FILE"),
+        default_env_file=DEFAULT_ENV_FILE,
+        script_dir=Path(__file__).resolve().parent,
+        state_home=SKULD_HOME,
     )
-
-    for env_path in candidate_files:
-        if not env_path.exists():
-            continue
-        value = load_dotenv(env_path).get("SKULD_SUDO_PASSWORD")
-        if value:
-            return value
-    return None
 
 
 def normalize_scope(value: str) -> str:
@@ -211,118 +183,57 @@ def split_scope_token(token: str) -> tuple[Optional[str], str]:
     return normalized, remainder.strip()
 
 
+def normalize_registry_item(item: Dict[str, object]) -> ManagedService:
+    display_name = str(item.get("display_name", item.get("name", ""))).strip()
+    name = str(item.get("name", "")).strip()
+    if not display_name:
+        display_name = name
+    return ManagedService(
+        name=name,
+        scope=normalize_scope(str(item.get("scope", "system"))),
+        exec_cmd=str(item.get("exec_cmd", "")).strip(),
+        description=str(item.get("description", "")).strip(),
+        display_name=display_name,
+        schedule=str(item.get("schedule", "")).strip(),
+        working_dir=str(item.get("working_dir", "")).strip(),
+        user=str(item.get("user", "")).strip(),
+        restart=str(item.get("restart", "on-failure")).strip() or "on-failure",
+        timer_persistent=parse_bool(str(item.get("timer_persistent", True))),
+        id=parse_int(str(item.get("id", 0))),
+    )
+
+
+def validate_registry_service(service: ManagedService, _index: int) -> None:
+    validate_name(service.name)
+    validate_name(service.display_name)
+
+
+def registry_store() -> RegistryStore[ManagedService]:
+    return RegistryStore(
+        home=SKULD_HOME,
+        registry_file=REGISTRY_FILE,
+        normalize_item=normalize_registry_item,
+        validate_service=validate_registry_service,
+        sort_key=managed_sort_key,
+        service_key=lambda service: managed_service_key(service.name, service.scope),
+        required_fields=("name", "exec_cmd", "description"),
+    )
+
+
 def load_registry() -> List[ManagedService]:
-    ensure_storage()
-    raw_text = REGISTRY_FILE.read_text(encoding="utf-8")
-    try:
-        data = json.loads(raw_text)
-    except json.JSONDecodeError as exc:
-        raise RuntimeError(f"Invalid registry JSON at {REGISTRY_FILE}: {exc}") from exc
-    if not isinstance(data, list):
-        raise RuntimeError(f"Invalid registry format at {REGISTRY_FILE}: root must be an array.")
-
-    services: List[ManagedService] = []
-    changed = False
-    known_keys = {
-        "name",
-        "scope",
-        "exec_cmd",
-        "description",
-        "display_name",
-        "schedule",
-        "working_dir",
-        "user",
-        "restart",
-        "timer_persistent",
-        "id",
-    }
-    for idx, item in enumerate(data, start=1):
-        if not isinstance(item, dict):
-            raise RuntimeError(f"Invalid registry entry #{idx}: expected object.")
-        unknown = set(item.keys()) - known_keys
-        if unknown:
-            changed = True
-        normalized = {
-            "name": str(item.get("name", "")).strip(),
-            "scope": normalize_scope(str(item.get("scope", "system"))),
-            "exec_cmd": str(item.get("exec_cmd", "")).strip(),
-            "description": str(item.get("description", "")).strip(),
-            "display_name": str(item.get("display_name", item.get("name", ""))).strip(),
-            "schedule": str(item.get("schedule", "")).strip(),
-            "working_dir": str(item.get("working_dir", "")).strip(),
-            "user": str(item.get("user", "")).strip(),
-            "restart": str(item.get("restart", "on-failure")).strip() or "on-failure",
-            "timer_persistent": parse_bool(str(item.get("timer_persistent", True))),
-            "id": parse_int(str(item.get("id", 0))),
-        }
-        if not normalized["name"] or not normalized["exec_cmd"] or not normalized["description"]:
-            raise RuntimeError(
-                f"Invalid registry entry #{idx}: fields 'name', 'exec_cmd' and 'description' are required."
-            )
-        validate_name(normalized["name"])
-        validate_name(normalized["display_name"] or normalized["name"])
-        if not normalized["display_name"]:
-            normalized["display_name"] = normalized["name"]
-        if normalized != {k: item.get(k) for k in known_keys if k in item}:
-            changed = True
-        services.append(ManagedService(**normalized))
-
-    used_ids = set()
-    next_id = 1
-    for svc in services:
-        if svc.id <= 0 or svc.id in used_ids:
-            while next_id in used_ids:
-                next_id += 1
-            svc.id = next_id
-            changed = True
-        used_ids.add(svc.id)
-
-    display_names = set()
-    for svc in services:
-        if svc.display_name in display_names:
-            raise RuntimeError(f"Duplicate display name in registry: '{svc.display_name}'.")
-        display_names.add(svc.display_name)
-
-    normalized_services = sorted(services, key=managed_sort_key)
-    if normalized_services != services:
-        changed = True
-    canonical_text = json.dumps([asdict(s) for s in normalized_services], indent=2, ensure_ascii=False) + "\n"
-    if changed or raw_text != canonical_text:
-        REGISTRY_FILE.write_text(canonical_text, encoding="utf-8")
-    return normalized_services
+    return registry_store().load()
 
 
 def save_registry(services: List[ManagedService]) -> None:
-    ensure_storage()
-    ordered = sorted(services, key=managed_sort_key)
-    REGISTRY_FILE.write_text(json.dumps([asdict(s) for s in ordered], indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    registry_store().save(services)
 
 
 def upsert_registry(service: ManagedService) -> None:
-    services = load_registry()
-    service_key = managed_service_key(service.name, service.scope)
-    for existing_service in services:
-        if existing_service.display_name != service.display_name:
-            continue
-        existing_key = managed_service_key(existing_service.name, existing_service.scope)
-        if existing_service.id == service.id or existing_key == service_key:
-            continue
-        raise RuntimeError(f"Display name '{service.display_name}' is already in use.")
-    by_name = {managed_service_key(s.name, s.scope): s for s in services}
-    existing = by_name.get(service_key)
-    if service.id <= 0 and existing:
-        service.id = existing.id
-    if service.id <= 0:
-        max_id = max((s.id for s in services), default=0)
-        service.id = max_id + 1
-    by_name[service_key] = service
-    save_registry(sorted(by_name.values(), key=managed_sort_key))
+    registry_store().upsert(service)
 
 
 def remove_registry(name: str, scope: str) -> None:
-    key = managed_service_key(name, scope)
-    services = [s for s in load_registry() if managed_service_key(s.name, s.scope) != key]
-    save_registry(services)
+    registry_store().remove(managed_service_key(name, scope))
 
 
 def find_managed_by_name(name: str) -> List[ManagedService]:
@@ -379,73 +290,34 @@ def ok(msg: str) -> None:
 
 
 def is_tty() -> bool:
-    return sys.stdout.isatty()
+    return common.is_tty()
 
 
 def supports_unicode_output() -> bool:
-    if FORCE_TABLE_ASCII:
-        return False
-    if FORCE_TABLE_UNICODE:
-        return True
-    if not is_tty():
-        return False
-    term = (os.environ.get("TERM") or "").strip().lower()
-    if term == "dumb":
-        return False
-    encoding = (sys.stdout.encoding or "").upper()
-    if "UTF-8" in encoding or "UTF8" in encoding:
-        return True
-    locale_text = " ".join(
-        [
-            os.environ.get("LC_ALL", ""),
-            os.environ.get("LC_CTYPE", ""),
-            os.environ.get("LANG", ""),
-        ]
-    ).upper()
-    return "UTF-8" in locale_text or "UTF8" in locale_text
+    return common.supports_unicode_output(
+        force_ascii=FORCE_TABLE_ASCII,
+        force_unicode=FORCE_TABLE_UNICODE,
+    )
 
 
 def colorize(text: str, color: str) -> str:
-    if not is_tty():
-        return text
-    palette = {
-        "green": "\033[32m",
-        "red": "\033[31m",
-        "yellow": "\033[33m",
-        "cyan": "\033[36m",
-        "gray": "\033[90m",
-        "reset": "\033[0m",
-    }
-    return f"{palette.get(color, '')}{text}{palette['reset']}"
+    return common.colorize(text, color, enabled=is_tty())
 
 
 def visible_len(text: str) -> int:
-    return len(ANSI_RE.sub("", text))
+    return common.visible_len(text)
 
 
 def parse_first_float(text: str) -> float:
-    match = re.search(r"\d+(?:\.\d+)?", ANSI_RE.sub("", text or ""))
-    if not match:
-        return -1.0
-    try:
-        return float(match.group(0))
-    except ValueError:
-        return -1.0
+    return common.parse_first_float(text)
 
 
 def service_sort_key(sort_by: str, row: Dict[str, object]) -> tuple:
-    if sort_by == "name":
-        return (str(row["name"]).lower(), int(row["id"]))
-    if sort_by == "cpu":
-        return (-parse_first_float(str(row["cpu"])), str(row["name"]).lower(), int(row["id"]))
-    if sort_by == "memory":
-        return (-parse_first_float(str(row["memory"])), str(row["name"]).lower(), int(row["id"]))
-    return (int(row["id"]),)
+    return common.service_sort_key(sort_by, row)
 
 
 def resolve_sort_arg(args: Optional[argparse.Namespace]) -> str:
-    sort_by = getattr(args, "sort", "name") if args is not None else "name"
-    return sort_by if sort_by in SORT_CHOICES else "name"
+    return common.resolve_sort_arg(args, SORT_CHOICES)
 
 
 def validate_name(name: str) -> None:
@@ -610,26 +482,22 @@ def run(
     input_text: Optional[str] = None,
     env: Optional[Dict[str, str]] = None,
 ) -> subprocess.CompletedProcess:
-    kwargs = {"text": True}
-    if capture:
-        kwargs["capture_output"] = True
-    if input_text is not None:
-        kwargs["input"] = input_text
-    if env is not None:
-        kwargs["env"] = env
-    proc = subprocess.run(cmd, **kwargs)
-    if check and proc.returncode != 0:
-        raise RuntimeError(f"Command failed: {' '.join(shlex.quote(c) for c in cmd)}")
-    return proc
+    return common.run_command(
+        cmd,
+        check=check,
+        capture=capture,
+        input_text=input_text,
+        env=env,
+    )
 
 
 def run_sudo(cmd: List[str], check: bool = True, capture: bool = False) -> subprocess.CompletedProcess:
-    pwd = get_sudo_password()
-    full = ["sudo"] + cmd
-    if pwd:
-        full = ["sudo", "-S", "-k", "-p", ""] + cmd
-        return run(full, check=check, capture=capture, input_text=pwd + "\n")
-    return run(full, check=check, capture=capture)
+    return common.run_sudo_command(
+        cmd,
+        sudo_password=get_sudo_password(),
+        check=check,
+        capture=capture,
+    )
 
 
 def warn_env_sudo_usage() -> None:
@@ -739,17 +607,7 @@ def display_unit_state(status: str) -> str:
 
 
 def format_bytes(value: str) -> str:
-    raw = (value or "").strip()
-    if not raw or raw in ("[not set]", "n/a"):
-        return "-"
-    try:
-        num = int(raw)
-    except ValueError:
-        return "-"
-    if num < 0:
-        return "-"
-    size_gb = num / (1024.0 ** 3)
-    return f"{size_gb:.2f}GB"
+    return common.format_bytes(value)
 
 
 def format_cpu_nsec(value: str) -> str:
@@ -777,16 +635,7 @@ def format_cpu_nsec(value: str) -> str:
 
 
 def format_duration_human(seconds: int) -> str:
-    if seconds < 0:
-        return "-"
-    days, rem = divmod(seconds, 86400)
-    hours, rem = divmod(rem, 3600)
-    minutes, _ = divmod(rem, 60)
-    if days > 0:
-        return f"{days}d {hours:02d}h {minutes:02d}m"
-    if hours > 0:
-        return f"{hours}h {minutes:02d}m"
-    return f"{minutes}m"
+    return common.format_duration_human(seconds)
 
 
 def read_host_overview() -> Dict[str, str]:
@@ -834,11 +683,7 @@ def read_host_overview() -> Dict[str, str]:
 
 
 def parse_int(value: str) -> int:
-    try:
-        num = int((value or "").strip())
-    except ValueError:
-        return 0
-    return num if num > 0 else 0
+    return common.parse_int(value)
 
 
 def read_proc_cpu_nsec(pid: int) -> Optional[int]:
@@ -1138,150 +983,37 @@ def read_unit_ports(service_unit: str, scope: str = "system") -> str:
 
 
 def render_table(headers: List[str], rows: List[List[str]]) -> None:
-    if not rows:
-        return
-    widths = [visible_len(h) for h in headers]
-    for row in rows:
-        for i, cell in enumerate(row):
-            widths[i] = max(widths[i], visible_len(cell))
-
-    unicode_box = supports_unicode_output()
-    if unicode_box:
-        box = {
-            "top_left": "╭",
-            "top_mid": "┬",
-            "top_right": "╮",
-            "mid_left": "├",
-            "mid_mid": "┼",
-            "mid_right": "┤",
-            "bottom_left": "╰",
-            "bottom_mid": "┴",
-            "bottom_right": "╯",
-            "vertical": "│",
-            "fill": "─",
-        }
-    else:
-        box = {
-            "top_left": "+",
-            "top_mid": "+",
-            "top_right": "+",
-            "mid_left": "+",
-            "mid_mid": "+",
-            "mid_right": "+",
-            "bottom_left": "+",
-            "bottom_mid": "+",
-            "bottom_right": "+",
-            "vertical": "|",
-            "fill": "-",
-        }
-
-    def hline(left: str, middle: str, right: str, fill: str) -> str:
-        return left + middle.join(fill * (w + 2) for w in widths) + right
-
-    def format_row(cells: List[str]) -> str:
-        padded = []
-        for i, cell in enumerate(cells):
-            pad = widths[i] - visible_len(cell)
-            padded.append(f" {cell}{' ' * max(0, pad)} ")
-        return box["vertical"] + box["vertical"].join(padded) + box["vertical"]
-
-    print(hline(box["top_left"], box["top_mid"], box["top_right"], box["fill"]))
-    print(format_row(headers))
-    print(hline(box["mid_left"], box["mid_mid"], box["mid_right"], box["fill"]))
-    for row in rows:
-        print(format_row(row))
-    print(hline(box["bottom_left"], box["bottom_mid"], box["bottom_right"], box["fill"]))
+    common.render_table(headers, rows, unicode_box=supports_unicode_output())
 
 
 def current_terminal_columns() -> Optional[int]:
-    if not is_tty():
-        return None
-    try:
-        columns = shutil.get_terminal_size().columns
-    except OSError:
-        return None
-    return columns if columns > 0 else None
+    return common.current_terminal_columns()
 
 
 def table_widths(headers: List[str], rows: List[List[str]]) -> List[int]:
-    widths = [visible_len(h) for h in headers]
-    for row in rows:
-        for idx, cell in enumerate(row):
-            widths[idx] = max(widths[idx], visible_len(cell))
-    return widths
+    return common.table_widths(headers, rows)
 
 
 def table_render_width(widths: List[int]) -> int:
-    if not widths:
-        return 0
-    return sum(widths) + (3 * len(widths)) + 1
+    return common.table_render_width(widths)
 
 
 def clip_plain_text(text: str, width: int) -> str:
-    if visible_len(text) <= width:
-        return text
-    return clip_text(text, width)
+    return common.clip_plain_text(text, width)
 
 
 def shrink_service_table_widths(columns: List[Dict[str, object]], widths: Dict[str, int], max_width: int) -> Dict[str, int]:
-    adjusted = dict(widths)
-    while True:
-        total_width = table_render_width([adjusted[col["key"]] for col in columns])
-        if total_width <= max_width:
-            return adjusted
-        changed = False
-        for key in SERVICE_TABLE_SHRINK_ORDER:
-            column = next((item for item in columns if item["key"] == key), None)
-            if not column:
-                continue
-            min_width = max(int(column["min_width"]), visible_len(str(column["header"])))
-            current_width = adjusted[key]
-            if current_width <= min_width:
-                continue
-            adjusted[key] = current_width - 1
-            changed = True
-            break
-        if not changed:
-            return adjusted
+    return common.shrink_table_widths(columns, widths, max_width, SERVICE_TABLE_SHRINK_ORDER)
 
 
 def fit_service_table(rows: List[Dict[str, object]], max_width: Optional[int] = None) -> tuple[List[str], List[List[str]]]:
-    columns = [dict(item) for item in SERVICE_TABLE_COLUMNS]
-    if max_width is None:
-        max_width = current_terminal_columns()
-
-    while True:
-        headers = [str(column["header"]) for column in columns]
-        raw_rows = [
-            [str(row[str(column["key"])]) for column in columns]
-            for row in rows
-        ]
-        if not raw_rows or max_width is None:
-            return headers, raw_rows
-
-        current_widths = table_widths(headers, raw_rows)
-        width_map = {str(column["key"]): current_widths[idx] for idx, column in enumerate(columns)}
-        width_map = shrink_service_table_widths(columns, width_map, max_width)
-        fitted_rows = []
-        for row in rows:
-            fitted_row: List[str] = []
-            for column in columns:
-                key = str(column["key"])
-                value = str(row[key])
-                target_width = width_map[key]
-                if column.get("shrink"):
-                    value = clip_plain_text(value, target_width)
-                fitted_row.append(value)
-            fitted_rows.append(fitted_row)
-
-        fitted_widths = table_widths(headers, fitted_rows)
-        if table_render_width(fitted_widths) <= max_width:
-            return headers, fitted_rows
-
-        drop_key = next((key for key in SERVICE_TABLE_HIDE_ORDER if any(col["key"] == key for col in columns)), None)
-        if drop_key is None:
-            return headers, fitted_rows
-        columns = [column for column in columns if column["key"] != drop_key]
+    return common.fit_table(
+        rows,
+        service_columns=SERVICE_TABLE_COLUMNS,
+        shrink_order=SERVICE_TABLE_SHRINK_ORDER,
+        hide_order=SERVICE_TABLE_HIDE_ORDER,
+        max_width=max_width,
+    )
 
 
 def render_host_panel() -> None:
@@ -1322,13 +1054,7 @@ def format_restarts_exec(name: str, runtime_stats: Dict[str, Dict[str, int]]) ->
 
 
 def clip_text(text: str, width: int) -> str:
-    if width <= 0:
-        return ""
-    if len(text) <= width:
-        return text
-    if width <= 3:
-        return text[:width]
-    return text[: width - 3] + "..."
+    return common.clip_text(text, width)
 
 
 def parse_unit_directive_values(unit_text: str) -> Dict[str, List[str]]:
@@ -1863,14 +1589,7 @@ def parse_unit_directives(unit_text: str) -> Dict[str, str]:
 
 
 def parse_bool(value: str, default: bool = True) -> bool:
-    if value is None:
-        return default
-    v = value.strip().lower()
-    if v in ("1", "true", "yes", "on"):
-        return True
-    if v in ("0", "false", "no", "off"):
-        return False
-    return default
+    return common.parse_bool(value, default=default)
 
 
 def _render_services_table(compact: bool, sort_by: str = "name") -> None:
