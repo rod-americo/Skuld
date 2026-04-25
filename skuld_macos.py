@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Set, Tuple
 
 import skuld_common as common
+import skuld_cli
 from skuld_registry import RegistryStore
 
 VERSION = "0.3.0"
@@ -1531,33 +1532,24 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main() -> int:
+def configure_cli_globals(args: argparse.Namespace, parser: argparse.ArgumentParser) -> None:
     global USE_ENV_SUDO, FORCE_TABLE_ASCII, FORCE_TABLE_UNICODE
-    argv = list(sys.argv)
-    known_commands = {"list", "catalog", "track", "rename", "untrack", "exec", "start", "stop", "restart", "status", "logs", "stats", "doctor", "describe", "sync", "sudo", "version"}
-    parser = build_parser()
-    args = parser.parse_args(argv[1:])
     USE_ENV_SUDO = not args.no_env_sudo
     FORCE_TABLE_ASCII = bool(args.ascii)
     FORCE_TABLE_UNICODE = bool(args.unicode)
     if FORCE_TABLE_ASCII and FORCE_TABLE_UNICODE:
         parser.error("choose only one of --ascii or --unicode")
-    try:
-        if getattr(args, "command", None) != "version":
-            load_registry()
-        if not getattr(args, "command", None):
-            list_services_compact(resolve_sort_arg(args))
-            print("Quick help: skuld track <id ...> | skuld <id|name> exec/start/stop/restart/status/logs/stats/describe/rename/untrack")
-            print()
-            return 0
-        args.func(args)
-        if args.command in {"track", "rename", "untrack", "exec", "start", "stop", "restart", "sync"}:
-            print()
-            list_services_compact(resolve_sort_arg(args))
-        return 0
-    except RuntimeError as exc:
-        err(str(exc))
-        return 1
+
+
+def main() -> int:
+    return skuld_cli.run_current_process_backend(
+        parser=build_parser(),
+        configure_globals=configure_cli_globals,
+        load_registry=load_registry,
+        list_services_compact=list_services_compact,
+        resolve_sort_arg=resolve_sort_arg,
+        err=err,
+    )
 
 
 if __name__ == "__main__":

@@ -5,6 +5,8 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Callable, Generic, Hashable, Iterable, List, Sequence, TypeVar
 
+import skuld_observability as observability
+
 
 ServiceT = TypeVar("ServiceT")
 
@@ -34,16 +36,25 @@ class RegistryStore(Generic[ServiceT]):
         if not self.registry_file.exists():
             self.registry_file.write_text("[]", encoding="utf-8")
 
-    def load(self) -> List[ServiceT]:
+    def load(self, *, write_back: bool = True) -> List[ServiceT]:
         self.ensure_storage()
         raw_text = self.registry_file.read_text(encoding="utf-8")
+        services, changed, canonical_text = self.normalize_text(raw_text)
+        if write_back and (changed or raw_text != canonical_text):
+            observability.debug("registry_write", path=self.registry_file)
+            self.registry_file.write_text(canonical_text, encoding="utf-8")
+        return services
+
+    def normalize_text(self, raw_text: str) -> tuple[List[ServiceT], bool, str]:
         try:
             data = json.loads(raw_text)
         except json.JSONDecodeError as exc:
             raise RuntimeError(f"Invalid registry JSON at {self.registry_file}: {exc}") from exc
         if not isinstance(data, list):
             raise RuntimeError(f"Invalid registry format at {self.registry_file}: root must be an array.")
+        return self.normalize_data(data)
 
+    def normalize_data(self, data: list[object]) -> tuple[List[ServiceT], bool, str]:
         services: List[ServiceT] = []
         changed = False
         for index, item in enumerate(data, start=1):
@@ -65,9 +76,7 @@ class RegistryStore(Generic[ServiceT]):
             changed = True
 
         canonical_text = self._encode(ordered)
-        if changed or raw_text != canonical_text:
-            self.registry_file.write_text(canonical_text, encoding="utf-8")
-        return ordered
+        return ordered, changed, canonical_text
 
     def save(self, services: Iterable[ServiceT]) -> None:
         self.ensure_storage()

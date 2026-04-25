@@ -9,6 +9,8 @@ import sys
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
+import skuld_observability as observability
+
 
 ANSI_RE = re.compile(r"\x1b\[[0-9;]*m")
 
@@ -86,6 +88,7 @@ def run_command(
     input_text: Optional[str] = None,
     env: Optional[Dict[str, str]] = None,
 ) -> subprocess.CompletedProcess:
+    observability.debug("run_command", capture=capture, check=check, cmd=" ".join(shlex.quote(item) for item in cmd))
     kwargs: Dict[str, Any] = {"text": True}
     if capture:
         kwargs["capture_output"] = True
@@ -106,6 +109,7 @@ def run_sudo_command(
     check: bool = True,
     capture: bool = False,
 ) -> subprocess.CompletedProcess:
+    observability.debug("run_sudo", capture=capture, check=check, password_set=bool(sudo_password), cmd=" ".join(shlex.quote(item) for item in cmd))
     full = ["sudo"] + list(cmd)
     if sudo_password:
         full = ["sudo", "-S", "-k", "-p", ""] + list(cmd)
