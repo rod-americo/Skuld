@@ -1,17 +1,17 @@
 # Contributing to Skuld
 
-Thanks for considering a contribution.
-
-Skuld exists to reduce friction when managing Linux services and timers with `systemd`, while keeping operations explicit and auditable.
+Skuld exists to reduce friction when managing selected local services through
+`systemd` or `launchd`, while keeping operations explicit and auditable.
 
 ## Scope and Principles
 
-- Keep the tool practical and production-oriented.
+- Keep the tool practical and host-local.
+- Preserve the registry boundary: Skuld operates services it tracks.
 - Prefer clear behavior over magical automation.
-- Preserve the core model:
-  - daemon -> control `.service`
-  - timer job -> control `.timer`
-  - immediate run -> `exec` on `.service`
+- Preserve the core routing model:
+  - daemon-like services act on `.service` on Linux
+  - timer jobs act on `.timer` for start/stop/restart when a real timer exists
+  - immediate execution uses `exec` on the service target
 - Keep backward compatibility when possible.
 
 ## Local Development
@@ -20,8 +20,11 @@ Skuld exists to reduce friction when managing Linux services and timers with `sy
 git clone git@github.com:rod-americo/skuld.git
 cd skuld
 chmod +x ./skuld
-python3 -m py_compile ./skuld
+python3 -m py_compile ./skuld ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py
 ./skuld --help
+python3 scripts/check_project_gate.py
+python3 scripts/project_doctor.py
+python3 scripts/project_doctor.py --audit-config
 ```
 
 ## Pull Request Expectations
@@ -30,14 +33,19 @@ python3 -m py_compile ./skuld
 - Include:
   - purpose
   - key changes
-  - exact test/validation commands used
-  - behavior/risk notes (especially for start/stop/restart/edit/recreate)
-- Update `README.md` when commands or UX behavior change.
+  - exact validation commands used
+  - behavior and risk notes, especially for start, stop, restart, exec, sudo,
+    registry, and backend integration changes
+- Update `README.md` when commands or user-visible behavior change.
+- Update `docs/ARCHITECTURE.md`, `docs/CONTRACTS.md`, or
+  `docs/OPERATIONS.md` when architecture, contracts, runtime, or operations
+  change.
 
 ## Coding Notes
 
-- Python standard library preferred unless a new dependency is clearly necessary.
+- Python standard library is preferred unless a dependency is clearly justified.
 - Keep CLI messages and docs in English.
-- Do not introduce machine-specific paths in docs (`/Users/...`, `/home/...` hardcoded examples).
+- Do not introduce machine-specific paths in docs.
 - Avoid destructive actions by default.
-
+- Do not reintroduce service definition creation or editing without explicit
+  contracts, operations docs, and tests.

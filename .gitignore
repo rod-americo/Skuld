@@ -1,6 +1,13 @@
 __pycache__/
 *.py[cod]
+.pytest_cache/
+.coverage
 .env
+*.log
+runtime/
+config/*.local.*
 services.json
+runtime_stats.json
+journal_stats.json
 .local/share/skuld/services.json
 .DS_Store

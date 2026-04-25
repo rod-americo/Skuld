@@ -2,29 +2,41 @@
 
 All notable changes to this project are documented in this file.
 
-The format is inspired by Keep a Changelog and follows semantic versioning intent.
+The format is inspired by Keep a Changelog and follows semantic versioning
+intent.
 
 ## [Unreleased]
 
 ### Added
 
-- `recreate` command to generate an equivalent `skuld create` command.
-- TUI details panel with inline editing for `exec` and `schedule`.
-- Stable numeric service IDs and id-based targeting.
-- CPU and memory columns in `list` and TUI.
+- Structural recovery baseline from the project starter, adapted to Skuld's
+  existing architecture.
+- `PROJECT_GATE.md` with repository purpose, boundaries, and maintenance cost.
+- `START_CHECKLIST.md` for existing-repository recovery follow-up.
+- `docs/ARCHITECTURE.md` documenting the real composition root, backend flow,
+  persistence, and hotspots.
+- `docs/CONTRACTS.md` documenting registry fields, identifiers, inputs,
+  outputs, and invariants.
+- `docs/OPERATIONS.md` documenting setup, validation, logs, restart behavior,
+  troubleshooting, and critical operations.
+- `docs/DECISIONS.md` documenting structural recovery decisions.
+- `config/doctor.json`, `scripts/check_project_gate.py`, and
+  `scripts/project_doctor.py` for baseline governance validation.
+- Opt-in local git hook files: `.githooks/pre-commit` and
+  `scripts/install_git_hooks.sh`.
 
 ### Changed
 
-- `start/stop/restart` now route actions by managed service type:
-  - timer jobs act on `.timer`
-  - daemons act on `.service`
-- `list` output redesigned with table formatting and clearer status rendering.
-- `list` now shows a human-readable `triggers` column and drops the redundant Linux `scope` column.
-- `list` now sorts by `name` by default.
-- `list` now adapts to terminal width by shortening flexible columns and hiding lower-priority ones when needed.
-- Documentation now treats `systemd --user` as the default Linux persistence path and frames `sudo` as optional for `system` scope operations.
+- Reworked `README.md` to distinguish current behavior from non-goals and weak
+  spots.
+- Reworked `AGENTS.md` to include reading order, layer rules, validation,
+  documentation rules, and architecture guardrails.
+- Clarified that the current public CLI tracks and operates existing services
+  but does not create or edit service definitions.
+- Expanded `.gitignore` for local runtime, logs, caches, and local config
+  overrides.
 
-### Fixed
+### Notes
 
-- ANSI-aware table alignment when colors are enabled.
-- Cleaner shell quoting in `recreate` output.
+- No runtime service-management behavior changed in this structural recovery.
+- No unit test suite was added in this round.

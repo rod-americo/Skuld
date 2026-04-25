@@ -1,0 +1,70 @@
+# Start Checklist
+
+This checklist is for structural recovery of the existing Skuld repository. It
+is not a greenfield scaffold checklist.
+
+## 0. Existence Decision
+
+- [x] The repository has a real CLI entrypoint: `./skuld`.
+- [x] The repository has real backend implementations: `skuld_linux.py` and
+  `skuld_macos.py`.
+- [x] The scope is narrow enough to justify a repository: registry-based local
+  service operation.
+- [x] The repository should not be collapsed into dotfiles because it has a
+  registry contract, backend adapters, docs, and validation scripts.
+
+## 1. Baseline Added Or Recovered
+
+- [x] `README.md` describes identity, scope, non-scope, commands, entrypoints,
+  maturity, and weak spots.
+- [x] `AGENTS.md` describes reading order, layer rules, validation, hotspots,
+  and architecture guardrails.
+- [x] `PROJECT_GATE.md` documents repository existence and boundaries.
+- [x] `CHANGELOG.md` is present and now tracks the structural recovery.
+- [x] `docs/ARCHITECTURE.md` documents the real current architecture.
+- [x] `docs/CONTRACTS.md` documents registry and CLI contracts.
+- [x] `docs/OPERATIONS.md` documents setup, run, validation, logs, restart, and
+  troubleshooting.
+- [x] `docs/DECISIONS.md` records current decisions and tradeoffs.
+
+## 2. Operational Guardrails
+
+- [x] `config/doctor.json` exists for structural doctor policy.
+- [x] `scripts/check_project_gate.py` validates `PROJECT_GATE.md`.
+- [x] `scripts/project_doctor.py` validates baseline docs and consistency.
+- [x] `.githooks/pre-commit` exists as an opt-in local hook.
+- [x] `scripts/install_git_hooks.sh` can opt into the local hook.
+- [x] `.gitignore` covers local runtime, logs, caches, and secrets.
+
+## 3. What Is Intentionally Not Done Yet
+
+- [ ] No mass move into `src/` was done.
+- [ ] No artificial `domain / application / infrastructure / interfaces`
+  directory tree was created.
+- [ ] No test coverage was invented.
+- [ ] No service authoring command was reintroduced.
+- [ ] No operational readiness claim was added for fleets, remote hosts, or
+  deployment automation.
+
+## 4. Next Safe Work
+
+- [ ] Add focused tests around registry normalization and target resolution.
+- [ ] Add tests for command routing: timer-backed services versus direct
+  services on Linux.
+- [ ] Decide whether legacy macOS wrapper/plist helper code should be retained,
+  removed, or promoted behind explicit contracts.
+- [ ] Extract shared table rendering or registry helpers only after tests exist.
+- [ ] Add smoke documentation for a real disposable user service on Linux and a
+  disposable launchd agent on macOS, if those workflows are used regularly.
+
+## 5. Do Not Do In The Next Round
+
+- [ ] Do not restructure files to resemble the starter kit without behavior
+  tests.
+- [ ] Do not expand Skuld into deployment, provisioning, package management, or
+  remote fleet operation.
+- [ ] Do not store real registries, logs, stats, sudo secrets, or host-local
+  config in git.
+- [ ] Do not document planned commands as current commands.
+- [ ] Do not treat `sudo` password support as production-safe credential
+  management.

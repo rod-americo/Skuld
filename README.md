@@ -1,384 +1,287 @@
 # Skuld
 
-Skuld is a Python CLI for tracking local services, assigning human-friendly names, and giving you one operational view of what matters.
+Skuld is a small Python CLI for tracking existing local services under a
+human-friendly registry and operating only the services that are explicitly in
+that registry.
 
-It is intentionally narrow:
+The current system is not a service authoring framework. It is an operator
+tool around `systemd` on Linux and `launchd` on macOS.
 
-- Skuld tracks services that already exist in `systemd` or `launchd`.
-- Skuld does not create, edit, or remove service definitions anymore.
-- Skuld operates only on services that you explicitly placed in its registry.
+## What This Repository Is
 
-The entrypoint `./skuld` dispatches by platform:
+- A standard-library Python CLI for local service visibility and control.
+- A registry-based control layer for existing `systemd` units and visible
+  `launchd` jobs.
+- A narrow operational tool for listing, tracking, starting, stopping,
+  restarting, executing, inspecting, and reading logs for registered services.
+- A repository with real runtime behavior in the root scripts, not a greenfield
+  layered package.
 
-- Linux: `skuld_linux.py`
-- macOS: `skuld_macos.py`
+## What This Repository Is Not
 
-## Named After
+- It is not a general-purpose process supervisor.
+- It is not the canonical place to create, edit, or remove service definitions.
+- It is not a deployment system, scheduler authoring tool, metrics platform, or
+  fleet manager.
+- It must not operate arbitrary host services unless they are present in the
+  Skuld registry.
+- It should not be reshaped into a `src/` package only to look like a starter
+  scaffold.
 
-**Skuld** is one of the three Norns in Norse mythology, alongside **Urdr** (the past) and **Verdandi** (the present).
-She is tied to the future: what is owed, what is bound to happen, what is next in the thread of events.
+## Current State
 
-That symbolism maps directly to this project.
+- Phase: existing CLI with structural recovery in progress.
+- Runtime: Python 3.9+ and operating-system service managers.
+- Primary platform integrations:
+  - Linux: `systemd`, `systemctl`, `journalctl`, `/proc`, and optional `sudo`.
+  - macOS: `launchd`, `launchctl`, `tail`, `lsof`, and optional `sudo`.
+- Test maturity: no dedicated unit test suite is currently versioned.
+- Validation maturity: syntax checks, CLI help checks, project gate checks, and
+  a structural project doctor are available.
+- Operational maturity: local single-host operation is documented; there is no
+  remote deployment, fleet rollout, or backup automation.
 
-- A timer is a promise to the future.
-- A scheduled service is an obligation waiting for its time.
-- The registry is the ledger of what must still happen.
+## Domain Boundary
 
-Skuld does not try to own everything in your machine.
-It watches only what you intentionally place in its care, then keeps those services visible, operable, and auditable.
+Skuld manages a local registry of services. The registry is the trust boundary:
+commands such as `exec`, `start`, `stop`, `restart`, `status`, `logs`,
+`describe`, `stats`, `rename`, `sync`, and `untrack` resolve their targets from
+that registry.
 
-## Why Skuld in the AI era
+Service definitions themselves belong to the host service manager:
 
-AI can generate service files, timers, `systemd --user` setups, and privileged commands faster than ever.
-Skuld does not need to be the author of those units.
-Its value is the local control layer around what you chose to watch:
+- Linux service and timer unit files belong to `systemd`.
+- macOS plists and labels belong to `launchd`.
+- Skuld may inspect those definitions, but the current public CLI does not
+  create or edit them.
 
-- friendly naming
-- stable operational commands
-- lightweight metrics
-- one registry for the services you actually care about
+## Entrypoints
 
-## Features
+Primary entrypoints:
 
-- Linux backend via `systemd`.
-- macOS backend via `launchd`.
-- Persist tracked service metadata in a local JSON registry.
-- Work across both `system` and `user` `systemd` scopes on Linux.
-- Discover available services and track them from a catalog.
-- Track existing services and assign a display alias.
-- Start, stop, restart, execute-now, inspect status, and read logs.
-- Run `doctor` checks to detect registry/backend mismatches.
-- Run one-off privileged commands through `skuld sudo run -- ...`.
-- Show CPU, memory, and listening ports in `skuld` and `skuld list`.
+- `./skuld`
+- `skuld_linux.py`
+- `skuld_macos.py`
+- `scripts/skuld_journal_stats_collector.py`
+- `scripts/check_project_gate.py`
+- `scripts/project_doctor.py`
 
-## Requirements
+`./skuld` is the composition root. It selects the backend from `sys.platform`:
 
-- Linux with `systemd` (`systemctl` + `journalctl`), or macOS with `launchd` (`launchctl`).
-- Python 3.9+.
-- `sudo` only when you need to operate `system` units or inspect privileged resources.
-- No `sudo` is required for normal `systemd --user` workflows.
+- `darwin` imports `skuld_macos.py`
+- every other platform imports `skuld_linux.py`
 
-No external Python packages are required.
+Each backend currently contains its own CLI parser, registry model, registry
+normalization, backend command adapters, command handlers, table rendering, and
+runtime statistics helpers.
 
-## Linux Scopes and Persistence
+## Quick Start
 
-On Linux, persistence does not imply root.
-
-- Prefer `systemd --user` for per-user daemons and timers.
-- If you want the user manager to keep running after logout, enable linger for that account:
-
-```bash
-loginctl enable-linger "$USER"
-```
-
-- Use `system` scope only for machine-wide services, boot-time startup before login, or workloads that genuinely need elevated access.
-- In Skuld, `sudo` is an operational helper for `system` scope. It is not the default persistence model.
-
-## Installation
+### 1. Clone
 
 ```bash
 git clone git@github.com:rod-americo/skuld.git
 cd skuld
+```
+
+### 2. Prepare
+
+```bash
 chmod +x ./skuld
 ```
 
-Run from project root:
+No external Python packages are required for the CLI.
+
+### 3. Configure
+
+Most workflows need no repository-local configuration. Runtime state lives
+outside the worktree by default.
+
+Optional environment variables:
+
+| Name | Required | Purpose |
+| --- | --- | --- |
+| `SKULD_HOME` | no | Override the registry/runtime home directory. |
+| `SKULD_ENV_FILE` | no | Override the `.env` path used for sudo password lookup. |
+| `SKULD_SUDO_PASSWORD` | no | Allow non-interactive sudo for short-lived local use. |
+| `SKULD_RUNTIME_STATS_FILE` | Linux only | Override the Linux journal stats JSON path. |
+
+Using `.env` sudo password support is discouraged for production systems.
+Skuld warns when it uses `SKULD_SUDO_PASSWORD`.
+
+### 4. Run
+
+```bash
+./skuld
+```
+
+For a non-mutating interface check:
 
 ```bash
 ./skuld --help
 ```
 
-`./skuld` dispatches to the internal backend automatically.
-
-Optional: place it on your `PATH` without root.
+## Core Commands
 
 ```bash
-mkdir -p "$HOME/.local/bin"
-ln -s "$(pwd)/skuld" "$HOME/.local/bin/skuld"
+./skuld
+./skuld list
+./skuld catalog
+./skuld track ...
+./skuld rename ...
+./skuld untrack ...
+./skuld exec ...
+./skuld start ...
+./skuld stop ...
+./skuld restart ...
+./skuld status ...
+./skuld logs ...
+./skuld stats ...
+./skuld describe ...
+./skuld doctor
+./skuld sync
+./skuld version
+./skuld sudo check
+./skuld sudo run -- <command>
 ```
 
-If you explicitly want a system-wide install, use:
+`./skuld` and `./skuld list` show the same operational table:
+
+```text
+id | name | service | timer | triggers | cpu | memory | ports
+```
+
+Both accept:
 
 ```bash
-sudo ln -s "$(pwd)/skuld" /usr/local/bin/skuld
+./skuld --sort id
+./skuld list --sort cpu
+./skuld list --sort memory
 ```
-
-## Security Note
-
-Most user-scoped workflows do not need this section.
-
-You can set `SKULD_SUDO_PASSWORD` in `.env` (or environment variables), but this is not recommended for production systems.
-When present, Skuld runs `sudo` non-interactively.
-
-Lookup order:
-
-1. `SKULD_SUDO_PASSWORD` from process environment
-2. `SKULD_ENV_FILE` path (if set)
-3. `.env` in current working directory
-4. `.env` next to the `skuld` script
-5. `~/.local/share/skuld/.env` (Linux) or `~/Library/Application Support/skuld/.env` (macOS)
-
-To force regular interactive `sudo` and ignore env/.env password:
-
-```bash
-skuld --no-env-sudo <command> ...
-```
-
-Example `.env`:
-
-```env
-SKULD_SUDO_PASSWORD=your_password_here
-```
-
-For one-off agent usage, prefer:
-
-```bash
-skuld sudo check
-skuld sudo run -- systemctl daemon-reload
-```
-
-This avoids exporting the password back into shell history or command output.
 
 ## Registry
 
-Skuld stores tracked services in:
+Linux registry path:
 
-`~/.local/share/skuld/services.json`
-
-On macOS, Skuld stores tracked services in:
-
-`~/Library/Application Support/skuld/services.json`
-
-Only services present in this file can be operated by:
-
-- `exec`
-- `start`
-- `stop`
-- `restart`
-- `status`
-- `logs`
-- `describe`
-- `sync --name <service>`
-- `rename`
-- `untrack`
-
-On startup, Skuld normalizes this file automatically with canonical keys, stable ordering, pretty JSON, trailing newline, and valid unique IDs. This keeps hand-edited registries consistent.
-
-## Usage
-
-### Core commands
-
-```bash
-skuld
-skuld list
-skuld catalog
-skuld track ...
-skuld rename ...
-skuld untrack ...
-skuld exec ...
-skuld start ...
-skuld stop ...
-skuld restart ...
-skuld status ...
-skuld logs ...
-skuld stats ...
-skuld describe ...
-skuld doctor
-skuld sync
-skuld sudo check
-skuld sudo run -- <command>
+```text
+~/.local/share/skuld/services.json
 ```
 
-### Track an existing service
+macOS registry path:
 
-```bash
-skuld track nginx
-skuld track system:nginx --alias edge-proxy
-skuld track sshd.service --alias access-ssh
-skuld track user:syncthing --alias sync-home
-skuld catalog
-skuld track 1 4 22
+```text
+~/Library/Application Support/skuld/services.json
 ```
 
-On Linux, `track` inspects the existing `.service` and optional same-name `.timer`, then stores:
+The registry is a JSON array. On startup, Skuld normalizes it with canonical
+keys, stable ordering, pretty JSON, a trailing newline, and unique numeric IDs.
 
-- the real target name used by the backend
-- the systemd scope used by the backend (`system` or `user`)
-- a friendly `display_name` used by Skuld
-- basic metadata used by `describe`, `stats`, and `doctor`
+Only registry entries can be operated by Skuld. `untrack` removes an item from
+the registry without removing the backend service definition.
 
-When there are no tracked services yet, `skuld` shows a numbered catalog from both `systemctl list-unit-files` and `systemctl --user list-unit-files`. You can also reopen that catalog later with `skuld catalog`.
+## Linux Behavior
 
-If the same service name exists in both scopes, use an explicit target such as `system:nginx` or `user:nginx`.
+Skuld supports both `system` and `user` `systemd` scopes.
 
-For Linux services you own, prefer tracking the `user:` unit. Reach for `system:` only when the service is intentionally machine-wide or privileged.
-
-On macOS, the first run without tracked services shows a numbered catalog from `launchctl list`. You can track from that catalog directly:
+Prefer `systemd --user` for per-user daemons and timers:
 
 ```bash
-skuld
-skuld catalog
-skuld track 1 4 22
-skuld track com.apple.Finder --alias finder
+loginctl enable-linger "$USER"
 ```
 
-When `--alias` is omitted, Skuld asks interactively for a friendly name for each selected service. Press `Enter` to accept the suggested default.
+Use `system` scope for machine-wide services, boot-time startup before login, or
+workloads that genuinely need elevated access.
 
-### Rename a tracked service
+Track examples:
 
 ```bash
-skuld rename nginx edge-proxy
-skuld rename 3 nightly-sync
+./skuld track nginx
+./skuld track system:nginx --alias edge-proxy
+./skuld track user:syncthing --alias sync-home
+./skuld catalog
+./skuld track 1 4 22
 ```
 
-### Untrack without touching the backend
+On Linux, `track` inspects the existing `.service` and optional same-name
+`.timer`, then stores the real backend target, scope, display name, command,
+description, schedule metadata, and stable registry ID.
 
-```bash
-skuld untrack edge-proxy
-skuld untrack 3
-```
+For scheduled jobs, `start`, `stop`, and `restart` act on `.timer` when the
+registry has a schedule and the timer exists. Otherwise they act on `.service`.
+`exec` always starts the `.service` for an immediate run.
 
-If you need to create or edit units, do that outside Skuld, then track the result here.
-
-Typical tracked service lifecycle:
-
-```bash
-skuld start --name my-daemon
-skuld status --name my-daemon
-skuld logs --name my-daemon --follow
-skuld stop --name my-daemon
-```
-
-For scheduled jobs and daemons, action routing is automatic:
-
-- Linux:
-  `start/stop/restart` act on `.timer` only when the managed service has a real schedule and an installed `.timer` unit; otherwise they act on `.service`.
-- macOS:
-  `start/stop/restart` act on the `launchd` job itself.
-- To run a scheduled job immediately, use `exec <name>`.
-
-### List tracked services
-
-```bash
-skuld
-skuld list
-skuld --sort cpu
-skuld list --sort memory
-```
-
-- `skuld` and `skuld list` show the same operational view:
-  `id | name | service | timer | triggers | cpu | memory | ports`
-- Both accept `--sort id|name|cpu|memory`. The default is `name`. `cpu` and `memory` sort descending.
-- After operational commands like `track`, `rename`, `untrack`, `exec`, `start`, `stop`, `restart`, and `sync`, Skuld refreshes using the compact view.
-- `triggers` summarizes the schedule in human-readable form. On Linux it includes timer directives such as `OnCalendar`, `OnBootSec`, and `OnUnitActiveSec` when available.
-- `ports` is resolved from all PIDs in the service cgroup (not only `MainPID`), so wrapper processes like `npm start` still show the app listening port.
-- On narrow terminals, Skuld shortens flexible columns and may hide lower-priority ones such as `ports`, `memory`, or `cpu` so the table still fits on screen.
-- Both views include a top host panel with:
-  `uptime | cpu(load1/5/15) | memory`
-- Table borders use Unicode automatically when supported by your terminal. You can override:
-  - `skuld --ascii`
-  - `skuld --unicode`
-
-On macOS:
-
-- `ports` is `-` for jobs without listening sockets.
-
-On Linux, to keep runtime execution counters fresh via `systemd` (outside the Skuld registry), run:
+Optional Linux runtime execution counters can be collected with:
 
 ```bash
 ./scripts/install_runtime_stats_timer.sh --registry "$HOME/.local/share/skuld/services.json"
 ```
 
-Running `skuld` without arguments shows: `id | name | service | timer | triggers | cpu | memory | ports`.
+That installer uses `sudo` and writes a system service and timer outside the
+Skuld registry. Treat it as host-level operational setup.
 
-### Execute immediately
+## macOS Behavior
 
-```bash
-skuld exec --name my-job
-skuld exec my-job
-```
+On macOS, `track` discovers visible `launchd` jobs from `launchctl list` and
+stores the label plus inspected metadata.
 
-### Start/Stop/Restart
-
-```bash
-skuld start --name my-worker
-skuld start my-worker
-skuld start 2 4 5
-skuld stop --name my-worker
-skuld stop my-worker
-skuld stop 2 4 5
-skuld restart --name my-worker
-skuld restart my-worker
-skuld restart api-worker 7
-```
-
-### Logs
+Examples:
 
 ```bash
-skuld logs --name my-worker --lines 200
-skuld logs my-worker 200
-skuld logs --name my-worker --follow
-skuld logs --name my-job --timer --since "1 hour ago"
-skuld logs 3 --plain
-skuld logs 3 --output short-iso
+./skuld
+./skuld catalog
+./skuld track 1 4 22
+./skuld track com.apple.Finder --alias finder
 ```
 
-On Linux, `--plain` uses `journalctl -o cat` (message only, no timestamp/host/process prefix).
+Current macOS logs are file-based only for jobs that Skuld itself marks as
+managed by Skuld. Jobs tracked from `launchctl list` may not have log files
+available through `skuld logs`.
 
-On macOS, logs are file-based:
+The macOS backend still contains legacy helper functions for wrapper scripts and
+plists. They are compatibility code paths, not exposed as public create/edit CLI
+commands in the current parser.
 
-- `LaunchDaemon`: `/Library/Application Support/skuld/logs/<name>/stdout.log`
-- `LaunchDaemon`: `/Library/Application Support/skuld/logs/<name>/stderr.log`
-- `LaunchAgent`: `~/Library/Application Support/skuld/logs/<name>/stdout.log`
-- `LaunchAgent`: `~/Library/Application Support/skuld/logs/<name>/stderr.log`
+## Validation
 
-`--since` is currently Linux-only.
-
-### Execution stats
-
-On Linux, Skuld uses journal extraction to count service executions and `systemd` counters for restarts.
-
-On macOS, Skuld uses its own event files.
+Minimum validation for this repository:
 
 ```bash
-skuld stats --name my-worker
-skuld stats my-worker --since "24 hours ago"
-skuld stats my-worker --boot
+python3 -m py_compile ./skuld ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py
+./skuld --help
+python3 scripts/check_project_gate.py
+python3 scripts/project_doctor.py
+python3 scripts/project_doctor.py --audit-config
 ```
 
-### Describe
-
-```bash
-skuld describe --name my-worker
-skuld describe my-worker
-```
-
-### Doctor
-
-```bash
-skuld doctor
-```
-
-### Sync registry
-
-```bash
-skuld sync
-skuld sync --name my-worker
-skuld sync my-worker
-```
-
-## Command Help
-
-```bash
-skuld --help
-```
+There is no versioned unit test suite yet. Do not claim coverage beyond the
+syntax, CLI, structural, and manual smoke checks that were actually run.
 
 ## Project Docs
 
-- `CONTRIBUTING.md`: contribution workflow and expectations
-- `CHANGELOG.md`: notable changes
+- `AGENTS.md`: collaboration protocol, reading order, validation, and hotspots.
+- `PROJECT_GATE.md`: existence, boundaries, maintenance cost, and exit
+  condition.
+- `START_CHECKLIST.md`: recovery checklist for this existing repository.
+- `docs/ARCHITECTURE.md`: real system map, flow, persistence, and hotspots.
+- `docs/CONTRACTS.md`: canonical inputs, outputs, identifiers, and invariants.
+- `docs/OPERATIONS.md`: setup, runtime, logs, restart, troubleshooting, and
+  smoke checks.
+- `docs/DECISIONS.md`: architectural and operational decisions.
+- `CHANGELOG.md`: notable repository changes.
+
+## Known Weak Spots
+
+- The Linux and macOS backends duplicate parsing, registry handling, table
+  rendering, and command orchestration.
+- There is no dedicated unit test suite.
+- The macOS backend contains legacy creation-oriented helpers that are no longer
+  exposed as public CLI commands.
+- Operational stats are useful but partial: Linux depends on journald/systemd
+  availability, while macOS uses local event/log files only for compatible
+  registry entries.
+- The root-level Python files are the real architecture today; splitting them
+  should be behavior-preserving and test-backed, not cosmetic.
 
 ## License
 
-This project is licensed under the MIT License.
-See the `LICENSE` file for details.
+This project is licensed under the MIT License. See `LICENSE`.
