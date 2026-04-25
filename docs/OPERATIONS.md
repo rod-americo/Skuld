@@ -66,6 +66,7 @@ overrides.
 
 ```bash
 python3 -m py_compile ./skuld ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py
+python3 -m unittest discover -s tests
 ./skuld --help
 python3 scripts/check_project_gate.py
 python3 scripts/project_doctor.py
@@ -84,6 +85,9 @@ and the registry points at disposable or intentionally managed services:
 ```bash
 ./skuld doctor
 ```
+
+The automated test suite proves command behavior with faked backend command
+responses. It does not start or stop real host services.
 
 ## 6. Smoke Checks
 

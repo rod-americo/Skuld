@@ -247,14 +247,17 @@ Minimum validation for this repository:
 
 ```bash
 python3 -m py_compile ./skuld ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py
+python3 -m unittest discover -s tests
 ./skuld --help
 python3 scripts/check_project_gate.py
 python3 scripts/project_doctor.py
 python3 scripts/project_doctor.py --audit-config
 ```
 
-There is no versioned unit test suite yet. Do not claim coverage beyond the
-syntax, CLI, structural, and manual smoke checks that were actually run.
+The unit suite uses faked `systemd`, `journalctl`, and `launchd` interactions to
+prove registry normalization, target resolution, command routing, log fallback,
+stats output, doctor findings, and entrypoint dispatch without mutating the
+host service manager.
 
 ## Project Docs
 
@@ -273,14 +276,13 @@ syntax, CLI, structural, and manual smoke checks that were actually run.
 
 - The Linux and macOS backends duplicate parsing, registry handling, table
   rendering, and command orchestration.
-- There is no dedicated unit test suite.
 - The macOS backend contains legacy creation-oriented helpers that are no longer
   exposed as public CLI commands.
 - Operational stats are useful but partial: Linux depends on journald/systemd
   availability, while macOS uses local event/log files only for compatible
   registry entries.
 - The root-level Python files are the real architecture today; splitting them
-  should be behavior-preserving and test-backed, not cosmetic.
+  should continue to be behavior-preserving and test-backed, not cosmetic.
 
 ## License
 

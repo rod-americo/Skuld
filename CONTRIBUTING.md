@@ -21,6 +21,7 @@ git clone git@github.com:rod-americo/skuld.git
 cd skuld
 chmod +x ./skuld
 python3 -m py_compile ./skuld ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py
+python3 -m unittest discover -s tests
 ./skuld --help
 python3 scripts/check_project_gate.py
 python3 scripts/project_doctor.py

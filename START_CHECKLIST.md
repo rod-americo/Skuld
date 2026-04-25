@@ -35,21 +35,22 @@ is not a greenfield scaffold checklist.
 - [x] `.githooks/pre-commit` exists as an opt-in local hook.
 - [x] `scripts/install_git_hooks.sh` can opt into the local hook.
 - [x] `.gitignore` covers local runtime, logs, caches, and secrets.
+- [x] A behavior-focused `unittest` suite exists under `tests/`.
 
 ## 3. What Is Intentionally Not Done Yet
 
 - [ ] No mass move into `src/` was done.
 - [ ] No artificial `domain / application / infrastructure / interfaces`
   directory tree was created.
-- [ ] No test coverage was invented.
+- [ ] No live host service smoke was run without explicit disposable targets.
 - [ ] No service authoring command was reintroduced.
 - [ ] No operational readiness claim was added for fleets, remote hosts, or
   deployment automation.
 
 ## 4. Next Safe Work
 
-- [ ] Add focused tests around registry normalization and target resolution.
-- [ ] Add tests for command routing: timer-backed services versus direct
+- [x] Add focused tests around registry normalization and target resolution.
+- [x] Add tests for command routing: timer-backed services versus direct
   services on Linux.
 - [ ] Decide whether legacy macOS wrapper/plist helper code should be retained,
   removed, or promoted behind explicit contracts.

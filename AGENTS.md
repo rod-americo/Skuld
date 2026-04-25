@@ -125,6 +125,7 @@ Run this before finalizing repository-wide structural or operational changes:
 
 ```bash
 python3 -m py_compile ./skuld ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py
+python3 -m unittest discover -s tests
 ./skuld --help
 python3 scripts/check_project_gate.py
 python3 scripts/project_doctor.py
@@ -150,6 +151,8 @@ backend validation as complete.
 - `SKULD_SUDO_PASSWORD` support is convenient but sensitive.
 - Legacy macOS plist/wrapper helpers remain in code but are not exposed as
   public create/edit commands.
+- The unit suite fakes service-manager commands; live backend smokes still need
+  disposable services and explicit operator intent.
 
 ## Git Workflow
 

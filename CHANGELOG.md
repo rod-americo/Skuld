@@ -24,6 +24,9 @@ intent.
   `scripts/project_doctor.py` for baseline governance validation.
 - Opt-in local git hook files: `.githooks/pre-commit` and
   `scripts/install_git_hooks.sh`.
+- Behavior-focused `unittest` suite for registry normalization, target
+  resolution, backend command routing, stats/logs behavior, doctor findings,
+  and entrypoint dispatch.
 
 ### Changed
 
@@ -39,4 +42,5 @@ intent.
 ### Notes
 
 - No runtime service-management behavior changed in this structural recovery.
-- No unit test suite was added in this round.
+- The automated suite fakes backend service managers; live smoke tests still
+  require disposable real services and explicit operator intent.
