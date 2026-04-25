@@ -35,13 +35,36 @@ class MacRegistryTest(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            [service] = macos.load_registry()
+            [service] = macos.load_registry(write_back=True)
             self.assertEqual(service.launchd_label, "io.skuld.com.example.worker")
             self.assertEqual(service.scope, "daemon")
             self.assertEqual(service.backend, "launchd")
             self.assertEqual(service.id, 1)
             self.assertTrue(state.stats.exists())
             self.assertTrue(state.registry.read_text(encoding="utf-8").endswith("\n"))
+
+    def test_load_registry_does_not_write_by_default(self) -> None:
+        with IsolatedMacState(macos) as state:
+            state.registry.parent.mkdir(parents=True, exist_ok=True)
+            raw = json.dumps(
+                [
+                    {
+                        "name": "com.example.worker",
+                        "exec_cmd": "/bin/worker",
+                        "description": "Worker",
+                        "display_name": "worker",
+                        "id": 0,
+                        "ignored": "left-alone",
+                    }
+                ]
+            )
+            state.registry.write_text(raw, encoding="utf-8")
+
+            [service] = macos.load_registry()
+
+            self.assertEqual(service.launchd_label, "io.skuld.com.example.worker")
+            self.assertEqual(service.id, 1)
+            self.assertEqual(state.registry.read_text(encoding="utf-8"), raw)
 
     def test_agent_registry_entry_cannot_store_user(self) -> None:
         with IsolatedMacState(macos) as state:
@@ -67,6 +90,40 @@ class MacRegistryTest(unittest.TestCase):
 
 
 class MacCommandBehaviorTest(unittest.TestCase):
+    def test_list_does_not_persist_registry_normalization(self) -> None:
+        with IsolatedMacState(macos) as state:
+            state.registry.parent.mkdir(parents=True, exist_ok=True)
+            raw = json.dumps(
+                [
+                    {
+                        "name": "com.example.Worker",
+                        "exec_cmd": "/usr/bin/worker",
+                        "description": "Worker",
+                        "display_name": "worker",
+                        "id": 0,
+                        "ignored": "left-alone",
+                    }
+                ]
+            )
+            state.registry.write_text(raw, encoding="utf-8")
+
+            with patch.object(macos, "read_event_stats", return_value={}), patch.object(
+                macos, "read_pid", return_value=0
+            ), patch.object(
+                macos, "read_cpu_memory", return_value={"cpu": "-", "memory": "-"}
+            ), patch.object(
+                macos, "service_loaded", return_value=False
+            ), patch.object(
+                macos, "read_ports", return_value="-"
+            ), patch.object(
+                macos, "render_host_panel"
+            ), patch.object(
+                macos, "render_table"
+            ), redirect_stdout(io.StringIO()):
+                macos.list_services_compact()
+
+            self.assertEqual(state.registry.read_text(encoding="utf-8"), raw)
+
     def test_track_captures_launchd_metadata_as_external_job(self) -> None:
         with IsolatedMacState(macos):
             entry = macos.DiscoverableService(1, "com.example.Worker", "-", "0")

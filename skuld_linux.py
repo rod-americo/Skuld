@@ -221,8 +221,8 @@ def registry_store() -> RegistryStore[ManagedService]:
     )
 
 
-def load_registry() -> List[ManagedService]:
-    return registry_store().load()
+def load_registry(*, write_back: bool = False) -> List[ManagedService]:
+    return registry_store().load(write_back=write_back)
 
 
 def save_registry(services: List[ManagedService]) -> None:
@@ -1368,7 +1368,7 @@ def schedule_for_display(svc: ManagedService) -> str:
 
 
 def sync_registry_from_systemd(target: Optional[ManagedService] = None) -> int:
-    services = load_registry()
+    services = load_registry(write_back=True)
     changed = 0
     target_key = managed_service_key(target.name, target.scope) if target else None
     updated: List[ManagedService] = []
@@ -1595,7 +1595,6 @@ def parse_bool(value: str, default: bool = True) -> bool:
 
 def _render_services_table(compact: bool, sort_by: str = "name") -> None:
     require_systemctl()
-    sync_registry_from_systemd()
     services = list(load_registry())
     if not services:
         render_discoverable_services_hint()
@@ -1929,7 +1928,6 @@ def untrack(args: argparse.Namespace) -> None:
 
 def doctor(_args: argparse.Namespace) -> None:
     require_systemctl()
-    sync_registry_from_systemd()
     services = load_registry()
     if not services:
         print("No services tracked by skuld.")
@@ -1980,7 +1978,6 @@ def describe(args: argparse.Namespace) -> None:
     target = resolve_managed_arg(args)
     name = target.name
     require_systemctl()
-    sync_registry_from_systemd(target)
     svc = require_managed(name, scope=target.scope)
     service_unit = f"{name}.service"
     timer_unit = f"{name}.timer"

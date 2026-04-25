@@ -275,3 +275,38 @@ Add `--dry-run` and `--uninstall` modes to
 
 - Installing the timer implicitly from `./skuld`.
 - Removing generated stats automatically during uninstall.
+
+## 2026-04-25 - Make Registry Reads Non-Mutating By Default
+
+**Context**
+
+The registry store could normalize and rewrite `services.json` during read
+paths. That made read-only commands such as `list`, `doctor`, and `describe`
+less defensible because inspection could also mutate persistent state.
+
+**Decision**
+
+Make `RegistryStore.load()` and backend `load_registry()` normalize in memory by
+default. Persist canonical JSON only from explicit write paths such as
+`track`, `rename`, `untrack`, `sync`, `save_registry()`, `upsert_registry()`,
+or `write_back=True`.
+
+**Impact**
+
+- Read-only CLI commands no longer rewrite an existing registry file just to
+  canonicalize formatting, ordering, defaults, or IDs.
+- `sync` remains the intentional command for backfilling and persisting registry
+  metadata.
+- Tests now cover both in-memory normalization and no-write behavior for list
+  commands.
+
+**Tradeoff**
+
+- A stale but valid registry can remain non-canonical until an explicit mutating
+  command is run.
+
+**Alternatives rejected**
+
+- Keeping canonicalization as a hidden startup side effect.
+- Adding a migration framework before there is a versioned registry migration
+  need.

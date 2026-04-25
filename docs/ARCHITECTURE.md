@@ -143,10 +143,8 @@ registration because their command options and operational adapters differ.
 3. The backend parser maps CLI arguments to a command handler.
 4. `skuld_cli.py` runs the backend-neutral command loop.
 5. For most commands, `load_registry()` ensures runtime storage exists, parses
-   JSON, validates required fields, normalizes entries, assigns stable IDs, and
-   writes canonical JSON back when needed. Tests and audit code can use
-   `RegistryStore.load(write_back=False)` to normalize in memory without
-   mutating the registry file.
+   JSON, validates required fields, normalizes entries, and assigns stable IDs
+   in memory without rewriting an existing registry.
 6. Targeted commands resolve a registry entry by ID, display name, backend name,
    or scoped backend name where supported.
 7. The command handler reads backend state through `systemctl`, `journalctl`, or
@@ -154,7 +152,7 @@ registration because their command options and operational adapters differ.
    or `exec`.
 8. Output is printed as a table or command-specific detail on stdout/stderr.
 9. Commands such as `track`, `rename`, `untrack`, and `sync` update the
-   registry, then show the compact operational table.
+   registry with canonical JSON, then show the compact operational table.
 
 ## 6. Contracts And Invariants
 
@@ -194,7 +192,8 @@ macOS:
 Migration policy:
 
 - There is no formal migration framework.
-- `load_registry()` performs in-place normalization for known fields.
+- `load_registry()` performs in-memory normalization for known fields.
+- `sync`, `track`, `rename`, and `untrack` persist canonical registry JSON.
 - Contract changes to registry fields must be recorded in `docs/CONTRACTS.md`
   and `docs/DECISIONS.md`.
 
@@ -237,9 +236,8 @@ Host-local configuration:
 
 - The Linux and macOS files still contain large backend-specific command
   handlers and service-manager adapter code.
-- Registry normalization still writes to disk by default during normal CLI
-  reads, although the store now supports no-write normalization for audits and
-  tests.
+- There is still no formal registry migration framework; canonicalization is
+  tied to explicit mutating commands.
 - Backend command execution, target resolution, and CLI presentation are tightly
   coupled in each backend.
 - Live service operation is high-impact. Disposable smoke scripts now exercise
@@ -251,7 +249,5 @@ Host-local configuration:
 
 ## 11. Open Decisions
 
-- Whether registry canonicalization should remain a default read side effect or
-  move behind explicit write operations.
 - Whether the backend files should be split further now that common CLI runner,
   common helpers, and common registry storage exist.

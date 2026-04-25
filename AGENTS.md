@@ -168,8 +168,10 @@ scripts/smoke_linux_systemd_user.sh --host <ssh-host>
 
 - `skuld_linux.py` and `skuld_macos.py` still carry large backend-specific
   command flows and service-manager adapter code.
-- Registry loads still canonicalize writes by default; use
-  `RegistryStore.load(write_back=False)` when auditing without mutation.
+- Registry loads normalize in memory by default. Use explicit writes through
+  `track`, `rename`, `untrack`, `sync`, `save_registry()`, `upsert_registry()`,
+  or `RegistryStore.load(write_back=True)` when canonicalization should be
+  persisted.
 - `start`, `stop`, `restart`, and `exec` can mutate host service state.
 - Linux journal and port inspection can require permissions that vary by host.
 - macOS logs are only reliable for jobs with compatible Skuld-managed log paths.

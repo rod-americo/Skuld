@@ -36,7 +36,7 @@ class RegistryStore(Generic[ServiceT]):
         if not self.registry_file.exists():
             self.registry_file.write_text("[]", encoding="utf-8")
 
-    def load(self, *, write_back: bool = True) -> List[ServiceT]:
+    def load(self, *, write_back: bool = False) -> List[ServiceT]:
         self.ensure_storage()
         raw_text = self.registry_file.read_text(encoding="utf-8")
         services, changed, canonical_text = self.normalize_text(raw_text)

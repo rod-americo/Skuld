@@ -47,7 +47,7 @@ class LinuxRegistryTest(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            services = linux.load_registry()
+            services = linux.load_registry(write_back=True)
             self.assertEqual([svc.name for svc in services], ["alpha", "beta"])
             self.assertEqual(services[0].scope, "user")
             self.assertEqual(services[1].scope, "system")
@@ -58,6 +58,30 @@ class LinuxRegistryTest(unittest.TestCase):
             self.assertNotIn("ignored", canonical[1])
             self.assertEqual(canonical[1]["scope"], "system")
             self.assertTrue(state.registry.read_text(encoding="utf-8").endswith("\n"))
+
+    def test_load_registry_does_not_write_by_default(self) -> None:
+        with IsolatedLinuxState(linux) as state:
+            state.registry.parent.mkdir(parents=True, exist_ok=True)
+            raw = json.dumps(
+                [
+                    {
+                        "name": "beta",
+                        "scope": "root",
+                        "exec_cmd": "/bin/beta",
+                        "description": "Beta service",
+                        "display_name": "beta-alias",
+                        "id": 0,
+                        "ignored": "left-alone",
+                    }
+                ]
+            )
+            state.registry.write_text(raw, encoding="utf-8")
+
+            [service] = linux.load_registry()
+
+            self.assertEqual(service.scope, "system")
+            self.assertEqual(service.id, 1)
+            self.assertEqual(state.registry.read_text(encoding="utf-8"), raw)
 
     def test_duplicate_display_name_is_rejected(self) -> None:
         with IsolatedLinuxState(linux) as state:
@@ -106,6 +130,45 @@ class LinuxTargetResolutionTest(unittest.TestCase):
 
 
 class LinuxCommandBehaviorTest(unittest.TestCase):
+    def test_list_does_not_persist_registry_normalization(self) -> None:
+        with IsolatedLinuxState(linux) as state:
+            state.registry.parent.mkdir(parents=True, exist_ok=True)
+            raw = json.dumps(
+                [
+                    {
+                        "name": "api",
+                        "scope": "root",
+                        "exec_cmd": "/bin/api",
+                        "description": "API",
+                        "display_name": "api",
+                        "id": 0,
+                        "ignored": "left-alone",
+                    }
+                ]
+            )
+            state.registry.write_text(raw, encoding="utf-8")
+
+            with patch.object(linux, "require_systemctl"), patch.object(
+                linux, "read_gpu_memory_by_pid", return_value={}
+            ), patch.object(
+                linux, "load_runtime_stats", return_value={}
+            ), patch.object(
+                linux, "render_host_panel"
+            ), patch.object(
+                linux, "unit_exists", return_value=False
+            ), patch.object(
+                linux, "read_unit_usage", return_value={"cpu": "-", "memory": "-"}
+            ), patch.object(
+                linux, "read_unit_ports", return_value="-"
+            ), patch.object(
+                linux, "timer_triggers_for_display", return_value="-"
+            ), patch.object(
+                linux, "render_table"
+            ), redirect_stdout(io.StringIO()):
+                linux.list_services_compact()
+
+            self.assertEqual(state.registry.read_text(encoding="utf-8"), raw)
+
     def test_track_captures_systemd_metadata_into_registry(self) -> None:
         with IsolatedLinuxState(linux):
             entry = linux.DiscoverableService(1, "user", "demo", "enabled", "enabled")

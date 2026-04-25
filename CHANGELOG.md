@@ -48,8 +48,9 @@ intent.
   without changing public commands.
 - Removed unused macOS plist/wrapper creation helpers that were not reachable
   from the public CLI.
-- Registry storage now supports no-write normalization through
-  `RegistryStore.load(write_back=False)` for tests and audits.
+- Registry reads now normalize in memory by default. Existing registry files
+  are rewritten only by explicit mutating commands or intentional
+  `write_back=True` code paths.
 
 ### Notes
 

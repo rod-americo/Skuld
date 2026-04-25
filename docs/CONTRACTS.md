@@ -23,7 +23,7 @@ invariants, and external integration assumptions.
 | Name | Destination | Format | Guarantees |
 | --- | --- | --- | --- |
 | CLI output | stdout/stderr | text tables or key-value lines | Best-effort readable output; not a stable machine API. |
-| Registry update | Skuld registry path | canonical JSON array | Pretty JSON, stable ordering, trailing newline, normalized IDs. |
+| Registry update | Skuld registry path | canonical JSON array | Written by mutating commands with pretty JSON, stable ordering, trailing newline, and normalized IDs. |
 | Backend action | `systemctl` or `launchctl` | service-manager operation | Only targets that resolve from the registry should be operated. |
 | Log output | stdout/stderr | text stream | Mirrors backend/file log availability and permissions. |
 | Debug output | stderr | redacted text lines | Opt-in only; not a stable machine API. |
@@ -99,9 +99,10 @@ invariants, and external integration assumptions.
 - Skuld commands must resolve operational targets from the registry.
 - `untrack` removes registry state only; it must not remove backend service
   definitions.
-- Normal CLI registry loads may canonicalize and write the registry. Audit code
-  can use `RegistryStore.load(write_back=False)` to validate and normalize in
-  memory without changing the file.
+- Normal CLI registry loads validate and normalize in memory without rewriting
+  an existing registry file.
+- Registry canonicalization is persisted by explicit mutating commands or by
+  `RegistryStore.load(write_back=True)` in code paths that intentionally write.
 - Linux `system:name` and `user:name` are distinct backend identities.
 - The same `display_name` cannot refer to two registry entries.
 - `SKULD_SUDO_PASSWORD` must never be logged.
@@ -131,3 +132,5 @@ restart procedures, or new validation.
 - 2026-04-25: Added opt-in `SKULD_DEBUG` diagnostics, common CLI runner, and
   no-write registry normalization for audits; no registry schema change was
   made.
+- 2026-04-25: Made no-write registry normalization the default for read paths;
+  explicit mutating commands still persist canonical JSON.

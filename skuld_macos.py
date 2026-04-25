@@ -410,9 +410,9 @@ def registry_store() -> RegistryStore[ManagedService]:
     )
 
 
-def load_registry() -> List[ManagedService]:
+def load_registry(*, write_back: bool = False) -> List[ManagedService]:
     ensure_storage()
-    return registry_store().load()
+    return registry_store().load(write_back=write_back)
 
 
 def save_registry(services: List[ManagedService]) -> None:
@@ -941,7 +941,7 @@ def kickstart_service(service: ManagedService, kill_existing: bool = False) -> s
 
 
 def sync_registry_from_launchd(name: Optional[str] = None) -> int:
-    services = load_registry()
+    services = load_registry(write_back=True)
     changed = 0
     target_names = {name} if name else None
     updated: List[ManagedService] = []
@@ -1243,7 +1243,6 @@ def render_host_panel() -> None:
 
 
 def _render_services_table(compact: bool, sort_by: str = "name") -> None:
-    sync_registry_from_launchd()
     services = list(load_registry())
     if not services:
         render_discoverable_services_hint()

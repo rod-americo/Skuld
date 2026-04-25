@@ -181,8 +181,12 @@ macOS registry path:
 ~/Library/Application Support/skuld/services.json
 ```
 
-The registry is a JSON array. On startup, Skuld normalizes it with canonical
-keys, stable ordering, pretty JSON, a trailing newline, and unique numeric IDs.
+The registry is a JSON array. Skuld normalizes registry entries in memory when
+reading them. Read-only commands such as `list`, `status`, `logs`, `stats`,
+`describe`, and `doctor` do not rewrite an existing registry just to canonicalize
+formatting or fill defaults. Mutating commands such as `track`, `rename`,
+`untrack`, and `sync` write canonical JSON with stable ordering, pretty JSON, a
+trailing newline, and unique numeric IDs.
 
 Only registry entries can be operated by Skuld. `untrack` removes an item from
 the registry without removing the backend service definition.

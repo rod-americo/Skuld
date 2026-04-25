@@ -62,8 +62,8 @@ is not a greenfield scaffold checklist.
   Linux and a disposable LaunchAgent on macOS.
 - [x] Add `--dry-run` and `--uninstall` paths for the Linux stats timer
   installer.
-- [ ] Decide whether registry canonicalization should remain a default read
-  side effect.
+- [x] Move registry canonicalization behind explicit write paths instead of
+  default read side effects.
 - [ ] Decide whether further backend splitting is now justified by tests.
 
 ## 5. Do Not Do In The Next Round

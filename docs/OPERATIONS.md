@@ -220,6 +220,13 @@ Missing required registry fields:
   required.
 - Action: use `sync` if possible or repair the registry entry.
 
+Registry formatting or default fields are stale:
+
+- Symptom: read-only commands work, but the registry file still has older
+  ordering, omitted default fields, or non-canonical formatting.
+- Action: run `./skuld sync` intentionally. Read-only commands do not rewrite an
+  existing registry just to canonicalize it.
+
 Ambiguous Linux target:
 
 - Symptom: service exists in multiple scopes.
