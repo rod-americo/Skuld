@@ -11,6 +11,7 @@ from typing import Dict, List, Optional, Set
 
 import skuld_common as common
 import skuld_cli
+import skuld_linux_systemd as systemd
 from skuld_registry import RegistryStore
 
 VERSION = "0.3.0"
@@ -26,7 +27,6 @@ FORCE_TABLE_UNICODE = False
 SYSTEMD_UNIT_STARTED_MESSAGE_ID = "39f53479d3a045ac8e11786248231fbf"
 SORT_CHOICES = ("id", "name", "cpu", "memory")
 VALID_SCOPES = ("system", "user")
-SCOPE_ALIASES = {"system": "system", "root": "system", "user": "user"}
 SERVICE_TABLE_COLUMNS = (
     {"key": "id", "header": "id", "min_width": 2, "shrink": False},
     {"key": "name", "header": "name", "min_width": 12, "shrink": True},
@@ -150,11 +150,7 @@ def get_sudo_password() -> Optional[str]:
 
 
 def normalize_scope(value: str) -> str:
-    scope = (value or "system").strip().lower()
-    normalized = SCOPE_ALIASES.get(scope)
-    if not normalized:
-        raise ValueError(f"Invalid scope '{value}'. Use 'system' or 'user'.")
-    return normalized
+    return systemd.normalize_scope(value)
 
 
 def scope_sort_value(scope: str) -> int:
@@ -178,8 +174,11 @@ def split_scope_token(token: str) -> tuple[Optional[str], str]:
     if ":" not in raw:
         return None, raw
     maybe_scope, remainder = raw.split(":", 1)
-    normalized = SCOPE_ALIASES.get(maybe_scope.strip().lower())
-    if not normalized or not remainder.strip():
+    try:
+        normalized = normalize_scope(maybe_scope)
+    except ValueError:
+        return None, raw
+    if not remainder.strip():
         return None, raw
     return normalized, remainder.strip()
 
@@ -541,64 +540,37 @@ def journal_permission_hint(stderr_text: str) -> bool:
 
 
 def require_systemctl() -> None:
-    try:
-        run(["systemctl", "--version"], check=True, capture=True)
-    except Exception as exc:
-        raise RuntimeError("systemctl not found. This tool requires Linux with systemd.") from exc
+    systemd.require_systemctl()
 
 
 def systemd_scope_env(scope: str) -> Optional[Dict[str, str]]:
-    if normalize_scope(scope) != "user":
-        return None
-
-    env = dict(os.environ)
-    uid = os.getuid()
-    runtime_dir = (env.get("XDG_RUNTIME_DIR") or "").strip()
-    if not runtime_dir:
-        fallback = Path(f"/run/user/{uid}")
-        if fallback.exists():
-            runtime_dir = str(fallback)
-            env["XDG_RUNTIME_DIR"] = runtime_dir
-
-    if runtime_dir:
-        bus_path = Path(runtime_dir) / "bus"
-        if bus_path.exists() and not (env.get("DBUS_SESSION_BUS_ADDRESS") or "").strip():
-            env["DBUS_SESSION_BUS_ADDRESS"] = f"unix:path={bus_path}"
-
-    return env
+    return systemd.scope_env(scope)
 
 
 def systemctl_command(scope: str, args: List[str]) -> List[str]:
-    cmd = ["systemctl"]
-    if normalize_scope(scope) == "user":
-        cmd.append("--user")
-    return cmd + args
+    return systemd.systemctl_command(scope, args)
 
 
 def journalctl_command(scope: str, args: List[str]) -> List[str]:
-    cmd = ["journalctl"]
-    if normalize_scope(scope) == "user":
-        cmd.append("--user")
-    return cmd + args
+    return systemd.journalctl_command(scope, args)
 
 
 def run_systemctl_action(scope: str, args: List[str], check: bool = True, capture: bool = False) -> subprocess.CompletedProcess:
-    cmd = systemctl_command(scope, args)
-    if normalize_scope(scope) == "system":
-        return run_sudo(cmd, check=check, capture=capture)
-    return run(cmd, check=check, capture=capture, env=systemd_scope_env(scope))
+    return systemd.run_systemctl_action(
+        scope,
+        args,
+        sudo_password=get_sudo_password(),
+        check=check,
+        capture=capture,
+    )
 
 
 def unit_exists(unit: str, scope: str = "system") -> bool:
-    show = systemctl_show(unit, ["LoadState"], scope=scope)
-    load_state = (show.get("LoadState", "") or "").strip().lower()
-    return bool(load_state and load_state != "not-found")
+    return systemd.unit_exists(unit, scope=scope)
 
 
 def unit_active(unit: str, scope: str = "system") -> str:
-    proc = run(systemctl_command(scope, ["is-active", unit]), check=False, capture=True, env=systemd_scope_env(scope))
-    status = (proc.stdout or "").strip()
-    return status if status else "inactive"
+    return systemd.unit_active(unit, scope=scope)
 
 
 def display_unit_state(status: str) -> str:
@@ -1414,29 +1386,11 @@ def sync_registry_from_systemd(target: Optional[ManagedService] = None) -> int:
 
 
 def systemctl_show(unit: str, props: List[str], scope: str = "system") -> Dict[str, str]:
-    cmd = systemctl_command(scope, ["show", unit, "--no-pager"])
-    for p in props:
-        cmd.extend(["-p", p])
-    proc = run(cmd, check=False, capture=True, env=systemd_scope_env(scope))
-    result: Dict[str, str] = {}
-    for line in (proc.stdout or "").splitlines():
-        if "=" not in line:
-            continue
-        k, v = line.split("=", 1)
-        result[k] = v
-    return result
+    return systemd.systemctl_show(unit, props, scope=scope)
 
 
 def systemctl_cat(unit: str, scope: str = "system") -> str:
-    proc = run(
-        systemctl_command(scope, ["cat", unit, "--no-pager"]),
-        check=False,
-        capture=True,
-        env=systemd_scope_env(scope),
-    )
-    if proc.returncode != 0:
-        return ""
-    return proc.stdout or ""
+    return systemd.systemctl_cat(unit, scope=scope)
 
 
 def list_discoverable_services_for_scope(scope: str) -> List[DiscoverableService]:

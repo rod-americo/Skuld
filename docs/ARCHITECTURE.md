@@ -82,10 +82,16 @@ that module's `main()`.
 - Linux registry schema and validation rules.
 - Target resolution by ID, display name, backend name, and `system:` or `user:`
   scope.
-- `systemctl` and `journalctl` command construction.
 - Linux stats from journald, `systemctl show`, `/proc`, `ss`, and optional
   `nvidia-smi`.
 - Linux command handlers and backend state rendering.
+
+`skuld_linux_systemd.py` owns the low-level Linux service-manager adapter:
+
+- `system` and `user` scope normalization.
+- `systemctl` and `journalctl` command construction.
+- User-scope environment discovery.
+- Low-level `systemctl show`, `cat`, `is-active`, and action execution.
 
 ### 4.3 macOS Backend
 
@@ -131,6 +137,8 @@ registration because their command options and operational adapters differ.
   env file parsing, sudo password lookup, subprocess wrappers, output
   formatting, byte/duration formatting, sorting, clipping, table rendering, and
   responsive table fitting.
+- `skuld_linux_systemd.py` provides the Linux `systemd` adapter used by
+  `skuld_linux.py`.
 - `skuld_observability.py` provides opt-in redacted debug output controlled by
   `SKULD_DEBUG`.
 - `skuld_registry.py` provides generic registry storage mechanics while leaving

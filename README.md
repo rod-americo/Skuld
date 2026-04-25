@@ -65,6 +65,7 @@ Primary entrypoints:
 - `skuld_linux.py`
 - `skuld_macos.py`
 - `skuld_common.py`
+- `skuld_linux_systemd.py`
 - `skuld_observability.py`
 - `skuld_registry.py`
 - `scripts/skuld_journal_stats_collector.py`
@@ -78,9 +79,11 @@ Primary entrypoints:
 
 Each backend contains its own CLI parser, backend-specific model, command
 adapters, command handlers, and runtime statistics helpers. Shared backend
-runner behavior lives in `skuld_cli.py`. Shared formatting, subprocess, table,
-sudo env, debug output, and registry storage mechanics live in
-`skuld_common.py`, `skuld_observability.py`, and `skuld_registry.py`.
+runner behavior lives in `skuld_cli.py`. Linux `systemd` command construction
+and low-level command execution live in `skuld_linux_systemd.py`. Shared
+formatting, subprocess, table, sudo env, debug output, and registry storage
+mechanics live in `skuld_common.py`, `skuld_observability.py`, and
+`skuld_registry.py`.
 
 ## Quick Start
 
@@ -265,7 +268,7 @@ edit launchd jobs.
 Minimum validation for this repository:
 
 ```bash
-python3 -m py_compile ./skuld ./skuld_cli.py ./skuld_common.py ./skuld_observability.py ./skuld_registry.py ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py
+python3 -m py_compile ./skuld ./skuld_cli.py ./skuld_common.py ./skuld_linux_systemd.py ./skuld_observability.py ./skuld_registry.py ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py
 python3 -m unittest discover -s tests
 ./skuld --help
 python3 scripts/check_project_gate.py

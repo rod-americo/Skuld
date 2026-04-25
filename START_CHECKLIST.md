@@ -64,6 +64,8 @@ is not a greenfield scaffold checklist.
   installer.
 - [x] Move registry canonicalization behind explicit write paths instead of
   default read side effects.
+- [x] Extract Linux `systemd` low-level adapter behavior into
+  `skuld_linux_systemd.py`.
 - [ ] Decide whether further backend splitting is now justified by tests.
 
 ## 5. Do Not Do In The Next Round

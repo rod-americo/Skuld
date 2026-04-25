@@ -310,3 +310,36 @@ or `write_back=True`.
 - Keeping canonicalization as a hidden startup side effect.
 - Adding a migration framework before there is a versioned registry migration
   need.
+
+## 2026-04-25 - Extract Linux Systemd Adapter First
+
+**Context**
+
+`skuld_linux.py` still mixed command handlers, registry rules, table rendering,
+and low-level `systemctl`/`journalctl` mechanics. The clearest backend boundary
+was the Linux service-manager adapter.
+
+**Decision**
+
+Add `skuld_linux_systemd.py` for Linux scope normalization, command
+construction, user-scope environment setup, and low-level `systemctl`
+execution. Keep wrapper functions in `skuld_linux.py` so existing handlers and
+tests keep their local patch points.
+
+**Impact**
+
+- Linux service-manager mechanics now have focused unit tests.
+- `skuld_linux.py` is smaller without changing CLI behavior.
+- Future Linux extraction can proceed around stats and rendering without
+  repackaging the project.
+
+**Tradeoff**
+
+- The Linux backend still owns many handlers and runtime/stat functions.
+- Wrapper functions remain for compatibility with existing tests and local
+  backend readability.
+
+**Alternatives rejected**
+
+- Moving every Linux concern into a package in one step.
+- Changing handler call sites broadly before the adapter contract was tested.
