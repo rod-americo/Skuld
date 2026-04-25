@@ -47,6 +47,7 @@ SKULD_HOME="$STATE_DIR/skuld-home" "$SKULD" status "$ALIAS"
 SKULD_HOME="$STATE_DIR/skuld-home" "$SKULD" doctor
 SKULD_HOME="$STATE_DIR/skuld-home" "$SKULD" restart "$ALIAS"
 SKULD_HOME="$STATE_DIR/skuld-home" "$SKULD" exec "$ALIAS"
-SKULD_HOME="$STATE_DIR/skuld-home" "$SKULD" untrack "$ALIAS"
+SKULD_HOME="$STATE_DIR/skuld-home" "$SKULD" untrack "$ALIAS" >/dev/null
+echo "[ok] untracked $ALIAS"
 
 echo "macOS launchd smoke passed for $LABEL"
