@@ -97,7 +97,15 @@ if [[ -n "$HOST" ]]; then
   }
   trap cleanup_remote_repo EXIT
   COPYFILE_DISABLE=1 tar --no-xattrs -C "$ROOT" -czf - \
-    skuld skuld_linux.py skuld_common.py skuld_registry.py skuld_cli.py skuld_observability.py scripts/smoke_process.sh |
+    skuld \
+    skuld_cli.py \
+    skuld_common.py \
+    skuld_linux.py \
+    skuld_linux_systemd.py \
+    skuld_macos_launchd.py \
+    skuld_observability.py \
+    skuld_registry.py \
+    scripts/smoke_process.sh |
     ssh "$HOST" "tar -xzf - -C '$REMOTE_DIR'"
   ssh "$HOST" "chmod +x '$REMOTE_DIR/skuld' '$REMOTE_DIR/scripts/smoke_process.sh'"
   ssh "$HOST" "bash -s" -- "$REMOTE_DIR" "$UNIT_NAME" "$ALIAS" "/tmp/$UNIT_NAME-state" < <(remote_payload)
