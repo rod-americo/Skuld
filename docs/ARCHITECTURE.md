@@ -112,12 +112,27 @@ that module's `main()`.
 - `scripts/check_project_gate.py` validates the repository gate document.
 - `scripts/project_doctor.py` validates structural docs and consistency.
 
-### 4.5 Shared Helpers
+### 4.5 Shared CLI Runner
+
+- `skuld_cli.py` owns the backend-neutral main-loop behavior after a backend
+  builds its parser:
+  - parse arguments from `sys.argv`
+  - load the registry before most commands
+  - run command handlers
+  - refresh the compact list after mutating commands
+  - translate `KeyboardInterrupt` and other exceptions to exit codes
+
+The Linux and macOS backends still own parser construction and handler
+registration because their command options and operational adapters differ.
+
+### 4.6 Shared Helpers
 
 - `skuld_common.py` provides IO-agnostic helper functions used by both backends:
   env file parsing, sudo password lookup, subprocess wrappers, output
   formatting, byte/duration formatting, sorting, clipping, table rendering, and
   responsive table fitting.
+- `skuld_observability.py` provides opt-in redacted debug output controlled by
+  `SKULD_DEBUG`.
 - `skuld_registry.py` provides generic registry storage mechanics while leaving
   backend schemas and validation rules in each backend.
 
@@ -126,16 +141,19 @@ that module's `main()`.
 1. The operator runs `./skuld` or a subcommand.
 2. `./skuld` imports the platform backend and calls `main()`.
 3. The backend parser maps CLI arguments to a command handler.
-4. For most commands, `load_registry()` ensures runtime storage exists, parses
+4. `skuld_cli.py` runs the backend-neutral command loop.
+5. For most commands, `load_registry()` ensures runtime storage exists, parses
    JSON, validates required fields, normalizes entries, assigns stable IDs, and
-   writes canonical JSON back when needed.
-5. Targeted commands resolve a registry entry by ID, display name, backend name,
+   writes canonical JSON back when needed. Tests and audit code can use
+   `RegistryStore.load(write_back=False)` to normalize in memory without
+   mutating the registry file.
+6. Targeted commands resolve a registry entry by ID, display name, backend name,
    or scoped backend name where supported.
-6. The command handler reads backend state through `systemctl`, `journalctl`, or
+7. The command handler reads backend state through `systemctl`, `journalctl`, or
    `launchctl` and may call backend operations for `start`, `stop`, `restart`,
    or `exec`.
-7. Output is printed as a table or command-specific detail on stdout/stderr.
-8. Commands such as `track`, `rename`, `untrack`, and `sync` update the
+8. Output is printed as a table or command-specific detail on stdout/stderr.
+9. Commands such as `track`, `rename`, `untrack`, and `sync` update the
    registry, then show the compact operational table.
 
 ## 6. Contracts And Invariants
@@ -201,11 +219,15 @@ Host-local configuration:
 
 - `.env` is ignored.
 - Runtime state is outside the worktree by default.
+- `SKULD_DEBUG` is an opt-in local diagnostic switch and should not be treated
+  as structured logging.
 
 ## 9. Observability
 
 - There is no central logger.
 - CLI output uses stdout/stderr.
+- `SKULD_DEBUG=1` emits redacted debug lines to stderr for subprocess
+  execution and registry writes.
 - Linux logs come from `journalctl`.
 - macOS logs are file-based for compatible Skuld-managed entries.
 - Minimal health checks are CLI help, project doctor, and backend-specific
@@ -213,18 +235,23 @@ Host-local configuration:
 
 ## 10. Hotspots And Technical Debt
 
-- The Linux and macOS files still duplicate command orchestration and
-  backend-specific command patterns.
-- Registry normalization writes to disk during reads.
+- The Linux and macOS files still contain large backend-specific command
+  handlers and service-manager adapter code.
+- Registry normalization still writes to disk by default during normal CLI
+  reads, although the store now supports no-write normalization for audits and
+  tests.
 - Backend command execution, target resolution, and CLI presentation are tightly
   coupled in each backend.
-- Live service operation is high-impact and only lightly covered by automated
-  validation.
+- Live service operation is high-impact. Disposable smoke scripts now exercise
+  real launchd and `systemd --user` paths, but they are still host-dependent
+  checks rather than a full compatibility matrix.
 - Automated tests cover registry normalization, target resolution, command
   routing, log fallback, stats output, doctor findings, and entrypoint dispatch
   through faked backend interactions.
 
 ## 11. Open Decisions
 
-- Whether the optional Linux stats timer should become a documented install
-  mode with stronger safety checks.
+- Whether registry canonicalization should remain a default read side effect or
+  move behind explicit write operations.
+- Whether the backend files should be split further now that common CLI runner,
+  common helpers, and common registry storage exist.

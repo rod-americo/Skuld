@@ -164,3 +164,114 @@ schemas, command handlers, and service-manager adapters in `skuld_linux.py` and
 
 - Moving the whole project into a package layout in the same refactor.
 - Forcing backend schemas into a single dataclass.
+
+## 2026-04-25 - Centralize Backend Main-Loop Behavior
+
+**Context**
+
+Linux and macOS still need separate parsers, models, and service-manager
+adapters, but their top-level command loop had duplicated behavior.
+
+**Decision**
+
+Add `skuld_cli.py` for backend-neutral parser execution, registry preloading,
+post-mutation table refresh, and common exit-code handling.
+
+**Impact**
+
+- Both backends keep their existing public commands.
+- Command-loop behavior is easier to test and change in one place.
+- Backend-specific command handlers remain local to each backend.
+
+**Tradeoff**
+
+- The repository still uses root-local imports instead of a packaged module.
+- Parser construction remains duplicated where options diverge.
+
+**Alternatives rejected**
+
+- Repackaging the whole CLI before paying down behavior risk.
+- Forcing one shared parser across different backends.
+
+## 2026-04-25 - Add Redacted Opt-In Debug Output
+
+**Context**
+
+Operational failures can depend on host commands, paths, permissions, and
+registry writes, but Skuld should not emit noisy logs or secrets by default.
+
+**Decision**
+
+Add `skuld_observability.py` and enable local debug diagnostics only when
+`SKULD_DEBUG` is set.
+
+**Impact**
+
+- Operators can inspect subprocess and registry-write behavior during
+  troubleshooting.
+- Secret-like field names are redacted before printing.
+
+**Tradeoff**
+
+- Debug output is intentionally text-only and not a structured telemetry
+  contract.
+
+**Alternatives rejected**
+
+- Adding a central logging framework before there is a clear operational need.
+- Printing command diagnostics unconditionally.
+
+## 2026-04-25 - Formalize Disposable Live Smokes
+
+**Context**
+
+Unit tests fake service-manager interactions. They prove routing and contracts
+but cannot prove that real `launchctl` or `systemctl --user` calls work on a
+host.
+
+**Decision**
+
+Add disposable live smoke scripts for macOS LaunchAgent and Linux
+`systemd --user` operation, including a remote SSH mode for Linux hosts.
+
+**Impact**
+
+- Live validation can exercise `track`, `status`, `doctor`, `restart`, `exec`,
+  and `untrack` against services created only for the smoke.
+- Smokes are explicit operator actions instead of hidden pre-commit behavior.
+
+**Tradeoff**
+
+- These smokes are host-dependent and not a full OS compatibility matrix.
+
+**Alternatives rejected**
+
+- Claiming live readiness from faked unit tests alone.
+- Running live service-manager mutations from the default project doctor.
+
+## 2026-04-25 - Make Linux Stats Timer Safer To Inspect And Remove
+
+**Context**
+
+The journal stats timer mutates system paths with `sudo`, so operators need to
+inspect the planned unit files and have a documented removal path.
+
+**Decision**
+
+Add `--dry-run` and `--uninstall` modes to
+`scripts/install_runtime_stats_timer.sh`.
+
+**Impact**
+
+- Operators can audit generated units before writing to `/etc/systemd/system`.
+- The installed timer, service, and collector copy can be removed without
+  deleting stats output.
+
+**Tradeoff**
+
+- The timer remains optional host-level setup outside the Skuld registry.
+
+**Alternatives rejected**
+
+- Installing the timer implicitly from `./skuld`.
+- Removing generated stats automatically during uninstall.

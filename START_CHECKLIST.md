@@ -42,7 +42,8 @@ is not a greenfield scaffold checklist.
 - [ ] No mass move into `src/` was done.
 - [ ] No artificial `domain / application / infrastructure / interfaces`
   directory tree was created.
-- [ ] No live host service smoke was run without explicit disposable targets.
+- [x] Live host service smoke is documented as an explicit disposable-target
+  operation, not a hidden validation step.
 - [ ] No service authoring command was reintroduced.
 - [ ] No operational readiness claim was added for fleets, remote hosts, or
   deployment automation.
@@ -55,8 +56,15 @@ is not a greenfield scaffold checklist.
 - [x] Remove unused legacy macOS wrapper/plist creation helpers that were not
   exposed by the CLI.
 - [x] Extract shared table rendering and registry helpers after tests exist.
-- [ ] Add smoke documentation for a real disposable user service on Linux and a
-  disposable launchd agent on macOS, if those workflows are used regularly.
+- [x] Extract common backend main-loop behavior into `skuld_cli.py`.
+- [x] Add redacted opt-in debug diagnostics through `SKULD_DEBUG`.
+- [x] Add smoke documentation and scripts for a disposable user service on
+  Linux and a disposable LaunchAgent on macOS.
+- [x] Add `--dry-run` and `--uninstall` paths for the Linux stats timer
+  installer.
+- [ ] Decide whether registry canonicalization should remain a default read
+  side effect.
+- [ ] Decide whether further backend splitting is now justified by tests.
 
 ## 5. Do Not Do In The Next Round
 

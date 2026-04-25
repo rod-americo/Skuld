@@ -15,6 +15,7 @@ invariants, and external integration assumptions.
 | Service state | `systemd` or `launchd` | command output | yes for operation views | Used by list, status, doctor, describe, and sync. |
 | Logs | `journalctl` or files | text stream | command-specific | Linux supports journal filters; macOS file logs are partial. |
 | Sudo credential | env or `.env` | string | no | `SKULD_SUDO_PASSWORD` is sensitive and should be short-lived. |
+| Debug switch | env | boolean-like string | no | `SKULD_DEBUG` enables redacted stderr diagnostics. |
 | Runtime stats | stats JSON or event files | JSON | no | Used to show execution/restart counters when present. |
 
 ## 3. Canonical Outputs
@@ -25,6 +26,7 @@ invariants, and external integration assumptions.
 | Registry update | Skuld registry path | canonical JSON array | Pretty JSON, stable ordering, trailing newline, normalized IDs. |
 | Backend action | `systemctl` or `launchctl` | service-manager operation | Only targets that resolve from the registry should be operated. |
 | Log output | stdout/stderr | text stream | Mirrors backend/file log availability and permissions. |
+| Debug output | stderr | redacted text lines | Opt-in only; not a stable machine API. |
 | Linux journal stats | configured stats path | JSON object | Collector writes atomically when run. |
 | macOS event stats | application support path | JSON or JSONL | Available only for compatible Skuld-managed entries. |
 
@@ -97,6 +99,9 @@ invariants, and external integration assumptions.
 - Skuld commands must resolve operational targets from the registry.
 - `untrack` removes registry state only; it must not remove backend service
   definitions.
+- Normal CLI registry loads may canonicalize and write the registry. Audit code
+  can use `RegistryStore.load(write_back=False)` to validate and normalize in
+  memory without changing the file.
 - Linux `system:name` and `user:name` are distinct backend identities.
 - The same `display_name` cannot refer to two registry entries.
 - `SKULD_SUDO_PASSWORD` must never be logged.
@@ -112,7 +117,9 @@ invariants, and external integration assumptions.
   domain, permissions, and plist visibility.
 - Runtime stats depend on journal retention, event file availability, and host
   permissions.
-- The registry normalization behavior is real but lacks dedicated unit tests.
+- Live smoke scripts prove disposable local service-manager paths on hosts where
+  `launchd` or `systemd --user` is available, but they are not a distribution or
+  OS-version compatibility matrix.
 
 ## 9. Contract Breaks
 
@@ -121,3 +128,6 @@ restart procedures, or new validation.
 
 - 2026-04-25: Structural documentation baseline added; no runtime registry
   schema change was made.
+- 2026-04-25: Added opt-in `SKULD_DEBUG` diagnostics, common CLI runner, and
+  no-write registry normalization for audits; no registry schema change was
+  made.

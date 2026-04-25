@@ -27,6 +27,11 @@ intent.
 - Behavior-focused `unittest` suite for registry normalization, target
   resolution, backend command routing, stats/logs behavior, doctor findings,
   and entrypoint dispatch.
+- `skuld_cli.py` for shared backend main-loop behavior.
+- `skuld_observability.py` for redacted opt-in `SKULD_DEBUG` diagnostics.
+- Disposable live smoke scripts for macOS LaunchAgent and Linux
+  `systemd --user` validation, including SSH host mode for Linux.
+- Dry-run and uninstall modes for the Linux journal stats timer installer.
 
 ### Changed
 
@@ -43,9 +48,11 @@ intent.
   without changing public commands.
 - Removed unused macOS plist/wrapper creation helpers that were not reachable
   from the public CLI.
+- Registry storage now supports no-write normalization through
+  `RegistryStore.load(write_back=False)` for tests and audits.
 
 ### Notes
 
-- No runtime service-management behavior changed in this structural recovery.
-- The automated suite fakes backend service managers; live smoke tests still
-  require disposable real services and explicit operator intent.
+- No registry schema change was made in this structural recovery.
+- The automated suite fakes backend service managers; live smoke tests use
+  disposable real services and still require explicit operator intent.

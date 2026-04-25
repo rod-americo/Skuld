@@ -21,12 +21,15 @@ Before significant changes, read these files in order:
 5. `docs/OPERATIONS.md`
 6. `docs/DECISIONS.md`
 7. The touched backend file: `skuld_linux.py`, `skuld_macos.py`, or `./skuld`
-8. Shared helpers when relevant: `skuld_common.py` and `skuld_registry.py`
+8. Shared helpers when relevant: `skuld_cli.py`, `skuld_common.py`,
+   `skuld_observability.py`, and `skuld_registry.py`
 
 If the change touches host operations, also read:
 
 - `scripts/install_runtime_stats_timer.sh`
 - `scripts/skuld_journal_stats_collector.py`
+- `scripts/smoke_macos_launchd.sh`
+- `scripts/smoke_linux_systemd_user.sh`
 - `scripts/smoke_process.sh`
 - `scripts/smoke_trigger.sh`
 
@@ -65,8 +68,11 @@ inside the existing files until a tested extraction is justified.
   - `systemctl`, `journalctl`, `launchctl`, `sudo`, `/proc`, `ss`, `lsof`,
     filesystem reads and writes
 - Shared support:
+  - `skuld_cli.py` owns common backend main-loop behavior after a backend has
+    built its parser.
   - `skuld_common.py` owns IO-agnostic CLI helpers, formatting, table fitting,
     subprocess wrappers, and sudo env lookup.
+  - `skuld_observability.py` owns opt-in redacted debug output.
   - `skuld_registry.py` owns generic registry load/save/upsert/remove mechanics.
 - Interface:
   - CLI arguments, help text, stdout/stderr output, table rendering
@@ -129,12 +135,14 @@ files are large; avoid making them larger through unrelated refactors.
 Run this before finalizing repository-wide structural or operational changes:
 
 ```bash
-python3 -m py_compile ./skuld ./skuld_common.py ./skuld_registry.py ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py
+python3 -m py_compile ./skuld ./skuld_cli.py ./skuld_common.py ./skuld_observability.py ./skuld_registry.py ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py
 python3 -m unittest discover -s tests
 ./skuld --help
 python3 scripts/check_project_gate.py
 python3 scripts/project_doctor.py
+python3 scripts/project_doctor.py --strict
 python3 scripts/project_doctor.py --audit-config
+bash -n .githooks/pre-commit scripts/install_git_hooks.sh scripts/install_runtime_stats_timer.sh scripts/smoke_macos_launchd.sh scripts/smoke_linux_systemd_user.sh
 ```
 
 For new or changed CLI commands, also run:
@@ -146,11 +154,22 @@ For new or changed CLI commands, also run:
 If `systemd` is unavailable, state that clearly instead of treating live Linux
 backend validation as complete.
 
+Live smoke scripts mutate only disposable services, but still touch
+`launchctl` or `systemctl --user`. Run them only when the operator explicitly
+authorizes live host validation:
+
+```bash
+scripts/smoke_macos_launchd.sh
+scripts/smoke_linux_systemd_user.sh
+scripts/smoke_linux_systemd_user.sh --host <ssh-host>
+```
+
 ## Hotspots
 
-- `skuld_linux.py` and `skuld_macos.py` still duplicate command orchestration
-  and backend-specific flow.
-- `load_registry()` normalizes and writes the registry as a side effect.
+- `skuld_linux.py` and `skuld_macos.py` still carry large backend-specific
+  command flows and service-manager adapter code.
+- Registry loads still canonicalize writes by default; use
+  `RegistryStore.load(write_back=False)` when auditing without mutation.
 - `start`, `stop`, `restart`, and `exec` can mutate host service state.
 - Linux journal and port inspection can require permissions that vary by host.
 - macOS logs are only reliable for jobs with compatible Skuld-managed log paths.

@@ -51,6 +51,7 @@ Runtime configuration:
 | `SKULD_ENV_FILE` | no | Linux and macOS | Override env file lookup for sudo password support. |
 | `SKULD_SUDO_PASSWORD` | no | Linux and macOS | Non-interactive sudo password for short-lived local use. |
 | `SKULD_RUNTIME_STATS_FILE` | no | Linux | Override journal stats JSON path. |
+| `SKULD_DEBUG` | no | Linux and macOS | Emit redacted debug diagnostics to stderr. |
 
 Default runtime state:
 
@@ -65,12 +66,14 @@ overrides.
 ## 5. Minimum Validation
 
 ```bash
-python3 -m py_compile ./skuld ./skuld_common.py ./skuld_registry.py ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py
+python3 -m py_compile ./skuld ./skuld_cli.py ./skuld_common.py ./skuld_observability.py ./skuld_registry.py ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py
 python3 -m unittest discover -s tests
 ./skuld --help
 python3 scripts/check_project_gate.py
 python3 scripts/project_doctor.py
+python3 scripts/project_doctor.py --strict
 python3 scripts/project_doctor.py --audit-config
+bash -n .githooks/pre-commit scripts/install_git_hooks.sh scripts/install_runtime_stats_timer.sh scripts/smoke_macos_launchd.sh scripts/smoke_linux_systemd_user.sh
 ```
 
 For a changed subcommand, also run:
@@ -87,7 +90,8 @@ and the registry points at disposable or intentionally managed services:
 ```
 
 The automated test suite proves command behavior with faked backend command
-responses. It does not start or stop real host services.
+responses. Live service-manager behavior is covered by the disposable smoke
+scripts in the next section when those scripts are run on real hosts.
 
 ## 6. Smoke Checks
 
@@ -99,19 +103,27 @@ Non-mutating smoke:
 ./skuld list --help
 ```
 
-Linux live smoke requires an existing disposable service or timer created
-outside Skuld, then tracked with:
+Linux live smoke can create a disposable `systemd --user` service locally or
+on an SSH host:
 
 ```bash
-./skuld catalog
-./skuld track <service-or-id> --alias <safe-alias>
-./skuld describe <safe-alias>
-./skuld doctor
+scripts/smoke_linux_systemd_user.sh
+scripts/smoke_linux_systemd_user.sh --host <ssh-host>
 ```
 
+macOS live smoke creates a disposable LaunchAgent:
+
+```bash
+scripts/smoke_macos_launchd.sh
+```
+
+The smoke scripts use temporary `SKULD_HOME` directories, track the disposable
+service, exercise `status`, `doctor`, `restart`, `exec`, and `untrack`, then
+remove the service definition they created. They still mutate the local service
+manager, so run them only with explicit operator intent.
+
 The helper scripts `scripts/smoke_process.sh` and `scripts/smoke_trigger.sh`
-are process payloads for externally defined smoke units. They do not install
-service definitions by themselves.
+remain payloads for disposable smoke units.
 
 ## 7. Logs And Diagnostics
 
@@ -145,6 +157,15 @@ Diagnostic commands:
 ./skuld status <name-or-id>
 ./skuld stats <name-or-id>
 ```
+
+Redacted debug output:
+
+```bash
+SKULD_DEBUG=1 ./skuld status <name-or-id>
+```
+
+Debug output is intended for local diagnosis only and is not a stable machine
+API.
 
 ## 8. Restart Policy
 
@@ -220,6 +241,15 @@ Sudo password support:
 - Symptom: Skuld warns about `SKULD_SUDO_PASSWORD`.
 - Action: prefer interactive sudo or short-lived local env usage. Never commit
   `.env`.
+
+Runtime stats timer preview or removal:
+
+- Preview install:
+  `./scripts/install_runtime_stats_timer.sh --dry-run --registry "$HOME/.local/share/skuld/services.json"`
+- Preview removal: `./scripts/install_runtime_stats_timer.sh --dry-run --uninstall`
+- Remove installed timer: `./scripts/install_runtime_stats_timer.sh --uninstall`
+- Removal deletes installed unit files and collector copy, then leaves the stats
+  output JSON in place for operator review or manual cleanup.
 
 ## 11. Critical Operations
 

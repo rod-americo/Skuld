@@ -61,9 +61,11 @@ Service definitions themselves belong to the host service manager:
 Primary entrypoints:
 
 - `./skuld`
+- `skuld_cli.py`
 - `skuld_linux.py`
 - `skuld_macos.py`
 - `skuld_common.py`
+- `skuld_observability.py`
 - `skuld_registry.py`
 - `scripts/skuld_journal_stats_collector.py`
 - `scripts/check_project_gate.py`
@@ -75,9 +77,10 @@ Primary entrypoints:
 - every other platform imports `skuld_linux.py`
 
 Each backend contains its own CLI parser, backend-specific model, command
-adapters, command handlers, and runtime statistics helpers. Shared formatting,
-subprocess, table, sudo env, and registry storage mechanics live in
-`skuld_common.py` and `skuld_registry.py`.
+adapters, command handlers, and runtime statistics helpers. Shared backend
+runner behavior lives in `skuld_cli.py`. Shared formatting, subprocess, table,
+sudo env, debug output, and registry storage mechanics live in
+`skuld_common.py`, `skuld_observability.py`, and `skuld_registry.py`.
 
 ## Quick Start
 
@@ -109,6 +112,7 @@ Optional environment variables:
 | `SKULD_ENV_FILE` | no | Override the `.env` path used for sudo password lookup. |
 | `SKULD_SUDO_PASSWORD` | no | Allow non-interactive sudo for short-lived local use. |
 | `SKULD_RUNTIME_STATS_FILE` | Linux only | Override the Linux journal stats JSON path. |
+| `SKULD_DEBUG` | no | Emit redacted debug lines to stderr for CLI subprocess and registry writes. |
 
 Using `.env` sudo password support is discouraged for production systems.
 Skuld warns when it uses `SKULD_SUDO_PASSWORD`.
@@ -217,11 +221,18 @@ registry has a schedule and the timer exists. Otherwise they act on `.service`.
 Optional Linux runtime execution counters can be collected with:
 
 ```bash
+./scripts/install_runtime_stats_timer.sh --dry-run --registry "$HOME/.local/share/skuld/services.json"
 ./scripts/install_runtime_stats_timer.sh --registry "$HOME/.local/share/skuld/services.json"
 ```
 
 That installer uses `sudo` and writes a system service and timer outside the
-Skuld registry. Treat it as host-level operational setup.
+Skuld registry. Treat it as host-level operational setup. It also supports
+previewing or removing the installed timer:
+
+```bash
+./scripts/install_runtime_stats_timer.sh --dry-run --uninstall
+./scripts/install_runtime_stats_timer.sh --uninstall
+```
 
 ## macOS Behavior
 
@@ -250,18 +261,28 @@ edit launchd jobs.
 Minimum validation for this repository:
 
 ```bash
-python3 -m py_compile ./skuld ./skuld_common.py ./skuld_registry.py ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py
+python3 -m py_compile ./skuld ./skuld_cli.py ./skuld_common.py ./skuld_observability.py ./skuld_registry.py ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py
 python3 -m unittest discover -s tests
 ./skuld --help
 python3 scripts/check_project_gate.py
 python3 scripts/project_doctor.py
+python3 scripts/project_doctor.py --strict
 python3 scripts/project_doctor.py --audit-config
+bash -n .githooks/pre-commit scripts/install_git_hooks.sh scripts/install_runtime_stats_timer.sh scripts/smoke_macos_launchd.sh scripts/smoke_linux_systemd_user.sh
 ```
 
 The unit suite uses faked `systemd`, `journalctl`, and `launchd` interactions to
 prove registry normalization, target resolution, command routing, log fallback,
 stats output, doctor findings, and entrypoint dispatch without mutating the
 host service manager.
+
+Live smoke scripts create disposable services and then remove them:
+
+```bash
+scripts/smoke_macos_launchd.sh
+scripts/smoke_linux_systemd_user.sh
+scripts/smoke_linux_systemd_user.sh --host <ssh-host>
+```
 
 ## Project Docs
 
@@ -278,8 +299,9 @@ host service manager.
 
 ## Known Weak Spots
 
-- The Linux and macOS backends still duplicate CLI orchestration and
-  backend-specific command flow.
+- The Linux and macOS backends still contain large backend-specific command
+  flows, even though common CLI runner and shared helpers now reduce
+  duplication.
 - Operational stats are useful but partial: Linux depends on journald/systemd
   availability, while macOS uses local event/log files only for compatible
   registry entries.
