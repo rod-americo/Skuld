@@ -343,3 +343,35 @@ tests keep their local patch points.
 
 - Moving every Linux concern into a package in one step.
 - Changing handler call sites broadly before the adapter contract was tested.
+
+## 2026-04-25 - Extract macOS Launchd Adapter
+
+**Context**
+
+`skuld_macos.py` mixed command handlers, registry rules, process inspection,
+and low-level `launchctl` mechanics. After extracting the Linux adapter, the
+same boundary was available for macOS.
+
+**Decision**
+
+Add `skuld_macos_launchd.py` for launchd domain/target formatting, low-level
+`launchctl` execution, key-value parsing, loaded-state checks, bootstrap,
+bootout, and kickstart helpers. Keep wrapper functions in `skuld_macos.py` so
+handler code and tests retain stable patch points.
+
+**Impact**
+
+- macOS service-manager mechanics now have focused unit tests.
+- `skuld_macos.py` no longer owns low-level launchctl command construction.
+- Future macOS work can split process/log/stat concerns separately.
+
+**Tradeoff**
+
+- `skuld_macos.py` still owns local process-tree termination, event files,
+  stats, command handlers, and table rendering.
+- Wrapper functions remain for compatibility and readability.
+
+**Alternatives rejected**
+
+- Moving all macOS backend code into a package in one pass.
+- Changing the public CLI or registry schema during adapter extraction.

@@ -16,6 +16,7 @@ from typing import Dict, List, Optional, Set, Tuple
 
 import skuld_common as common
 import skuld_cli
+import skuld_macos_launchd as launchd
 from skuld_registry import RegistryStore
 
 VERSION = "0.3.0"
@@ -565,16 +566,11 @@ def resolve_discoverable_targets(tokens: List[str]) -> List[DiscoverableService]
 
 
 def launchctl_print_service_raw(label: str) -> str:
-    target = f"gui/{os.getuid()}/{label}"
-    proc = run(["launchctl", "print", target], check=False, capture=True)
-    if proc.returncode != 0:
-        return ""
-    return proc.stdout or ""
+    return launchd.print_service_raw(label)
 
 
 def extract_launchctl_value(text: str, key: str) -> str:
-    match = re.search(rf"^\s*{re.escape(key)} = (.+)$", text, flags=re.MULTILINE)
-    return match.group(1).strip() if match else ""
+    return launchd.extract_value(text, key)
 
 
 def render_discoverable_services_hint() -> None:
@@ -593,42 +589,41 @@ def render_discoverable_services_hint() -> None:
 
 
 def launchctl_cmd(scope: str, args: List[str], check: bool = True, capture: bool = False) -> subprocess.CompletedProcess:
-    if scope == "daemon":
-        return run_sudo(["launchctl"] + args, check=check, capture=capture)
-    return run(["launchctl"] + args, check=check, capture=capture)
+    return launchd.run_launchctl(
+        scope,
+        args,
+        sudo_password=get_sudo_password(),
+        check=check,
+        capture=capture,
+    )
 
 
 def domain_target(scope: str) -> str:
-    if scope == "agent":
-        return f"gui/{os.getuid()}"
-    return "system"
+    return launchd.domain_target(scope)
 
 
 def service_target(service: ManagedService) -> str:
-    return f"{domain_target(service.scope)}/{launchd_label_for_service(service)}"
+    return launchd.service_target(service.scope, launchd_label_for_service(service))
 
 
 def service_loaded(service: ManagedService) -> bool:
-    proc = launchctl_cmd(service.scope, ["list", launchd_label_for_service(service)], check=False, capture=True)
-    return proc.returncode == 0
+    return launchd.service_loaded(
+        service.scope,
+        launchd_label_for_service(service),
+        sudo_password=get_sudo_password(),
+    )
 
 
 def parse_launchctl_kv(text: str) -> Dict[str, str]:
-    result: Dict[str, str] = {}
-    for raw in text.splitlines():
-        line = raw.strip()
-        match = re.match(r'"?([A-Za-z0-9_]+)"?\s*=\s*("?)(.*?)\2;?$', line)
-        if not match:
-            continue
-        result[match.group(1)] = match.group(3)
-    return result
+    return launchd.parse_kv(text)
 
 
 def launchctl_service_info(service: ManagedService) -> Dict[str, str]:
-    proc = launchctl_cmd(service.scope, ["list", launchd_label_for_service(service)], check=False, capture=True)
-    if proc.returncode != 0:
-        return {}
-    return parse_launchctl_kv(proc.stdout or "")
+    return launchd.service_info(
+        service.scope,
+        launchd_label_for_service(service),
+        sudo_password=get_sudo_password(),
+    )
 
 
 def read_pid(service: ManagedService) -> int:
@@ -913,31 +908,32 @@ def format_restarts_exec(service: ManagedService, runtime_stats: Dict[str, Dict[
 
 
 def bootstrap_service(service: ManagedService) -> None:
-    if service_loaded(service):
-        launchctl_cmd(service.scope, ["enable", service_target(service)], check=False)
-        return
-    proc = launchctl_cmd(
+    proc = launchd.bootstrap_service(
         service.scope,
-        ["bootstrap", domain_target(service.scope), str(plist_path_for_service(service))],
-        check=False,
-        capture=True,
+        launchd_label_for_service(service),
+        plist_path_for_service(service),
+        sudo_password=get_sudo_password(),
     )
     if proc.returncode != 0:
         details = (proc.stderr or proc.stdout or "").strip()
         raise RuntimeError(f"Failed to bootstrap {service.name}. {details}".strip())
-    launchctl_cmd(service.scope, ["enable", service_target(service)], check=False)
 
 
 def bootout_service(service: ManagedService) -> None:
-    launchctl_cmd(service.scope, ["bootout", service_target(service)], check=False)
+    launchd.bootout_service(
+        service.scope,
+        launchd_label_for_service(service),
+        sudo_password=get_sudo_password(),
+    )
 
 
 def kickstart_service(service: ManagedService, kill_existing: bool = False) -> subprocess.CompletedProcess:
-    args = ["kickstart"]
-    if kill_existing:
-        args.append("-k")
-    args.append(service_target(service))
-    return launchctl_cmd(service.scope, args, check=False, capture=True)
+    return launchd.kickstart_service(
+        service.scope,
+        launchd_label_for_service(service),
+        sudo_password=get_sudo_password(),
+        kill_existing=kill_existing,
+    )
 
 
 def sync_registry_from_launchd(name: Optional[str] = None) -> int:

@@ -100,11 +100,18 @@ that module's `main()`.
 - `ManagedService` and `DiscoverableService` dataclasses.
 - macOS registry schema and validation rules.
 - Target resolution by ID, display name, and launchd label.
-- `launchctl` command execution and local process inspection.
 - macOS stats from event files, `ps`, `sysctl`, and `lsof`.
 - macOS command handlers and backend state rendering.
 - Compatible log/event path inspection for registry entries that point at
   Skuld-managed macOS files.
+
+`skuld_macos_launchd.py` owns the low-level macOS service-manager adapter:
+
+- `launchd` domain and target formatting.
+- `launchctl` command execution.
+- `launchctl list` key-value parsing.
+- Low-level bootstrap, bootout, kickstart, loaded-state, and service-info
+  helpers.
 
 ### 4.4 Operational Scripts
 
@@ -139,6 +146,8 @@ registration because their command options and operational adapters differ.
   responsive table fitting.
 - `skuld_linux_systemd.py` provides the Linux `systemd` adapter used by
   `skuld_linux.py`.
+- `skuld_macos_launchd.py` provides the macOS `launchd` adapter used by
+  `skuld_macos.py`.
 - `skuld_observability.py` provides opt-in redacted debug output controlled by
   `SKULD_DEBUG`.
 - `skuld_registry.py` provides generic registry storage mechanics while leaving
