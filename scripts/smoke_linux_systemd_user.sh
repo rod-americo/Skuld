@@ -96,7 +96,7 @@ if [[ -n "$HOST" ]]; then
     ssh "$HOST" "rm -rf '$REMOTE_DIR'" >/dev/null 2>&1 || true
   }
   trap cleanup_remote_repo EXIT
-  COPYFILE_DISABLE=1 tar -C "$ROOT" -czf - \
+  COPYFILE_DISABLE=1 tar --no-xattrs -C "$ROOT" -czf - \
     skuld skuld_linux.py skuld_common.py skuld_registry.py skuld_cli.py skuld_observability.py scripts/smoke_process.sh |
     ssh "$HOST" "tar -xzf - -C '$REMOTE_DIR'"
   ssh "$HOST" "chmod +x '$REMOTE_DIR/skuld' '$REMOTE_DIR/scripts/smoke_process.sh'"
