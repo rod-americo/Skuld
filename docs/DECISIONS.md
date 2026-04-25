@@ -402,3 +402,33 @@ handler code and tests retain stable patch points.
 
 - Moving all macOS backend code into a package in one pass.
 - Changing the public CLI or registry schema during adapter extraction.
+
+## 2026-04-25 - Support macOS External Logs Only When Plist Paths Exist
+
+**Context**
+
+The macOS backend previously rejected logs for all externally tracked launchd
+jobs. Some external jobs declare concrete file logs in their plist, which Skuld
+can read without owning the job definition.
+
+**Decision**
+
+Allow `skuld logs` for external macOS jobs when the tracked plist declares
+`StandardOutPath` or `StandardErrorPath`. Keep the command explicit about
+unsupported external jobs with no compatible file paths.
+
+**Impact**
+
+- Skuld can inspect real launchd file logs when the service definition exposes
+  them.
+- Skuld still does not claim universal macOS log aggregation.
+
+**Tradeoff**
+
+- Jobs using unified logging or application-specific logs remain outside Skuld's
+  current log command.
+
+**Alternatives rejected**
+
+- Continuing to reject every external launchd job.
+- Claiming support for macOS unified logging before implementing it.

@@ -216,7 +216,7 @@ class MacCommandBehaviorTest(unittest.TestCase):
                 ],
             )
 
-    def test_logs_reject_external_tracked_jobs(self) -> None:
+    def test_logs_reject_external_tracked_jobs_without_plist_log_paths(self) -> None:
         with IsolatedMacState(macos):
             service = macos.ManagedService(
                 "com.example.Worker",
@@ -229,7 +229,7 @@ class MacCommandBehaviorTest(unittest.TestCase):
             )
             macos.save_registry([service])
 
-            with self.assertRaisesRegex(RuntimeError, "only available for jobs created by skuld"):
+            with self.assertRaisesRegex(RuntimeError, "compatible log_dir"):
                 macos.logs(
                     argparse.Namespace(
                         name="worker",
@@ -244,6 +244,63 @@ class MacCommandBehaviorTest(unittest.TestCase):
                         plain=False,
                     )
                 )
+
+    def test_logs_tail_external_launchd_paths_when_plist_declares_them(self) -> None:
+        with IsolatedMacState(macos) as state:
+            stdout_path = state.root / "external.out"
+            stderr_path = state.root / "external.err"
+            stdout_path.write_text("out\n", encoding="utf-8")
+            stderr_path.write_text("err\n", encoding="utf-8")
+            plist_path = state.root / "com.example.Worker.plist"
+            plist_path.write_text(
+                f"""<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.example.Worker</string>
+  <key>StandardOutPath</key>
+  <string>{stdout_path}</string>
+  <key>StandardErrorPath</key>
+  <string>{stderr_path}</string>
+</dict>
+</plist>
+""",
+                encoding="utf-8",
+            )
+            service = macos.ManagedService(
+                "com.example.Worker",
+                "/usr/bin/worker",
+                "Worker",
+                display_name="worker",
+                plist_path_hint=str(plist_path),
+                managed_by_skuld=False,
+                scope="agent",
+                id=1,
+            )
+            macos.save_registry([service])
+            tailed: list[tuple[str, int, bool]] = []
+
+            def fake_tail(path, lines, follow):
+                tailed.append((path.name, lines, follow))
+
+            with patch.object(macos, "tail_file", side_effect=fake_tail), redirect_stdout(io.StringIO()):
+                macos.logs(
+                    argparse.Namespace(
+                        name="worker",
+                        name_flag=None,
+                        id_flag=None,
+                        lines_pos=None,
+                        lines=30,
+                        follow=False,
+                        since=None,
+                        timer=False,
+                        output="short",
+                        plain=False,
+                    )
+                )
+
+            self.assertEqual(tailed, [("external.out", 30, False), ("external.err", 30, False)])
 
     def test_logs_tail_stdout_and_stderr_for_managed_jobs(self) -> None:
         with IsolatedMacState(macos) as state:

@@ -1092,31 +1092,57 @@ def tail_file(path: Path, lines: int, follow: bool) -> None:
         return
 
 
+def log_paths_for_service(service: ManagedService) -> Tuple[Optional[Path], Optional[Path]]:
+    if service.managed_by_skuld or service.log_dir:
+        log_dir = Path(service.log_dir)
+        return log_dir / "stdout.log", log_dir / "stderr.log"
+
+    plist_path = plist_path_for_service(service)
+    if not plist_path.exists():
+        return None, None
+
+    try:
+        with plist_path.open("rb") as handle:
+            plist = plistlib.load(handle)
+    except Exception:
+        return None, None
+
+    stdout_raw = str(plist.get("StandardOutPath", "")).strip()
+    stderr_raw = str(plist.get("StandardErrorPath", "")).strip()
+    stdout_path = Path(stdout_raw) if stdout_raw else None
+    stderr_path = Path(stderr_raw) if stderr_raw else None
+    return stdout_path, stderr_path
+
+
 def logs(args: argparse.Namespace) -> None:
     service = resolve_managed_arg(args)
     if not service:
         raise RuntimeError("Service target is required.")
-    if not service.managed_by_skuld:
-        raise RuntimeError("Logs are only available for jobs created by skuld on macOS.")
     if args.since:
         raise RuntimeError("--since is not supported on macOS yet. Logs are read from files.")
     if args.timer:
         info("--timer has no effect on macOS. launchd uses a single plist/job.")
     lines = resolve_lines_arg(args, default=100)
-    log_dir = Path(service.log_dir)
-    stdout_path = log_dir / "stdout.log"
-    stderr_path = log_dir / "stderr.log"
-    if not stdout_path.exists() and not stderr_path.exists():
+    stdout_path, stderr_path = log_paths_for_service(service)
+    if not stdout_path and not stderr_path:
+        raise RuntimeError(
+            "Logs are only available on macOS when the registry entry has a "
+            "compatible log_dir or the launchd plist declares StandardOutPath/StandardErrorPath."
+        )
+    stdout_exists = bool(stdout_path and stdout_path.exists())
+    stderr_exists = bool(stderr_path and stderr_path.exists())
+    if not stdout_exists and not stderr_exists:
         print("No logs found.")
         return
-    print(f"==> {stdout_path}")
     if args.follow:
         workers: List[threading.Thread] = []
-        if stdout_path.exists():
+        if stdout_exists and stdout_path:
+            print(f"==> {stdout_path}")
             workers.append(threading.Thread(target=tail_file, args=(stdout_path, lines, True), daemon=True))
-        print()
-        print(f"==> {stderr_path}")
-        if stderr_path.exists():
+        if stderr_exists and stderr_path:
+            if stdout_exists:
+                print()
+            print(f"==> {stderr_path}")
             workers.append(threading.Thread(target=tail_file, args=(stderr_path, lines, True), daemon=True))
         for worker in workers:
             worker.start()
@@ -1127,11 +1153,13 @@ def logs(args: argparse.Namespace) -> None:
             return
         return
 
-    if stdout_path.exists():
+    if stdout_exists and stdout_path:
+        print(f"==> {stdout_path}")
         tail_file(stdout_path, lines, False)
-    print()
-    print(f"==> {stderr_path}")
-    if stderr_path.exists():
+    if stderr_exists and stderr_path:
+        if stdout_exists:
+            print()
+        print(f"==> {stderr_path}")
         tail_file(stderr_path, lines, False)
 
 

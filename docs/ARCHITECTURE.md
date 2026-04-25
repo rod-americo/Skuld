@@ -247,7 +247,9 @@ Host-local configuration:
 - `SKULD_DEBUG=1` emits redacted debug lines to stderr for subprocess
   execution and registry writes.
 - Linux logs come from `journalctl`.
-- macOS logs are file-based for compatible Skuld-managed entries.
+- macOS logs are file-based for compatible Skuld-managed entries and for
+  external launchd jobs whose plist declares `StandardOutPath` or
+  `StandardErrorPath`.
 - Minimal health checks are CLI help, project doctor, and backend-specific
   `./skuld doctor` when the local service manager is available.
 

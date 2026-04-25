@@ -11,7 +11,7 @@ as it exists today.
 | --- | --- | --- | --- |
 | local development | Edit and validate the CLI | Python 3.9+ | No external Python dependencies. |
 | Linux host | Operate tracked services | Python plus `systemd` | Needs `systemctl`; some logs/actions may need `sudo`. |
-| macOS host | Operate tracked launchd jobs | Python plus `launchd` | Uses `launchctl`; log support is partial for externally tracked jobs. |
+| macOS host | Operate tracked launchd jobs | Python plus `launchd` | Uses `launchctl`; external log support depends on plist log paths. |
 | CI or non-service shell | Syntax and docs validation | Python only | Live backend checks may be unavailable. |
 
 There is no documented production fleet mode.
@@ -151,9 +151,10 @@ macOS logs:
 ./skuld logs <name> --follow
 ```
 
-macOS logs are file-based and currently reliable only for compatible
-Skuld-managed entries. Externally tracked `launchctl list` jobs may not expose
-logs through Skuld.
+macOS logs are file-based. They work for compatible Skuld-managed entries and
+for externally tracked launchd jobs whose plist declares `StandardOutPath` or
+`StandardErrorPath`. Externally tracked jobs without plist log paths may not
+expose logs through Skuld.
 
 Diagnostic commands:
 
@@ -245,9 +246,10 @@ Permission-limited Linux logs:
 
 macOS log unavailable:
 
-- Symptom: `Logs are only available for jobs created by skuld on macOS`.
-- Action: inspect logs through the owning launchd job or document a compatible
-  log path before relying on `skuld logs`.
+- Symptom: command reports that logs require a compatible `log_dir` or launchd
+  plist `StandardOutPath`/`StandardErrorPath`.
+- Action: inspect logs through the owning launchd job, add plist log paths in
+  the service definition, or rely on Skuld-managed compatible log paths.
 
 Sudo password support:
 

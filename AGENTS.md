@@ -183,7 +183,8 @@ scripts/run_live_smokes.sh --macos --linux-host <ssh-host>
   persisted.
 - `start`, `stop`, `restart`, and `exec` can mutate host service state.
 - Linux journal and port inspection can require permissions that vary by host.
-- macOS logs are only reliable for jobs with compatible Skuld-managed log paths.
+- macOS logs are only reliable for jobs with compatible Skuld-managed log paths
+  or launchd plists that declare `StandardOutPath`/`StandardErrorPath`.
 - `SKULD_SUDO_PASSWORD` support is convenient but sensitive.
 - The unit suite fakes service-manager commands; live backend smokes still need
   disposable services and explicit operator intent.

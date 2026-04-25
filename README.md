@@ -259,9 +259,10 @@ Examples:
 ./skuld track com.apple.Finder --alias finder
 ```
 
-Current macOS logs are file-based only for jobs that Skuld itself marks as
-managed by Skuld. Jobs tracked from `launchctl list` may not have log files
-available through `skuld logs`.
+Current macOS logs are file-based. Skuld can read compatible Skuld-managed log
+directories and externally tracked launchd jobs whose plist declares
+`StandardOutPath` or `StandardErrorPath`. Other externally tracked jobs may not
+have log files available through `skuld logs`.
 
 The macOS backend can inspect compatible Skuld-managed log/event paths when a
 registry entry points at them, but the current public parser does not create or

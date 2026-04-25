@@ -60,6 +60,8 @@ intent.
   behavior.
 - Moved macOS `launchctl` target formatting, parsing, and low-level execution
   behind a dedicated adapter module while preserving CLI behavior.
+- macOS `logs` can now read externally tracked launchd jobs when their plist
+  declares `StandardOutPath` or `StandardErrorPath`.
 - Registry reads now normalize in memory by default. Existing registry files
   are rewritten only by explicit mutating commands or intentional
   `write_back=True` code paths.

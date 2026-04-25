@@ -13,7 +13,7 @@ invariants, and external integration assumptions.
 | Registry file | Skuld runtime path | JSON array | yes for operations | Created as `[]` if missing. Invalid JSON fails explicitly. |
 | Service catalog | `systemd` or `launchd` | command output | yes for discovery | Linux uses `systemctl list-unit-files`; macOS uses `launchctl list`. |
 | Service state | `systemd` or `launchd` | command output | yes for operation views | Used by list, status, doctor, describe, and sync. |
-| Logs | `journalctl` or files | text stream | command-specific | Linux supports journal filters; macOS file logs are partial. |
+| Logs | `journalctl` or files | text stream | command-specific | Linux supports journal filters; macOS reads compatible log files or launchd plist log paths. |
 | Sudo credential | env or `.env` | string | no | `SKULD_SUDO_PASSWORD` is sensitive and should be short-lived. |
 | Debug switch | env | boolean-like string | no | `SKULD_DEBUG` enables redacted stderr diagnostics. |
 | Runtime stats | stats JSON or event files | JSON | no | Used to show execution/restart counters when present. |
