@@ -74,6 +74,8 @@ is not a greenfield scaffold checklist.
 - [x] Extract Linux systemd timer formatting into `skuld_linux_timers.py`.
 - [x] Extract macOS `launchd` low-level adapter behavior into
   `skuld_macos_launchd.py`.
+- [x] Extract macOS schedule parsing and display formatting into
+  `skuld_macos_schedules.py`.
 - [ ] Decide whether further backend splitting is now justified by tests.
 
 ## 5. Do Not Do In The Next Round

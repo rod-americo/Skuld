@@ -432,6 +432,34 @@ handler code and tests retain stable patch points.
 - Moving all macOS backend code into a package in one pass.
 - Changing the public CLI or registry schema during adapter extraction.
 
+## 2026-04-25 - Extract macOS Schedule Helpers
+
+**Context**
+
+The macOS backend contained a self-contained block for parsing Skuld's
+documented launchd schedule subset, formatting triggers, and computing next-run
+display values.
+
+**Decision**
+
+Move macOS schedule parsing, display formatting, and next-run calculation into
+`skuld_macos_schedules.py`.
+
+**Impact**
+
+- `skuld_macos.py` is smaller.
+- Schedule behavior has focused unit tests.
+- Launchd adapter code remains separate from schedule presentation logic.
+
+**Tradeoff**
+
+- The supported schedule subset is unchanged and still intentionally narrow.
+
+**Alternatives rejected**
+
+- Expanding the launchd schedule grammar during extraction.
+- Moving all macOS stats/rendering code in the same change.
+
 ## 2026-04-25 - Support macOS External Logs Only When Plist Paths Exist
 
 **Context**

@@ -119,6 +119,12 @@ that module's `main()`.
 - Low-level bootstrap, bootout, kickstart, loaded-state, and service-info
   helpers.
 
+`skuld_macos_schedules.py` owns macOS schedule helpers:
+
+- schedule subset parsing for launchd plist metadata.
+- schedule display formatting for compact service tables.
+- next-run calculation for `describe` output.
+
 ### 4.4 Operational Scripts
 
 - `scripts/install_runtime_stats_timer.sh` installs a Linux systemd timer and
@@ -157,6 +163,8 @@ registration because their command options and operational adapters differ.
 - `skuld_linux_timers.py` provides Linux timer display helpers used by
   `skuld_linux.py`.
 - `skuld_macos_launchd.py` provides the macOS `launchd` adapter used by
+  `skuld_macos.py`.
+- `skuld_macos_schedules.py` provides macOS schedule display helpers used by
   `skuld_macos.py`.
 - `skuld_observability.py` provides opt-in redacted debug output controlled by
   `SKULD_DEBUG`.

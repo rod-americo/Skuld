@@ -34,6 +34,7 @@ intent.
   formatting.
 - `skuld_macos_launchd.py` for macOS `launchd` target formatting and
   low-level adapter behavior.
+- `skuld_macos_schedules.py` for macOS schedule parsing and display formatting.
 - `skuld_observability.py` for redacted opt-in `SKULD_DEBUG` diagnostics.
 - Disposable live smoke scripts for macOS LaunchAgent and Linux
   `systemd --user` validation, including SSH host mode for Linux.
@@ -63,6 +64,8 @@ intent.
 - Moved Linux timer duration/calendar formatting out of the main Linux backend.
 - Moved macOS `launchctl` target formatting, parsing, and low-level execution
   behind a dedicated adapter module while preserving CLI behavior.
+- Moved macOS launchd schedule parsing and next-run display out of the main
+  macOS backend.
 - macOS `logs` can now read externally tracked launchd jobs when their plist
   declares `StandardOutPath` or `StandardErrorPath`.
 - Registry reads now normalize in memory by default. Existing registry files
