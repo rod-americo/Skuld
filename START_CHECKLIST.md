@@ -95,6 +95,7 @@ is not a greenfield scaffold checklist.
   `skuld_linux_actions.py`.
 - [x] Extract Linux service dataclasses and registry normalization into
   `skuld_linux_model.py`.
+- [x] Extract Linux parser construction into `skuld_linux_parser.py`.
 - [x] Extract Linux registry sync backfill into `skuld_linux_sync.py`.
 - [x] Extract Linux systemd catalog and track orchestration into
   `skuld_linux_catalog.py`.
@@ -115,13 +116,14 @@ is not a greenfield scaffold checklist.
   `skuld_macos_actions.py`.
 - [x] Extract macOS service dataclasses and registry normalization into
   `skuld_macos_model.py`.
+- [x] Extract macOS parser construction into `skuld_macos_parser.py`.
 - [x] Extract macOS registry sync backfill into `skuld_macos_sync.py`.
 - [x] Extract macOS launchd catalog and track orchestration into
   `skuld_macos_catalog.py`.
 - [x] Add installable package metadata and an importable CLI entrypoint.
 - [x] Add CI for syntax, unit tests, gate, doctor, shell checks, and packaging.
-- [ ] Continue backend splitting around command handlers, rendering, and
-  target-resolution responsibilities where tests justify it.
+- [ ] Continue backend splitting around remaining thin backend wrappers and
+  duplicated host-specific glue where tests justify it.
 
 ## 5. Do Not Do In The Next Round
 

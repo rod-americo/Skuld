@@ -105,6 +105,8 @@ intent.
   `skuld_macos_sync.py`.
 - Moved Linux and macOS catalog discovery and `track` orchestration into
   `skuld_linux_catalog.py` and `skuld_macos_catalog.py`.
+- Moved Linux and macOS CLI parser construction into
+  `skuld_linux_parser.py` and `skuld_macos_parser.py`.
 - Added module-inventory tests for package metadata, documented compile
   commands, and the Linux remote smoke payload.
 - Changed macOS live smoke cleanup to boot out the disposable LaunchAgent by

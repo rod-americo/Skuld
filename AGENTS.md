@@ -25,6 +25,7 @@ Before significant changes, read these files in order:
 8. Shared helpers when relevant: `skuld_cli.py`, `skuld_common.py`,
    `skuld_linux_actions.py`, `skuld_linux_catalog.py`,
    `skuld_linux_model.py`,
+   `skuld_linux_parser.py`,
    `skuld_linux_commands.py`,
    `skuld_linux_presenters.py`,
    `skuld_linux_runtime.py`,
@@ -33,6 +34,7 @@ Before significant changes, read these files in order:
    `skuld_linux_timers.py`, `skuld_linux_targets.py`, `skuld_linux_view.py`,
    `skuld_macos_actions.py`, `skuld_macos_catalog.py`,
    `skuld_macos_model.py`,
+   `skuld_macos_parser.py`,
    `skuld_macos_commands.py`,
    `skuld_macos_launchd.py`,
    `skuld_macos_presenters.py`,
@@ -95,6 +97,8 @@ inside the existing files until a tested extraction is justified.
     target resolution, and `track` orchestration.
   - `skuld_linux_model.py` owns Linux service dataclasses, registry
     normalization, and identifier helpers.
+  - `skuld_linux_parser.py` owns Linux CLI parser construction, subcommand
+    options, compatibility aliases, and handler registration.
   - `skuld_linux_commands.py` owns extracted Linux registry and read-only
     command orchestration.
   - `skuld_linux_runtime.py` owns Linux runtime stats JSON reads, journald
@@ -136,6 +140,8 @@ inside the existing files until a tested extraction is justified.
     rendering, and `track` orchestration.
   - `skuld_macos_model.py` owns macOS service dataclasses, registry
     normalization, and validation helpers.
+  - `skuld_macos_parser.py` owns macOS CLI parser construction, subcommand
+    options, compatibility aliases, and handler registration.
   - `skuld_macos_commands.py` owns extracted macOS registry and read-only
     command orchestration.
   - `skuld_macos_view.py` owns macOS service-table row assembly and state
@@ -209,7 +215,7 @@ files are large; avoid making them larger through unrelated refactors.
 Run this before finalizing repository-wide structural or operational changes:
 
 ```bash
-python3 -m py_compile ./skuld ./skuld_entrypoint.py ./skuld_cli.py ./skuld_common.py ./skuld_linux_actions.py ./skuld_linux_catalog.py ./skuld_linux_model.py ./skuld_linux_commands.py ./skuld_linux_presenters.py ./skuld_linux_runtime.py ./skuld_linux_systemd.py ./skuld_linux_sync.py ./skuld_linux_stats.py ./skuld_linux_timers.py ./skuld_linux_targets.py ./skuld_linux_view.py ./skuld_macos_actions.py ./skuld_macos_catalog.py ./skuld_macos_model.py ./skuld_macos_commands.py ./skuld_macos_launchd.py ./skuld_macos_presenters.py ./skuld_macos_processes.py ./skuld_macos_runtime.py ./skuld_macos_schedules.py ./skuld_macos_sync.py ./skuld_macos_targets.py ./skuld_macos_view.py ./skuld_observability.py ./skuld_registry.py ./skuld_tables.py ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py
+python3 -m py_compile ./skuld ./skuld_entrypoint.py ./skuld_cli.py ./skuld_common.py ./skuld_linux_actions.py ./skuld_linux_catalog.py ./skuld_linux_model.py ./skuld_linux_parser.py ./skuld_linux_commands.py ./skuld_linux_presenters.py ./skuld_linux_runtime.py ./skuld_linux_systemd.py ./skuld_linux_sync.py ./skuld_linux_stats.py ./skuld_linux_timers.py ./skuld_linux_targets.py ./skuld_linux_view.py ./skuld_macos_actions.py ./skuld_macos_catalog.py ./skuld_macos_model.py ./skuld_macos_parser.py ./skuld_macos_commands.py ./skuld_macos_launchd.py ./skuld_macos_presenters.py ./skuld_macos_processes.py ./skuld_macos_runtime.py ./skuld_macos_schedules.py ./skuld_macos_sync.py ./skuld_macos_targets.py ./skuld_macos_view.py ./skuld_observability.py ./skuld_registry.py ./skuld_tables.py ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py
 python3 -m unittest discover -s tests
 ./skuld --help
 python3 scripts/check_project_gate.py

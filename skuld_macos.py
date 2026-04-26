@@ -12,6 +12,7 @@ import skuld_macos_actions as macos_actions
 import skuld_macos_catalog as macos_catalog
 import skuld_macos_commands as macos_commands
 import skuld_macos_launchd as launchd
+import skuld_macos_parser as macos_parser
 from skuld_macos_model import (
     DiscoverableService,
     ManagedService,
@@ -750,123 +751,26 @@ def sync(args: argparse.Namespace) -> None:
         ok(f"Registry updated for {changed} service(s).")
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="skuld", description="CLI for tracking and operating launchd jobs")
-    parser.add_argument(
-        "--no-env-sudo",
-        action="store_true",
-        help="Disable SKULD_SUDO_PASSWORD from env/.env and use regular sudo behavior",
+    return macos_parser.build_parser(
+        sort_choices=SORT_CHOICES,
+        version=VERSION,
+        list_services=list_services,
+        catalog=catalog,
+        track=track,
+        rename=rename,
+        untrack=untrack,
+        exec_now=exec_now,
+        start_stop=start_stop,
+        restart=restart,
+        status=status,
+        logs=logs,
+        stats=stats,
+        doctor=doctor,
+        describe=describe,
+        sync=sync,
+        sudo_check=sudo_check,
+        sudo_run_command=sudo_run_command,
     )
-    parser.add_argument("--ascii", action="store_true", help="Force ASCII table borders")
-    parser.add_argument("--unicode", action="store_true", help="Force Unicode table borders")
-    parser.add_argument("--sort", choices=SORT_CHOICES, default="name", help="Sort service views by name, id, cpu, or memory")
-    sub = parser.add_subparsers(dest="command", required=False)
-
-    list_parser = sub.add_parser("list", help="List services tracked by skuld")
-    list_parser.add_argument("--sort", choices=SORT_CHOICES, default="name", help="Sort by name, id, cpu, or memory")
-    list_parser.set_defaults(func=list_services)
-
-    catalog_parser = sub.add_parser("catalog", help="Show the current launchd discovery catalog")
-    catalog_parser.set_defaults(func=catalog)
-
-    track_parser = sub.add_parser("track", help="Track launchd services from the current session catalog")
-    track_parser.add_argument("targets", nargs="+", help="Catalog ids or launchd labels")
-    track_parser.add_argument("--alias", help="Friendly name shown by skuld when tracking a single service")
-    track_parser.set_defaults(func=track)
-
-    rename_parser = sub.add_parser("rename", help="Change the display name of a tracked service")
-    rename_parser.add_argument("name", nargs="?")
-    rename_parser.add_argument("new_name")
-    rename_parser.add_argument("--name", dest="name_flag")
-    rename_parser.add_argument("--id", dest="id_flag", type=int)
-    rename_parser.set_defaults(func=rename)
-
-    untrack_parser = sub.add_parser("untrack", help="Remove a service from the skuld registry without touching launchd")
-    untrack_parser.add_argument("name", nargs="?")
-    untrack_parser.add_argument("--name", dest="name_flag")
-    untrack_parser.add_argument("--id", dest="id_flag", type=int)
-    untrack_parser.set_defaults(func=untrack)
-
-    exec_parser = sub.add_parser("exec", help="Execute a service immediately")
-    exec_parser.add_argument("name", nargs="?")
-    exec_parser.add_argument("--name", dest="name_flag")
-    exec_parser.add_argument("--id", dest="id_flag", type=int)
-    exec_parser.set_defaults(func=exec_now)
-
-    start_parser = sub.add_parser("start", help="Start one or more services")
-    start_parser.add_argument("targets", nargs="*", help="Service target(s): managed NAME and/or ID")
-    start_parser.add_argument("--name", dest="name_flag")
-    start_parser.add_argument("--id", dest="id_flag", type=int)
-    start_parser.set_defaults(func=lambda a: start_stop(a, "start"))
-
-    stop_parser = sub.add_parser("stop", help="Stop one or more services")
-    stop_parser.add_argument("targets", nargs="*", help="Service target(s): managed NAME and/or ID")
-    stop_parser.add_argument("--name", dest="name_flag")
-    stop_parser.add_argument("--id", dest="id_flag", type=int)
-    stop_parser.set_defaults(func=lambda a: start_stop(a, "stop"))
-
-    restart_parser = sub.add_parser("restart", help="Restart one or more services")
-    restart_parser.add_argument("targets", nargs="*", help="Service target(s): managed NAME and/or ID")
-    restart_parser.add_argument("--name", dest="name_flag")
-    restart_parser.add_argument("--id", dest="id_flag", type=int)
-    restart_parser.set_defaults(func=restart)
-
-    status_parser = sub.add_parser("status", help="Service status")
-    status_parser.add_argument("name", nargs="?")
-    status_parser.add_argument("--name", dest="name_flag")
-    status_parser.add_argument("--id", dest="id_flag", type=int)
-    status_parser.set_defaults(func=status)
-
-    logs_parser = sub.add_parser("logs", help="Show logs from files")
-    logs_parser.add_argument("name", nargs="?")
-    logs_parser.add_argument("lines_pos", nargs="?", type=int)
-    logs_parser.add_argument("--name", dest="name_flag")
-    logs_parser.add_argument("--id", dest="id_flag", type=int)
-    logs_parser.add_argument("--lines", type=int, default=None)
-    logs_parser.add_argument("--follow", action="store_true", help="Follow logs in real time")
-    logs_parser.add_argument("--folow", dest="follow", action="store_true", help=argparse.SUPPRESS)
-    logs_parser.add_argument("--since", help="Not supported on macOS file logs")
-    logs_parser.add_argument("--timer", action="store_true", help="No effect on macOS; kept for CLI compatibility")
-    logs_parser.add_argument("--output", default="short", help="Ignored on macOS file logs")
-    logs_parser.add_argument("--plain", action="store_true", help="Ignored on macOS file logs")
-    logs_parser.set_defaults(func=logs)
-
-    stats_parser = sub.add_parser("stats", help="Show execution/restart counters for a tracked service")
-    stats_parser.add_argument("name", nargs="?")
-    stats_parser.add_argument("--name", dest="name_flag")
-    stats_parser.add_argument("--id", dest="id_flag", type=int)
-    stats_parser.add_argument("--since", help="Ignored on macOS event stats")
-    stats_parser.add_argument("--boot", action="store_true", help="Ignored on macOS event stats")
-    stats_parser.set_defaults(func=stats)
-
-    doctor_parser = sub.add_parser("doctor", help="Check registry/launchd inconsistencies")
-    doctor_parser.set_defaults(func=doctor)
-
-    describe_parser = sub.add_parser("describe", help="Show details for a tracked service")
-    describe_parser.add_argument("name", nargs="?")
-    describe_parser.add_argument("--name", dest="name_flag")
-    describe_parser.add_argument("--id", dest="id_flag", type=int)
-    describe_parser.set_defaults(func=describe)
-
-    sync_parser = sub.add_parser("sync", help="Backfill missing registry fields from launchd")
-    sync_parser.add_argument("name", nargs="?", help="Sync only one managed service")
-    sync_parser.add_argument("--name", dest="name_flag", help="Sync only one managed service")
-    sync_parser.add_argument("--id", dest="id_flag", type=int, help="Sync only one managed service by id")
-    sync_parser.set_defaults(func=sync)
-
-    version_parser = sub.add_parser("version", help="Show version")
-    version_parser.set_defaults(func=lambda _args: print(VERSION))
-
-    sudo_parser = sub.add_parser("sudo", help="Helpers for one-off sudo usage")
-    sudo_sub = sudo_parser.add_subparsers(dest="sudo_command", required=True)
-
-    sudo_check_parser = sudo_sub.add_parser("check", help="Check whether sudo can run non-interactively")
-    sudo_check_parser.set_defaults(func=sudo_check)
-
-    sudo_run_parser = sudo_sub.add_parser("run", help="Run one command through sudo")
-    sudo_run_parser.add_argument("command", nargs=argparse.REMAINDER)
-    sudo_run_parser.set_defaults(func=sudo_run_command)
-
-    return parser
 
 
 def configure_cli_globals(args: argparse.Namespace, parser: argparse.ArgumentParser) -> None:

@@ -645,8 +645,8 @@ registry code.
 
 Move Linux lifecycle and exec orchestration into `skuld_linux_actions.py`, and
 move macOS launchd lifecycle and exec orchestration into
-`skuld_macos_actions.py`. Keep target resolution, parser wiring, and backend
-adapter functions in the backend modules.
+`skuld_macos_actions.py`. Keep target resolution and backend adapter functions
+in the backend modules.
 
 **Impact**
 
@@ -757,7 +757,7 @@ rendering, launchd metadata reads, and registry entry construction.
 
 Move Linux catalog and track behavior into `skuld_linux_catalog.py`, and move
 macOS catalog and track behavior into `skuld_macos_catalog.py`. Keep backend
-wrappers for public function names, parser wiring, and host adapter injection.
+wrappers for public function names and host adapter injection.
 
 **Impact**
 
@@ -770,15 +770,55 @@ wrappers for public function names, parser wiring, and host adapter injection.
 
 **Tradeoff**
 
-- The backend files still own parser construction and thin wrapper functions.
+- The backend files still own thin wrapper functions for compatibility and
+  callback injection.
 - `DiscoverableService` remains in backend-specific model modules instead of
   catalog modules so callers use one backend contract import.
 
 **Alternatives rejected**
 
-- Moving parser subcommand registration together with catalog behavior.
+- Moving parser subcommand registration together with catalog behavior before
+  parser-specific tests existed.
 - Creating one cross-platform catalog module despite different systemd and
   launchd discovery semantics.
+
+## 2026-04-26 - Extract Backend Parser Wiring
+
+**Context**
+
+The Linux and macOS backends still carried large `argparse` construction blocks
+after command, model, sync, action, and catalog behavior had been extracted.
+That made the backend files harder to audit and left CLI option contracts mixed
+with host-runtime callbacks.
+
+**Decision**
+
+Move Linux parser construction into `skuld_linux_parser.py` and macOS parser
+construction into `skuld_macos_parser.py`. Keep handler functions injected by
+the backend modules so parser modules do not import runtime state, registries,
+or service-manager adapters.
+
+**Impact**
+
+- CLI flags and compatibility aliases have focused unit tests.
+- Backend files now expose a thin `build_parser()` delegation instead of owning
+  the full subcommand tree.
+- Package metadata, CI compile lists, documented validation commands, and the
+  Linux remote smoke payload include the parser modules.
+
+**Tradeoff**
+
+- Parser modules still duplicate common subcommands where backend help text and
+  behavior differ.
+- Backend modules still own many thin wrappers to preserve existing patch
+  points and avoid a behavior-changing extraction.
+
+**Alternatives rejected**
+
+- Creating one cross-platform parser that hides systemd and launchd option
+  differences.
+- Letting parser modules import backend modules directly, which would create
+  circular dependencies and make the parser harder to test.
 
 ## 2026-04-26 - Extract macOS Service Table Row Assembly
 

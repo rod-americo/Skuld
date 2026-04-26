@@ -12,6 +12,7 @@ import skuld_cli
 import skuld_linux_actions as linux_actions
 import skuld_linux_catalog as linux_catalog
 import skuld_linux_commands as linux_commands
+import skuld_linux_parser as linux_parser
 from skuld_linux_model import (
     DiscoverableService,
     ManagedService,
@@ -871,133 +872,27 @@ def sync(args: argparse.Namespace) -> None:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="skuld", description="CLI for tracking and operating systemd services")
-    p.add_argument(
-        "--no-env-sudo",
-        action="store_true",
-        help="Disable SKULD_SUDO_PASSWORD from env/.env and use regular sudo behavior",
+    return linux_parser.build_parser(
+        sort_choices=SORT_CHOICES,
+        discoverable_scope_choices=DISCOVERABLE_SCOPE_CHOICES,
+        version=VERSION,
+        list_services=list_services,
+        catalog=catalog,
+        track=track,
+        rename=rename,
+        untrack=untrack,
+        exec_now=exec_now,
+        start_stop=start_stop,
+        restart=restart,
+        status=status,
+        logs=logs,
+        stats=stats,
+        doctor=doctor,
+        describe=describe,
+        sync=sync,
+        sudo_check=sudo_check,
+        sudo_run_command=sudo_run_command,
     )
-    p.add_argument("--ascii", action="store_true", help="Force ASCII table borders")
-    p.add_argument("--unicode", action="store_true", help="Force Unicode table borders")
-    p.add_argument("--sort", choices=SORT_CHOICES, default="name", help="Sort service views by name, id, cpu, or memory")
-    sub = p.add_subparsers(dest="command", required=False)
-
-    l = sub.add_parser("list", help="List services tracked by skuld")
-    l.add_argument("--sort", choices=SORT_CHOICES, default="name", help="Sort by name, id, cpu, or memory")
-    l.set_defaults(func=list_services)
-
-    ct = sub.add_parser("catalog", help="Show the current systemd discovery catalog")
-    ct.add_argument(
-        "--scope",
-        choices=DISCOVERABLE_SCOPE_CHOICES,
-        default="all",
-        help="Filter catalog entries by scope: all, system, or user",
-    )
-    ct.set_defaults(func=catalog)
-
-    tr = sub.add_parser("track", help="Track systemd services from the current catalog or by service name")
-    tr.add_argument(
-        "targets",
-        nargs="+",
-        help="Catalog ids or service names (example: 1 4 nginx sshd.service user:syncthing)",
-    )
-    tr.add_argument("--alias", help="Friendly name shown by skuld")
-    tr.set_defaults(func=track)
-
-    rn = sub.add_parser("rename", help="Change the display name of a tracked service")
-    rn.add_argument("name", nargs="?")
-    rn.add_argument("new_name")
-    rn.add_argument("--name", dest="name_flag")
-    rn.add_argument("--id", dest="id_flag", type=int)
-    rn.set_defaults(func=rename)
-
-    ut = sub.add_parser("untrack", help="Remove a service from the skuld registry without touching systemd")
-    ut.add_argument("name", nargs="?")
-    ut.add_argument("--name", dest="name_flag")
-    ut.add_argument("--id", dest="id_flag", type=int)
-    ut.set_defaults(func=untrack)
-
-    e = sub.add_parser("exec", help="Execute a service immediately")
-    e.add_argument("name", nargs="?")
-    e.add_argument("--name", dest="name_flag")
-    e.add_argument("--id", dest="id_flag", type=int)
-    e.set_defaults(func=exec_now)
-
-    s = sub.add_parser("start", help="Start one or more services")
-    s.add_argument("targets", nargs="*", help="Service target(s): managed NAME and/or ID")
-    s.add_argument("--name", dest="name_flag")
-    s.add_argument("--id", dest="id_flag", type=int)
-    s.set_defaults(func=lambda a: start_stop(a, "start"))
-
-    st = sub.add_parser("stop", help="Stop one or more services")
-    st.add_argument("targets", nargs="*", help="Service target(s): managed NAME and/or ID")
-    st.add_argument("--name", dest="name_flag")
-    st.add_argument("--id", dest="id_flag", type=int)
-    st.set_defaults(func=lambda a: start_stop(a, "stop"))
-
-    rs = sub.add_parser("restart", help="Restart one or more services")
-    rs.add_argument("targets", nargs="*", help="Service target(s): managed NAME and/or ID")
-    rs.add_argument("--name", dest="name_flag")
-    rs.add_argument("--id", dest="id_flag", type=int)
-    rs.set_defaults(func=restart)
-
-    ps = sub.add_parser("status", help="Service/timer status")
-    ps.add_argument("name", nargs="?")
-    ps.add_argument("--name", dest="name_flag")
-    ps.add_argument("--id", dest="id_flag", type=int)
-    ps.set_defaults(func=status)
-
-    lg = sub.add_parser("logs", help="Show logs from journalctl")
-    lg.add_argument("name", nargs="?")
-    lg.add_argument("lines_pos", nargs="?", type=int)
-    lg.add_argument("--name", dest="name_flag")
-    lg.add_argument("--id", dest="id_flag", type=int)
-    lg.add_argument("--lines", type=int, default=None)
-    lg.add_argument("--follow", action="store_true", help="Follow logs in real time")
-    lg.add_argument("--folow", dest="follow", action="store_true", help=argparse.SUPPRESS)
-    lg.add_argument("--since", help="journalctl time filter (example: '1 hour ago')")
-    lg.add_argument("--timer", action="store_true", help="Read .timer logs instead of .service")
-    lg.add_argument("--output", default="short", help="journalctl output mode (e.g. short, short-iso, cat, json)")
-    lg.add_argument("--plain", action="store_true", help="Shortcut for --output cat (message only)")
-    lg.set_defaults(func=logs)
-
-    stt = sub.add_parser("stats", help="Show execution/restart counters for a tracked service")
-    stt.add_argument("name", nargs="?")
-    stt.add_argument("--name", dest="name_flag")
-    stt.add_argument("--id", dest="id_flag", type=int)
-    stt.add_argument("--since", help="journalctl time filter (example: '24 hours ago')")
-    stt.add_argument("--boot", action="store_true", help="Count entries from current boot only")
-    stt.set_defaults(func=stats)
-
-    dr = sub.add_parser("doctor", help="Check registry/systemd inconsistencies")
-    dr.set_defaults(func=doctor)
-
-    ds = sub.add_parser("describe", help="Show details for a tracked service")
-    ds.add_argument("name", nargs="?")
-    ds.add_argument("--name", dest="name_flag")
-    ds.add_argument("--id", dest="id_flag", type=int)
-    ds.set_defaults(func=describe)
-
-    sy = sub.add_parser("sync", help="Backfill missing registry fields from systemd")
-    sy.add_argument("name", nargs="?", help="Sync only one managed service")
-    sy.add_argument("--name", dest="name_flag", help="Sync only one managed service")
-    sy.add_argument("--id", dest="id_flag", type=int, help="Sync only one managed service by id")
-    sy.set_defaults(func=sync)
-
-    v = sub.add_parser("version", help="Show version")
-    v.set_defaults(func=lambda _a: print(VERSION))
-
-    sd = sub.add_parser("sudo", help="Helpers for one-off sudo usage")
-    sd_sub = sd.add_subparsers(dest="sudo_command", required=True)
-
-    sd_check = sd_sub.add_parser("check", help="Check whether sudo can run non-interactively")
-    sd_check.set_defaults(func=sudo_check)
-
-    sd_run = sd_sub.add_parser("run", help="Run one command through sudo")
-    sd_run.add_argument("command", nargs=argparse.REMAINDER)
-    sd_run.set_defaults(func=sudo_run_command)
-
-    return p
 
 
 def configure_cli_globals(args: argparse.Namespace, parser: argparse.ArgumentParser) -> None:

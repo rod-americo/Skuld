@@ -80,7 +80,7 @@ points at `skuld_entrypoint:main`.
 
 `skuld_linux.py` owns the Linux implementation:
 
-- Linux command handlers and parser wiring.
+- Linux command wrappers, backend callback wiring, and registry storage paths.
 - Backend coordination for host operations that have not been extracted yet.
 
 `skuld_linux_model.py` owns the Linux service model:
@@ -88,6 +88,12 @@ points at `skuld_entrypoint:main`.
 - `ManagedService` and `DiscoverableService` dataclasses.
 - Linux registry normalization and validation rules.
 - scope normalization, scoped-name formatting, and registry identity helpers.
+
+`skuld_linux_parser.py` owns Linux CLI parser wiring:
+
+- top-level flags and Linux-specific subcommand options.
+- compatibility aliases such as `logs --folow`.
+- handler registration through injected backend callbacks.
 
 `skuld_linux_actions.py` owns Linux host-mutating service actions:
 
@@ -168,7 +174,7 @@ points at `skuld_entrypoint:main`.
 
 `skuld_macos.py` owns the macOS implementation:
 
-- macOS command handlers and parser wiring.
+- macOS command wrappers, backend callback wiring, and registry storage paths.
 - Backend coordination for host operations that have not been extracted yet.
 
 `skuld_macos_model.py` owns the macOS service model:
@@ -176,6 +182,12 @@ points at `skuld_entrypoint:main`.
 - `ManagedService` and `DiscoverableService` dataclasses.
 - macOS registry normalization and validation rules.
 - launchd scope normalization and registry sorting helpers.
+
+`skuld_macos_parser.py` owns macOS CLI parser wiring:
+
+- top-level flags and macOS-specific subcommand options.
+- compatibility aliases such as `logs --folow`.
+- handler registration through injected backend callbacks.
 
 `skuld_macos_actions.py` owns macOS host-mutating launchd actions:
 
@@ -278,8 +290,9 @@ points at `skuld_entrypoint:main`.
   - refresh the compact list after mutating commands
   - translate `KeyboardInterrupt` and other exceptions to exit codes
 
-The Linux and macOS backends still own parser construction and handler
-registration because their command options and operational adapters differ.
+The Linux and macOS parser modules own parser construction because their
+command options differ. Backend modules still inject the handler functions so
+the parser modules do not import backend state or host adapters.
 
 ### 4.6 Shared Helpers
 
@@ -299,6 +312,8 @@ registration because their command options and operational adapters differ.
   orchestration used by `skuld_linux.py`.
 - `skuld_linux_model.py` provides Linux service models and registry
   normalization used by `skuld_linux.py`.
+- `skuld_linux_parser.py` provides Linux parser wiring used by
+  `skuld_linux.py`.
 - `skuld_linux_commands.py` provides Linux registry and read-only command
   orchestration used by `skuld_linux.py`.
 - `skuld_linux_presenters.py` provides Linux detail-view output formatting used
@@ -319,6 +334,8 @@ registration because their command options and operational adapters differ.
   orchestration used by `skuld_macos.py`.
 - `skuld_macos_model.py` provides macOS service models and registry
   normalization used by `skuld_macos.py`.
+- `skuld_macos_parser.py` provides macOS parser wiring used by
+  `skuld_macos.py`.
 - `skuld_macos_commands.py` provides macOS registry and read-only command
   orchestration used by `skuld_macos.py`.
 - `skuld_macos_presenters.py` provides macOS detail-view output formatting used
