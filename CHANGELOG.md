@@ -91,6 +91,7 @@ intent.
 - Moved Linux target-resolution rules into `skuld_linux_targets.py`.
 - Moved macOS service-table row assembly and state display mapping into
   `skuld_macos_view.py`.
+- Moved macOS target-resolution rules into `skuld_macos_targets.py`.
 - Changed macOS live smoke cleanup to boot out the disposable LaunchAgent by
   service target before falling back to the plist path.
 - Changed macOS launchd bootstrap to avoid persistent `enable` overrides after

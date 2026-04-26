@@ -594,6 +594,38 @@ the view module does not import `skuld_macos.py`.
   runtime side effects.
 - Letting `skuld_macos_view.py` import the backend module directly.
 
+## 2026-04-26 - Extract macOS Target Resolution
+
+**Context**
+
+macOS target resolution still lived inline in `skuld_macos.py`, mixing backend
+command flow with launchd label lookup, display-name lookup, numeric ID lookup,
+discoverable catalog lookup, and multi-target de-duplication.
+
+**Decision**
+
+Move macOS target-resolution rules into `skuld_macos_targets.py`. Keep actual
+registry reads, launchd catalog discovery, and validation in `skuld_macos.py`
+and pass them into the target module as callbacks.
+
+**Impact**
+
+- macOS target resolution has focused unit tests.
+- `skuld_macos.py` is smaller and delegates selection rules to a named module.
+- The packaged console entrypoint includes the new target module.
+
+**Tradeoff**
+
+- `skuld_macos.py` still exposes wrapper functions so existing command handlers
+  do not need a broad rewrite.
+- Linux and macOS target modules remain separate because their identifier and
+  scope semantics differ.
+
+**Alternatives rejected**
+
+- Creating a shared cross-platform target module now. That would obscure the
+  real differences between systemd scoped unit names and launchd labels.
+
 ## 2026-04-26 - Boot Out macOS Smoke By Service Target
 
 **Context**

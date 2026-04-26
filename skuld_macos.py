@@ -16,6 +16,7 @@ import skuld_macos_launchd as launchd
 import skuld_macos_processes as processes
 import skuld_macos_runtime as runtime
 import skuld_macos_schedules as schedules
+import skuld_macos_targets as macos_targets
 import skuld_macos_view as macos_view
 import skuld_tables as tables
 from skuld_registry import RegistryStore
@@ -94,13 +95,12 @@ def validate_name(name: str) -> None:
 
 
 def ensure_display_name_available(display_name: str, current_name: Optional[str] = None) -> None:
-    validate_name(display_name)
-    for svc in load_registry():
-        if svc.display_name != display_name:
-            continue
-        if current_name is not None and svc.name == current_name:
-            return
-        raise RuntimeError(f"Display name '{display_name}' is already in use.")
+    macos_targets.ensure_display_name_available(
+        display_name,
+        current_name=current_name,
+        validate_name=validate_name,
+        load_registry=load_registry,
+    )
 
 
 def suggest_display_name(label: str) -> str:
@@ -138,14 +138,7 @@ def resolve_scope(value: str) -> str:
 
 
 def resolve_name_arg(args: argparse.Namespace, required: bool = True) -> Optional[str]:
-    positional = getattr(args, "name", None)
-    flag_value = getattr(args, "name_flag", None)
-    if positional and flag_value and positional != flag_value:
-        raise RuntimeError(f"Conflicting names provided: positional='{positional}' and --name='{flag_value}'.")
-    name = flag_value or positional
-    if required and not name:
-        raise RuntimeError("Service name is required. Use NAME or --name NAME.")
-    return name
+    return macos_targets.resolve_name_arg(args, required=required)
 
 
 def is_tty() -> bool:
@@ -425,67 +418,28 @@ def get_managed_by_id(service_id: int) -> Optional[ManagedService]:
 
 
 def resolve_managed_from_token(token: str) -> Optional[ManagedService]:
-    svc = get_managed(token)
-    if svc:
-        return svc
-    svc = get_managed_by_display_name(token)
-    if svc:
-        return svc
-    if token.isdigit():
-        return get_managed_by_id(int(token))
-    return None
+    return macos_targets.resolve_managed_from_token(
+        token,
+        get_managed=get_managed,
+        get_managed_by_display_name=get_managed_by_display_name,
+        get_managed_by_id=get_managed_by_id,
+    )
 
 
 def resolve_managed_arg(args: argparse.Namespace, required: bool = True) -> Optional[ManagedService]:
-    positional = getattr(args, "name", None)
-    name_flag = getattr(args, "name_flag", None)
-    id_flag = getattr(args, "id_flag", None)
-    if positional and name_flag and positional != name_flag:
-        raise RuntimeError(
-            f"Conflicting targets provided: positional='{positional}' and --name='{name_flag}'."
-        )
-    token = name_flag or positional
-    by_token = None
-    if token:
-        by_token = resolve_managed_from_token(token)
-        if not by_token:
-            raise RuntimeError(f"Managed service '{token}' not found (name or id).")
-    by_id = None
-    if id_flag is not None:
-        by_id = get_managed_by_id(id_flag)
-        if not by_id:
-            raise RuntimeError(f"Managed service id '{id_flag}' not found.")
-    if by_token and by_id and by_token.id != by_id.id:
-        raise RuntimeError(
-            f"Conflicting targets provided: '{token}' resolves to id={by_token.id}, but --id={id_flag}."
-        )
-    svc = by_id or by_token
-    if required and not svc:
-        raise RuntimeError("Service target is required. Use NAME/ID, --name NAME, or --id ID.")
-    return svc
+    return macos_targets.resolve_managed_arg(
+        args,
+        required=required,
+        resolve_managed_from_token=resolve_managed_from_token,
+        get_managed_by_id=get_managed_by_id,
+    )
 
 
 def resolve_managed_many_arg(args: argparse.Namespace) -> List[ManagedService]:
-    tokens = list(getattr(args, "targets", None) or [])
-    name_flag = getattr(args, "name_flag", None)
-    id_flag = getattr(args, "id_flag", None)
-    if name_flag:
-        tokens.append(name_flag)
-    if id_flag is not None:
-        tokens.append(str(id_flag))
-    if not tokens:
-        raise RuntimeError("At least one service target is required. Use NAME/ID, --name NAME, or --id ID.")
-    resolved: List[ManagedService] = []
-    seen_ids = set()
-    for token in tokens:
-        svc = resolve_managed_from_token(token)
-        if not svc:
-            raise RuntimeError(f"Managed service '{token}' not found (name or id).")
-        if svc.id in seen_ids:
-            continue
-        seen_ids.add(svc.id)
-        resolved.append(svc)
-    return resolved
+    return macos_targets.resolve_managed_many_arg(
+        args,
+        resolve_managed_from_token=resolve_managed_from_token,
+    )
 
 
 def resolve_lines_arg(args: argparse.Namespace, default: int = 100) -> int:
@@ -517,24 +471,10 @@ def discover_launchd_services() -> List[DiscoverableService]:
 
 
 def resolve_discoverable_targets(tokens: List[str]) -> List[DiscoverableService]:
-    catalog = discover_launchd_services()
-    by_index = {entry.index: entry for entry in catalog}
-    by_label = {entry.label: entry for entry in catalog}
-    resolved: List[DiscoverableService] = []
-    seen_labels = set()
-    for token in tokens:
-        entry = None
-        if token.isdigit():
-            entry = by_index.get(int(token))
-        else:
-            entry = by_label.get(token)
-        if not entry:
-            raise RuntimeError(f"Launchd service '{token}' not found in the current catalog.")
-        if entry.label in seen_labels:
-            continue
-        seen_labels.add(entry.label)
-        resolved.append(entry)
-    return resolved
+    return macos_targets.resolve_discoverable_targets(
+        tokens,
+        discover_launchd_services=discover_launchd_services,
+    )
 
 
 def launchctl_print_service_raw(label: str) -> str:

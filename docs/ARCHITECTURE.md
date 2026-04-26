@@ -168,6 +168,12 @@ points at `skuld_entrypoint:main`.
 - schedule display formatting for compact service tables.
 - next-run calculation for `describe` output.
 
+`skuld_macos_targets.py` owns macOS target resolution:
+
+- launchd label, display name, and numeric ID resolution.
+- discoverable catalog resolution by index or label.
+- multi-target de-duplication for commands that accept many services.
+
 `skuld_macos_view.py` owns macOS table row assembly:
 
 - service and timer state display mapping.
@@ -226,6 +232,8 @@ registration because their command options and operational adapters differ.
 - `skuld_macos_runtime.py` provides macOS event stats, runtime stats, log-path,
   and tail helpers used by `skuld_macos.py`.
 - `skuld_macos_schedules.py` provides macOS schedule display helpers used by
+  `skuld_macos.py`.
+- `skuld_macos_targets.py` provides macOS target-resolution helpers used by
   `skuld_macos.py`.
 - `skuld_macos_view.py` provides macOS service-table row assembly helpers used
   by `skuld_macos.py`.
@@ -339,12 +347,11 @@ Host-local configuration:
 
 - The Linux and macOS files still contain large backend-specific command
   handlers, though Linux runtime/service-manager/stats/timer/target/view and
-  macOS launchd/process/runtime/schedule/view responsibilities plus shared
-  table policy have been extracted.
+  macOS launchd/process/runtime/schedule/target/view responsibilities plus
+  shared table policy have been extracted.
 - There is still no formal registry migration framework; canonicalization is
   tied to explicit mutating commands.
-- macOS target resolution and some CLI presentation are still tightly coupled in
-  the backend.
+- Some CLI presentation remains tightly coupled in each backend.
 - Live service operation is high-impact. Disposable smoke scripts now exercise
   real launchd and `systemd --user` paths, but they are still host-dependent
   checks rather than a full compatibility matrix.
