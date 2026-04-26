@@ -528,6 +528,38 @@ existing command handlers and tests retain stable patch points.
 - Moving macOS logs and event stats in the same change.
 - Letting the process module import `skuld_macos.py` directly.
 
+## 2026-04-26 - Add Standard Python Packaging Metadata
+
+**Context**
+
+Skuld could run from a checkout with `./skuld`, but there was no installable
+console command or release validation path. That limited product/distribution
+maturity and made package-level rollback impossible to document.
+
+**Decision**
+
+Add `pyproject.toml` with setuptools metadata, expose the console script
+`skuld = "skuld_entrypoint:main"`, and move backend selection into the importable
+`skuld_entrypoint.py` module. Keep `./skuld` as a thin development wrapper
+around the same entrypoint.
+
+**Impact**
+
+- `pipx install .` and wheel-based installation are supported from the checkout.
+- Direct `./skuld` execution continues to work.
+- Install, uninstall, release validation, and rollback are documented.
+
+**Tradeoff**
+
+- The project remains root-module based instead of a `src/` package.
+- Version still exists in `pyproject.toml` and backend constants until a single
+  generated version source is introduced.
+
+**Alternatives rejected**
+
+- Moving the whole repository into `src/skuld/` during the packaging change.
+- Removing `./skuld` before existing checkout workflows have migrated.
+
 ## 2026-04-25 - Support macOS External Logs Only When Plist Paths Exist
 
 **Context**

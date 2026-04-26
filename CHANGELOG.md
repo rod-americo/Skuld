@@ -74,6 +74,9 @@ intent.
   declares `StandardOutPath` or `StandardErrorPath`.
 - Linux `catalog` now accepts `--scope all|system|user` to focus discovery on
   one systemd scope without changing the catalog IDs used by `track`.
+- Added `pyproject.toml`, `skuld_entrypoint.py`, and install/release docs so
+  the CLI can be installed as a standard Python console command while `./skuld`
+  remains supported for direct checkout use.
 - Registry reads now normalize in memory by default. Existing registry files
   are rewritten only by explicit mutating commands or intentional
   `write_back=True` code paths.

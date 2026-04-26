@@ -25,6 +25,10 @@ is not a greenfield scaffold checklist.
 - [x] `docs/CONTRACTS.md` documents registry and CLI contracts.
 - [x] `docs/OPERATIONS.md` documents setup, run, validation, logs, restart, and
   troubleshooting.
+- [x] `docs/INSTALL.md` documents checkout, `pipx`, virtualenv install, and
+  uninstall behavior.
+- [x] `docs/RELEASE.md` documents release validation, wheel build checks, and
+  rollback.
 - [x] `docs/DECISIONS.md` records current decisions and tradeoffs.
 
 ## 2. Operational Guardrails
@@ -36,6 +40,8 @@ is not a greenfield scaffold checklist.
 - [x] `scripts/install_git_hooks.sh` can opt into the local hook.
 - [x] `.gitignore` covers local runtime, logs, caches, and secrets.
 - [x] A behavior-focused `unittest` suite exists under `tests/`.
+- [x] `pyproject.toml` exposes an installable console command without removing
+  direct checkout execution through `./skuld`.
 
 ## 3. What Is Intentionally Not Done Yet
 
@@ -80,6 +86,7 @@ is not a greenfield scaffold checklist.
   into `skuld_macos_processes.py`.
 - [x] Extract macOS schedule parsing and display formatting into
   `skuld_macos_schedules.py`.
+- [x] Add installable package metadata and an importable CLI entrypoint.
 - [ ] Continue backend splitting around command handlers, rendering, and macOS
   log/event-stat responsibilities where tests justify it.
 

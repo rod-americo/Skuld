@@ -26,7 +26,7 @@ from growing without discipline, and which operational costs are accepted.
 ## 4. What must this project not carry?
 
 - out of scope responsibilities: Creating deployment pipelines, owning arbitrary service definitions, managing remote hosts, or replacing service-manager policy.
-- integrations owned by another system: Unit file authoring, launchd plist authoring, package installation, DNS, network routing, and host provisioning belong outside Skuld.
+- integrations owned by another system: Unit file authoring, launchd plist authoring, managed-service package installation, DNS, network routing, and host provisioning belong outside Skuld.
 - data that must not live here: Real service registries, sudo passwords, generated logs, runtime stats, local dumps, and host-specific private configuration.
 
 ## 5. What maintenance cost is expected?

@@ -31,7 +31,7 @@ Does not include:
 - Remote host operation, deployment, provisioning, package management, DNS, or
   network routing.
 - Central metrics, tracing, alerting, or log aggregation.
-- A dedicated test framework or packaged Python distribution.
+- A published package channel or dedicated external test framework.
 
 ## 3. System Context
 
@@ -65,11 +65,13 @@ Critical dependencies:
 
 ### 4.1 Composition Root
 
-`./skuld` is the composition root. It only chooses the backend module and calls
-that module's `main()`.
+`skuld_entrypoint.py` is the importable composition root. The root `./skuld`
+script reuses it for direct checkout execution, and the packaged console script
+points at `skuld_entrypoint:main`.
 
 ```text
-./skuld
+./skuld or packaged skuld command
+  -> skuld_entrypoint.main()
   -> sys.platform == "darwin" ? skuld_macos.main()
   -> otherwise                ? skuld_linux.main()
 ```
@@ -267,6 +269,7 @@ Configuration sources:
 Versioned configuration:
 
 - `config/doctor.json` configures the structural project doctor only.
+- `pyproject.toml` configures Python packaging metadata and the console script.
 
 Host-local configuration:
 

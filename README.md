@@ -39,7 +39,7 @@ definition files remain owned by `systemd` or `launchd`.
 | Tests | `unittest` suite with faked `systemd`, `journalctl`, and `launchd` interactions. |
 | Live validation | Disposable macOS and Linux smoke scripts, including remote Linux over SSH. |
 | Operations | Single-host local operation is documented. |
-| Packaging | No installable Python package or dependency manager is provided. |
+| Packaging | `pyproject.toml` exposes an installable console command; direct checkout use remains supported. |
 | Remote/fleet use | Out of scope except for the Linux smoke helper's SSH mode. |
 
 ## Domain Boundary
@@ -122,6 +122,15 @@ For a non-mutating interface check:
 ```
 
 No external Python packages are required for normal CLI use.
+
+For user-level installation from a checkout:
+
+```bash
+pipx install .
+skuld --help
+```
+
+See `docs/INSTALL.md` for install and uninstall details.
 
 ## Configuration
 
@@ -253,7 +262,7 @@ or application-specific logs may not expose logs through Skuld.
 Minimum repository validation:
 
 ```bash
-python3 -m py_compile ./skuld ./skuld_cli.py ./skuld_common.py ./skuld_linux_systemd.py ./skuld_linux_stats.py ./skuld_linux_timers.py ./skuld_macos_launchd.py ./skuld_macos_processes.py ./skuld_macos_schedules.py ./skuld_observability.py ./skuld_registry.py ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py
+python3 -m py_compile ./skuld ./skuld_entrypoint.py ./skuld_cli.py ./skuld_common.py ./skuld_linux_systemd.py ./skuld_linux_stats.py ./skuld_linux_timers.py ./skuld_macos_launchd.py ./skuld_macos_processes.py ./skuld_macos_schedules.py ./skuld_observability.py ./skuld_registry.py ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py
 python3 -m unittest discover -s tests
 ./skuld --help
 python3 scripts/check_project_gate.py
@@ -286,6 +295,9 @@ Run live smokes only with explicit operator intent because they mutate
 - `docs/CONTRACTS.md`: canonical inputs, outputs, identifiers, and invariants.
 - `docs/OPERATIONS.md`: setup, runtime, logs, restart, troubleshooting, and
   smoke checks.
+- `docs/INSTALL.md`: checkout, `pipx`, virtualenv install, and uninstall
+  behavior.
+- `docs/RELEASE.md`: release validation, wheel build check, and rollback.
 - `docs/DECISIONS.md`: architectural and operational decisions.
 - `CHANGELOG.md`: notable repository changes.
 
@@ -297,8 +309,8 @@ Run live smokes only with explicit operator intent because they mutate
   journal retention, process visibility, and compatible log paths.
 - Unit tests prove behavior with faked backend commands; live smokes prove
   disposable host paths, not every service definition an operator may track.
-- Skuld has no CI-backed OS compatibility matrix and no packaged installation
-  workflow.
+- Skuld has no CI-backed OS compatibility matrix and no published package
+  channel yet.
 
 ## License
 

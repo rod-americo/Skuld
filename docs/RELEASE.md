@@ -1,0 +1,63 @@
+# Release
+
+Skuld releases must prove the checkout CLI and the packaged console command
+before publishing or tagging.
+
+## Preflight
+
+Run the full non-mutating validation:
+
+```bash
+python3 -m py_compile ./skuld ./skuld_entrypoint.py ./skuld_cli.py ./skuld_common.py ./skuld_linux_systemd.py ./skuld_linux_stats.py ./skuld_linux_timers.py ./skuld_macos_launchd.py ./skuld_macos_processes.py ./skuld_macos_schedules.py ./skuld_observability.py ./skuld_registry.py ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py
+python3 -m unittest discover -s tests
+./skuld --help
+python3 scripts/check_project_gate.py
+python3 scripts/project_doctor.py
+python3 scripts/project_doctor.py --strict
+python3 scripts/project_doctor.py --audit-config
+bash -n .githooks/pre-commit scripts/install_git_hooks.sh scripts/install_runtime_stats_timer.sh scripts/smoke_macos_launchd.sh scripts/smoke_linux_systemd_user.sh scripts/run_live_smokes.sh
+```
+
+Run live smokes only with explicit operator intent:
+
+```bash
+scripts/run_live_smokes.sh --macos --linux-host vidar
+```
+
+## Package Build Check
+
+Build a wheel into a temporary directory:
+
+```bash
+python3 -m pip wheel . --no-deps -w /tmp/skuld-wheelhouse
+```
+
+Install that wheel into a disposable virtual environment and check the console
+entrypoint:
+
+```bash
+python3 -m venv /tmp/skuld-release-venv
+/tmp/skuld-release-venv/bin/python -m pip install /tmp/skuld-wheelhouse/skuld_service_cli-*.whl
+/tmp/skuld-release-venv/bin/skuld --help
+/tmp/skuld-release-venv/bin/skuld version
+```
+
+Remove the disposable validation environment when done:
+
+```bash
+rm -rf /tmp/skuld-release-venv /tmp/skuld-wheelhouse
+```
+
+## Versioning
+
+The package version in `pyproject.toml` and the CLI `VERSION` value must stay
+aligned until the project has a single generated version source.
+
+## Rollback
+
+Rollback is package-level only:
+
+- reinstall the previous package version or checkout;
+- do not delete the registry unless the operator intentionally wants to lose
+  Skuld's tracked service list;
+- do not remove service-manager definitions as part of a package rollback.

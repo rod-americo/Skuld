@@ -20,7 +20,8 @@ Before significant changes, read these files in order:
 4. `docs/CONTRACTS.md`
 5. `docs/OPERATIONS.md`
 6. `docs/DECISIONS.md`
-7. The touched backend file: `skuld_linux.py`, `skuld_macos.py`, or `./skuld`
+7. The touched entrypoint/backend file: `skuld_entrypoint.py`, `skuld_linux.py`,
+   `skuld_macos.py`, or `./skuld`
 8. Shared helpers when relevant: `skuld_cli.py`, `skuld_common.py`,
    `skuld_linux_systemd.py`, `skuld_linux_stats.py`, `skuld_linux_timers.py`,
    `skuld_macos_launchd.py`, `skuld_macos_processes.py`,
@@ -136,6 +137,8 @@ files are large; avoid making them larger through unrelated refactors.
   outputs, or integration guarantees change.
 - Update `docs/OPERATIONS.md` when setup, validation, logs, restart, runtime
   state, or troubleshooting changes.
+- Update `docs/INSTALL.md` and `docs/RELEASE.md` when packaging, install,
+  versioning, or release validation changes.
 - Update `docs/DECISIONS.md` when a change affects how the repository should
   evolve.
 - Do not document planned behavior as current behavior.
@@ -153,7 +156,7 @@ files are large; avoid making them larger through unrelated refactors.
 Run this before finalizing repository-wide structural or operational changes:
 
 ```bash
-python3 -m py_compile ./skuld ./skuld_cli.py ./skuld_common.py ./skuld_linux_systemd.py ./skuld_linux_stats.py ./skuld_linux_timers.py ./skuld_macos_launchd.py ./skuld_macos_processes.py ./skuld_macos_schedules.py ./skuld_observability.py ./skuld_registry.py ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py
+python3 -m py_compile ./skuld ./skuld_entrypoint.py ./skuld_cli.py ./skuld_common.py ./skuld_linux_systemd.py ./skuld_linux_stats.py ./skuld_linux_timers.py ./skuld_macos_launchd.py ./skuld_macos_processes.py ./skuld_macos_schedules.py ./skuld_observability.py ./skuld_registry.py ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py
 python3 -m unittest discover -s tests
 ./skuld --help
 python3 scripts/check_project_gate.py

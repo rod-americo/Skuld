@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "skuld-service-cli"
+version = "0.3.0"
+description = "Local registry-based CLI for operating explicitly tracked systemd and launchd services."
+readme = "README.md"
+requires-python = ">=3.9"
+license = {file = "LICENSE"}
+authors = [
+  {name = "Rodrigo Americo"}
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: MacOS",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Topic :: System :: Systems Administration",
+]
+dependencies = []
+
+[project.scripts]
+skuld = "skuld_entrypoint:main"
+
+[tool.setuptools]
+py-modules = [
+  "skuld_entrypoint",
+  "skuld_cli",
+  "skuld_common",
+  "skuld_linux",
+  "skuld_linux_stats",
+  "skuld_linux_systemd",
+  "skuld_linux_timers",
+  "skuld_macos",
+  "skuld_macos_launchd",
+  "skuld_macos_processes",
+  "skuld_macos_schedules",
+  "skuld_observability",
+  "skuld_registry",
+]
