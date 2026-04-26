@@ -204,6 +204,7 @@ operation. They are not production credential management.
 ./skuld
 ./skuld list
 ./skuld catalog
+./skuld catalog --grep <text>
 ./skuld track ...
 ./skuld rename ...
 ./skuld untrack ...
@@ -323,6 +324,22 @@ Examples:
 
 Use `./skuld catalog --scope user` when you want to inspect only `systemd --user`
 units while keeping the same catalog IDs used by `track`.
+
+## macOS Notes
+
+Examples:
+
+```bash
+./skuld catalog
+./skuld catalog --grep draupnir
+./skuld track 1 4 22
+./skuld track com.example.worker --alias worker
+./skuld untrack 1 2 3
+```
+
+On macOS, `catalog` now renders the full visible `launchd` catalog by default.
+Use `./skuld catalog --grep <text>` to narrow the output to labels whose names
+contain a case-insensitive substring.
 
 For scheduled jobs, `start`, `stop`, and `restart` act on the `.timer` when the
 registry has schedule metadata and the timer exists. Otherwise they act on the

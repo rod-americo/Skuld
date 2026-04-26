@@ -31,16 +31,24 @@ def discover_launchd_services(*, run: Callable[..., object]) -> List[Discoverabl
 def render_discoverable_services_hint(
     *,
     discover_launchd_services: Callable[[], List[DiscoverableService]],
+    grep: str = "",
     emit: Callable[[str], None] = print,
 ) -> None:
     catalog = discover_launchd_services()
+    grep_text = grep.strip()
+    if grep_text:
+        grep_lower = grep_text.lower()
+        catalog = [entry for entry in catalog if grep_lower in entry.label.lower()]
     if not catalog:
         emit("No services tracked by skuld.")
-        emit("No visible launchd services were discovered in the current session.")
+        if grep_text:
+            emit(f"No launchd services matched grep '{grep_text}' in the current session.")
+        else:
+            emit("No visible launchd services were discovered in the current session.")
         return
     emit("No services tracked by skuld.")
     emit("")
-    for entry in catalog[:60]:
+    for entry in catalog:
         pid = "-" if entry.pid == "-" else entry.pid
         emit(f"{entry.index:>3}. {entry.label}  pid={pid} status={entry.status}")
     emit("")

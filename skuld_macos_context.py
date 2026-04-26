@@ -395,9 +395,10 @@ class MacOSBackendContext:
     def discover_launchd_services(self) -> List[DiscoverableService]:
         return macos_catalog.discover_launchd_services(run=self.run)
 
-    def render_discoverable_services_hint(self) -> None:
+    def render_discoverable_services_hint(self, grep: str = "") -> None:
         macos_catalog.render_discoverable_services_hint(
             discover_launchd_services=self.discover_launchd_services,
+            grep=grep,
         )
 
     def launchctl_print_service_raw(self, label: str) -> str:

@@ -11,6 +11,8 @@ intent.
 
 - `skuld sudo auth` and `skuld sudo forget` for native sudo timestamp
   authentication without storing a sudo password.
+- macOS `catalog --grep <text>` to filter the visible `launchd` catalog by
+  case-insensitive label substring.
 - `--columns` and `SKULD_COLUMNS` for configuring visible service-table
   columns.
 - `skuld config show` and `skuld config columns ...` for persisted user table
@@ -61,6 +63,8 @@ intent.
 - `skuld --columns`, `skuld list --columns`, and `skuld config columns` now
   show a numbered column catalog and accept catalog-style column IDs such as
   `1 2 3`.
+- macOS `catalog` now renders the full visible `launchd` catalog instead of
+  truncating it to the first 60 labels.
 - Added optional service-table columns for target, scope, backend, PID, user,
   restart policy, run counters, last run/trigger, and next run.
 - Documented Docker, nginx, and Caddy discovery as future read-only wishlist

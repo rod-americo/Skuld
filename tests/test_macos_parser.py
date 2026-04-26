@@ -75,6 +75,12 @@ class MacParserTest(unittest.TestCase):
         self.assertEqual(args.alias, "worker")
         self.assertIs(args.func, _noop)
 
+    def test_catalog_accepts_grep_filter(self) -> None:
+        args = self.build_parser().parse_args(["catalog", "--grep", "draupnir"])
+
+        self.assertEqual(args.grep, "draupnir")
+        self.assertIs(args.func, _noop)
+
     def test_logs_keep_compatibility_options(self) -> None:
         args = self.build_parser().parse_args(["logs", "api", "--folow", "--timer", "--plain"])
 

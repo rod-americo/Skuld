@@ -101,6 +101,10 @@ def build_parser(
         "catalog",
         help="Show the current launchd discovery catalog",
     )
+    catalog_parser.add_argument(
+        "--grep",
+        help="Filter catalog entries by a case-insensitive label substring",
+    )
     catalog_parser.set_defaults(func=catalog)
 
     track_parser = subparsers.add_parser(

@@ -124,8 +124,8 @@ class MacOSCommandHandlers:
     def list_services_compact(self, sort_by: str = "name") -> None:
         self._render_services_table(compact=True, sort_by=sort_by)
 
-    def catalog(self, _args: argparse.Namespace) -> None:
-        self.context.render_discoverable_services_hint()
+    def catalog(self, args: argparse.Namespace) -> None:
+        self.context.render_discoverable_services_hint(grep=getattr(args, "grep", "") or "")
 
     def stats(self, args: argparse.Namespace) -> None:
         ctx = self.context
