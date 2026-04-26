@@ -98,6 +98,8 @@ is not a greenfield scaffold checklist.
   `skuld_linux_actions.py`.
 - [x] Extract Linux service dataclasses and registry normalization into
   `skuld_linux_model.py`.
+- [x] Move Linux service-name normalization and display-name suggestions into
+  `skuld_linux_model.py`.
 - [x] Extract Linux parser construction into `skuld_linux_parser.py`.
 - [x] Extract Linux registry sync backfill into `skuld_linux_sync.py`.
 - [x] Extract Linux systemd catalog and track orchestration into

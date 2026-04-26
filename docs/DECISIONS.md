@@ -925,6 +925,42 @@ backend-specific `run_sudo` functions.
   primitives with CLI command orchestration.
 - Removing backend wrappers and changing parser handler registration.
 
+## 2026-04-26 - Keep Linux Name Rules In The Model
+
+**Context**
+
+Linux service-name normalization and display-name suggestion rules still lived
+in `skuld_linux.py` after the Linux dataclasses and registry validation had
+moved into `skuld_linux_model.py`. Those functions define identity-adjacent
+behavior and do not need runtime host access.
+
+**Decision**
+
+Move `normalize_service_name()`, `normalize_target_token()`, and
+`suggest_display_name()` into `skuld_linux_model.py`. Keep the same names
+available to the backend by importing them from the model.
+
+**Impact**
+
+- Linux name normalization has focused model tests.
+- The backend no longer owns regex validation or name-suggestion logic.
+- Existing backend call sites and patch points continue to resolve the same
+  public names.
+
+**Tradeoff**
+
+- Interactive prompting remains in the backend because it is CLI I/O, not a
+  pure model rule.
+- Linux and macOS name suggestion still differ because the backend service
+  identifiers differ.
+
+**Alternatives rejected**
+
+- Moving name rules into target resolution, which would mix identity
+  normalization with registry lookup.
+- Creating one cross-platform naming helper before Linux systemd units and
+  macOS launchd labels share enough semantics.
+
 ## 2026-04-26 - Extract macOS Service Table Row Assembly
 
 **Context**

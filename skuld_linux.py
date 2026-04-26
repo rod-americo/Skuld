@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 import argparse
 import os
-import re
 import subprocess
 import sys
 from pathlib import Path
@@ -20,10 +19,14 @@ from skuld_linux_model import (
     format_scoped_name,
     managed_service_key,
     managed_sort_key,
+    normalize_service_name,
     normalize_registry_item,
     normalize_scope,
+    normalize_target_token,
     scope_sort_value,
     split_scope_token,
+    suggest_display_name,
+    validate_name,
     validate_registry_service,
 )
 import skuld_linux_runtime as linux_runtime
@@ -38,8 +41,6 @@ import skuld_tables as tables
 from skuld_registry import RegistryStore
 
 VERSION = "0.3.0"
-NAME_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9._@-]*$")
-SHELL_SAFE_RE = re.compile(r"^[A-Za-z0-9_@%+=:,./-]+$")
 SKULD_HOME = Path(os.environ.get("SKULD_HOME", Path.home() / ".local/share/skuld"))
 REGISTRY_FILE = SKULD_HOME / "services.json"
 RUNTIME_STATS_FILE = Path(os.environ.get("SKULD_RUNTIME_STATS_FILE", "/var/lib/skuld/journal_stats.json"))
@@ -184,11 +185,6 @@ def resolve_sort_arg(args: Optional[argparse.Namespace]) -> str:
     return common.resolve_sort_arg(args, SORT_CHOICES)
 
 
-def validate_name(name: str) -> None:
-    if not NAME_RE.match(name):
-        raise ValueError("Invalid name. Use [a-zA-Z0-9._@-] and start with a letter/number.")
-
-
 def ensure_display_name_available(display_name: str, current_id: Optional[int] = None) -> None:
     linux_targets.ensure_display_name_available(
         display_name,
@@ -196,32 +192,6 @@ def ensure_display_name_available(display_name: str, current_id: Optional[int] =
         validate_name=validate_name,
         load_registry=load_registry,
     )
-
-
-def normalize_service_name(value: str) -> str:
-    raw = (value or "").strip()
-    if raw.endswith(".service"):
-        raw = raw[:-8]
-    elif raw.endswith(".timer"):
-        raw = raw[:-6]
-    validate_name(raw)
-    return raw
-
-
-def normalize_target_token(value: str) -> tuple[Optional[str], str]:
-    scope, raw_name = split_scope_token(value)
-    return scope, normalize_service_name(raw_name)
-
-
-def suggest_display_name(value: str) -> str:
-    raw = normalize_service_name(value)
-    tokens = [part for part in raw.split(".") if part]
-    if len(tokens) >= 2 and tokens[-1].isdigit():
-        while tokens and tokens[-1].isdigit():
-            tokens.pop()
-    if len(tokens) >= 2:
-        return "-".join(tokens[-2:])
-    return raw
 
 
 def prompt_display_name(target: str, suggested: str) -> str:

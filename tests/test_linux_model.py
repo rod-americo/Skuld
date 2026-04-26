@@ -26,6 +26,18 @@ class LinuxModelTest(unittest.TestCase):
         self.assertEqual(model.split_scope_token("root:worker"), ("system", "worker"))
         self.assertEqual(model.split_scope_token("worker"), (None, "worker"))
 
+    def test_normalize_service_name_strips_unit_suffixes(self) -> None:
+        self.assertEqual(model.normalize_service_name("api.service"), "api")
+        self.assertEqual(model.normalize_service_name("backup.timer"), "backup")
+
+    def test_normalize_target_token_preserves_scoped_name_contract(self) -> None:
+        self.assertEqual(model.normalize_target_token("user:api.service"), ("user", "api"))
+        self.assertEqual(model.normalize_target_token("api.service"), (None, "api"))
+
+    def test_suggest_display_name_uses_last_meaningful_tokens(self) -> None:
+        self.assertEqual(model.suggest_display_name("com.example.worker.123.service"), "example-worker")
+        self.assertEqual(model.suggest_display_name("postgres.service"), "postgres")
+
     def test_validate_registry_service_rejects_invalid_display_name(self) -> None:
         service = model.ManagedService(
             "worker",

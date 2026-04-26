@@ -113,6 +113,8 @@ intent.
   `skuld_macos_paths.py`.
 - Moved shared `sudo check` and `sudo run` command orchestration into
   `skuld_sudo.py`.
+- Moved Linux service-name normalization and display-name suggestions into
+  `skuld_linux_model.py`.
 - Added module-inventory tests for package metadata, documented compile
   commands, and the Linux remote smoke payload.
 - Changed macOS live smoke cleanup to boot out the disposable LaunchAgent by

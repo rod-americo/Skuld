@@ -87,6 +87,7 @@ points at `skuld_entrypoint:main`.
 
 - `ManagedService` and `DiscoverableService` dataclasses.
 - Linux registry normalization and validation rules.
+- service-name normalization and display-name suggestion rules.
 - scope normalization, scoped-name formatting, and registry identity helpers.
 
 `skuld_linux_parser.py` owns Linux CLI parser wiring:
@@ -317,8 +318,9 @@ the parser modules do not import backend state or host adapters.
   orchestration used by `skuld_linux.py`.
 - `skuld_linux_catalog.py` provides Linux systemd catalog and track
   orchestration used by `skuld_linux.py`.
-- `skuld_linux_model.py` provides Linux service models and registry
-  normalization used by `skuld_linux.py`.
+- `skuld_linux_model.py` provides Linux service models, registry
+  normalization, name normalization, and identifier helpers used by
+  `skuld_linux.py`.
 - `skuld_linux_parser.py` provides Linux parser wiring used by
   `skuld_linux.py`.
 - `skuld_linux_commands.py` provides Linux registry and read-only command

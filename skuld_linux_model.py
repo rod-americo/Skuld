@@ -68,6 +68,32 @@ def split_scope_token(token: str) -> tuple[Optional[str], str]:
     return normalized, remainder.strip()
 
 
+def normalize_service_name(value: str) -> str:
+    raw = (value or "").strip()
+    if raw.endswith(".service"):
+        raw = raw[:-8]
+    elif raw.endswith(".timer"):
+        raw = raw[:-6]
+    validate_name(raw)
+    return raw
+
+
+def normalize_target_token(value: str) -> tuple[Optional[str], str]:
+    scope, raw_name = split_scope_token(value)
+    return scope, normalize_service_name(raw_name)
+
+
+def suggest_display_name(value: str) -> str:
+    raw = normalize_service_name(value)
+    tokens = [part for part in raw.split(".") if part]
+    if len(tokens) >= 2 and tokens[-1].isdigit():
+        while tokens and tokens[-1].isdigit():
+            tokens.pop()
+    if len(tokens) >= 2:
+        return "-".join(tokens[-2:])
+    return raw
+
+
 def normalize_registry_item(item: Dict[str, object]) -> ManagedService:
     display_name = str(item.get("display_name", item.get("name", ""))).strip()
     name = str(item.get("name", "")).strip()

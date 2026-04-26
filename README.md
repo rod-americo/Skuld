@@ -84,7 +84,7 @@ Internal modules:
 | `skuld_linux.py` | Linux registry schema, command wrappers, backend callback wiring, stats, and table state. |
 | `skuld_linux_actions.py` | Linux host-mutating service action orchestration for start, stop, restart, and exec. |
 | `skuld_linux_catalog.py` | Linux systemd catalog discovery, target resolution, and track orchestration. |
-| `skuld_linux_model.py` | Linux service dataclasses, registry normalization, and identifier helpers. |
+| `skuld_linux_model.py` | Linux service dataclasses, registry normalization, name normalization, and identifier helpers. |
 | `skuld_linux_parser.py` | Linux CLI parser construction and subcommand handler registration. |
 | `skuld_linux_commands.py` | Linux registry and read-only command orchestration. |
 | `skuld_linux_presenters.py` | Linux line-oriented output formatting for selected detail views. |

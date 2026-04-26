@@ -98,7 +98,8 @@ inside the existing files until a tested extraction is justified.
   - `skuld_linux_catalog.py` owns Linux systemd catalog discovery, catalog
     target resolution, and `track` orchestration.
   - `skuld_linux_model.py` owns Linux service dataclasses, registry
-    normalization, and identifier helpers.
+    normalization, service-name normalization, display-name suggestions, and
+    identifier helpers.
   - `skuld_linux_parser.py` owns Linux CLI parser construction, subcommand
     options, compatibility aliases, and handler registration.
   - `skuld_linux_commands.py` owns extracted Linux registry and read-only
