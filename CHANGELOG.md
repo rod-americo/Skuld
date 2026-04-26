@@ -66,6 +66,8 @@ intent.
 - Moved Linux timer duration/calendar formatting out of the main Linux backend.
 - Moved macOS `launchctl` target formatting, parsing, and low-level execution
   behind a dedicated adapter module while preserving CLI behavior.
+- Moved macOS process-tree, termination, host overview, CPU/memory, and
+  listening-port helpers into `skuld_macos_processes.py`.
 - Moved macOS launchd schedule parsing and next-run display out of the main
   macOS backend.
 - macOS `logs` can now read externally tracked launchd jobs when their plist

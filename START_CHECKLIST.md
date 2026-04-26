@@ -76,10 +76,12 @@ is not a greenfield scaffold checklist.
 - [x] Extract Linux systemd timer formatting into `skuld_linux_timers.py`.
 - [x] Extract macOS `launchd` low-level adapter behavior into
   `skuld_macos_launchd.py`.
+- [x] Extract macOS process-tree, host overview, CPU/memory, and port helpers
+  into `skuld_macos_processes.py`.
 - [x] Extract macOS schedule parsing and display formatting into
   `skuld_macos_schedules.py`.
 - [ ] Continue backend splitting around command handlers, rendering, and macOS
-  process/log/stat responsibilities where tests justify it.
+  log/event-stat responsibilities where tests justify it.
 
 ## 5. Do Not Do In The Next Round
 

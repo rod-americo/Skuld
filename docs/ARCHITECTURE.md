@@ -113,7 +113,7 @@ that module's `main()`.
 - `ManagedService` and `DiscoverableService` dataclasses.
 - macOS registry schema and validation rules.
 - Target resolution by ID, display name, and launchd label.
-- macOS stats from event files, `ps`, `sysctl`, and `lsof`.
+- macOS event stats and command handlers.
 - macOS command handlers and backend state rendering.
 - Compatible log/event path inspection for registry entries that point at
   Skuld-managed macOS files.
@@ -125,6 +125,14 @@ that module's `main()`.
 - `launchctl list` key-value parsing.
 - Low-level bootstrap, bootout, kickstart, loaded-state, and service-info
   helpers.
+
+`skuld_macos_processes.py` owns macOS process and host inspection:
+
+- process-tree discovery from `ps`.
+- process-tree termination for Skuld-managed execution flows.
+- CPU and memory display from `ps`.
+- listening-port parsing from `lsof`.
+- host overview from `sysctl`, load averages, and `vm_stat`.
 
 `skuld_macos_schedules.py` owns macOS schedule helpers:
 
@@ -173,6 +181,8 @@ registration because their command options and operational adapters differ.
   `skuld_linux.py`.
 - `skuld_macos_launchd.py` provides the macOS `launchd` adapter used by
   `skuld_macos.py`.
+- `skuld_macos_processes.py` provides macOS process-tree, host overview,
+  CPU/memory, and port helpers used by `skuld_macos.py`.
 - `skuld_macos_schedules.py` provides macOS schedule display helpers used by
   `skuld_macos.py`.
 - `skuld_observability.py` provides opt-in redacted debug output controlled by
@@ -281,8 +291,8 @@ Host-local configuration:
 ## 10. Hotspots And Technical Debt
 
 - The Linux and macOS files still contain large backend-specific command
-  handlers, though Linux service-manager, stats, and timer responsibilities
-  have been extracted.
+  handlers, though Linux service-manager/stats/timer and macOS
+  launchd/process/schedule responsibilities have been extracted.
 - There is still no formal registry migration framework; canonicalization is
   tied to explicit mutating commands.
 - Target resolution and CLI presentation are still tightly coupled in each

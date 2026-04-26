@@ -23,7 +23,8 @@ Before significant changes, read these files in order:
 7. The touched backend file: `skuld_linux.py`, `skuld_macos.py`, or `./skuld`
 8. Shared helpers when relevant: `skuld_cli.py`, `skuld_common.py`,
    `skuld_linux_systemd.py`, `skuld_linux_stats.py`, `skuld_linux_timers.py`,
-   `skuld_macos_launchd.py`, `skuld_macos_schedules.py`,
+   `skuld_macos_launchd.py`, `skuld_macos_processes.py`,
+   `skuld_macos_schedules.py`,
    `skuld_observability.py`, and `skuld_registry.py`
 
 If the change touches host operations, also read:
@@ -83,6 +84,8 @@ inside the existing files until a tested extraction is justified.
   - `skuld_macos_launchd.py` owns macOS `launchd` command construction,
     domain/target formatting, launchctl parsing, and low-level launchctl
     execution.
+  - `skuld_macos_processes.py` owns macOS process-tree inspection,
+    termination, host overview, CPU/memory inspection, and port parsing.
   - `skuld_macos_schedules.py` owns macOS schedule parsing, display
     humanization, and next-run calculation.
   - `skuld_common.py` owns IO-agnostic CLI helpers, formatting, table fitting,
@@ -150,7 +153,7 @@ files are large; avoid making them larger through unrelated refactors.
 Run this before finalizing repository-wide structural or operational changes:
 
 ```bash
-python3 -m py_compile ./skuld ./skuld_cli.py ./skuld_common.py ./skuld_linux_systemd.py ./skuld_linux_stats.py ./skuld_linux_timers.py ./skuld_macos_launchd.py ./skuld_macos_schedules.py ./skuld_observability.py ./skuld_registry.py ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py
+python3 -m py_compile ./skuld ./skuld_cli.py ./skuld_common.py ./skuld_linux_systemd.py ./skuld_linux_stats.py ./skuld_linux_timers.py ./skuld_macos_launchd.py ./skuld_macos_processes.py ./skuld_macos_schedules.py ./skuld_observability.py ./skuld_registry.py ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py
 python3 -m unittest discover -s tests
 ./skuld --help
 python3 scripts/check_project_gate.py
@@ -196,8 +199,8 @@ SSH.
 ## Hotspots
 
 - `skuld_linux.py` and `skuld_macos.py` still carry large backend-specific
-  command flows, though Linux service-manager, stats, and timer helpers have
-  been extracted.
+  command flows, though Linux service-manager/stats/timer helpers and macOS
+  launchd/process/schedule helpers have been extracted.
 - Registry loads normalize in memory by default. Use explicit writes through
   `track`, `rename`, `untrack`, `sync`, `save_registry()`, `upsert_registry()`,
   or `RegistryStore.load(write_back=True)` when canonicalization should be

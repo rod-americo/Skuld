@@ -494,6 +494,40 @@ Move macOS schedule parsing, display formatting, and next-run calculation into
 - Expanding the launchd schedule grammar during extraction.
 - Moving all macOS stats/rendering code in the same change.
 
+## 2026-04-26 - Extract macOS Process Helpers
+
+**Context**
+
+`skuld_macos.py` still mixed command handlers with process-tree discovery,
+process termination, CPU/memory display, host overview, and listening-port
+inspection. Those responsibilities are operationally important but separable
+from parser and registry behavior.
+
+**Decision**
+
+Move macOS process-tree, termination, host overview, CPU/memory, and port
+helpers into `skuld_macos_processes.py`. Keep wrappers in `skuld_macos.py` so
+existing command handlers and tests retain stable patch points.
+
+**Impact**
+
+- `skuld_macos.py` is smaller without changing CLI behavior.
+- macOS process and host-inspection behavior has focused unit tests.
+- Launchd adapter, schedule helpers, and process helpers now have separate
+  modules.
+
+**Tradeoff**
+
+- `skuld_macos.py` still owns command handlers, registry schema, event stats,
+  log path resolution, and CLI table rendering.
+- The process module receives command callbacks instead of importing the
+  backend directly.
+
+**Alternatives rejected**
+
+- Moving macOS logs and event stats in the same change.
+- Letting the process module import `skuld_macos.py` directly.
+
 ## 2026-04-25 - Support macOS External Logs Only When Plist Paths Exist
 
 **Context**
