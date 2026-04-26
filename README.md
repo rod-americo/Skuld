@@ -91,7 +91,7 @@ Internal modules:
 | `skuld_linux_systemd.py` | Low-level systemd command construction and execution helpers. |
 | `skuld_linux_sync.py` | Linux registry backfill from live systemd service and timer metadata. |
 | `skuld_linux_stats.py` | Linux host overview, unit usage, process/PID inspection, GPU parsing, and listening-port inspection. |
-| `skuld_linux_timers.py` | Linux timer parsing and display formatting. |
+| `skuld_linux_timers.py` | Linux timer metadata reads, directive parsing, and display formatting. |
 | `skuld_linux_targets.py` | Linux target-resolution rules for display names, IDs, scoped names, and multi-target de-duplication. |
 | `skuld_linux_view.py` | Linux service-table row assembly and state display mapping. |
 | `skuld_macos.py` | macOS registry schema, command wrappers, backend callback wiring, stats, logs, and table state. |

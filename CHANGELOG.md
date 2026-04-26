@@ -107,6 +107,8 @@ intent.
   `skuld_linux_catalog.py` and `skuld_macos_catalog.py`.
 - Moved Linux and macOS CLI parser construction into
   `skuld_linux_parser.py` and `skuld_macos_parser.py`.
+- Moved Linux live timer metadata reads and trigger display into
+  `skuld_linux_timers.py`.
 - Added module-inventory tests for package metadata, documented compile
   commands, and the Linux remote smoke payload.
 - Changed macOS live smoke cleanup to boot out the disposable LaunchAgent by

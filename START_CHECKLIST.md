@@ -85,7 +85,8 @@ is not a greenfield scaffold checklist.
   `skuld_linux_systemd.py`.
 - [x] Extract Linux host/unit stats and port inspection into
   `skuld_linux_stats.py`.
-- [x] Extract Linux systemd timer formatting into `skuld_linux_timers.py`.
+- [x] Extract Linux systemd timer metadata reads and formatting into
+  `skuld_linux_timers.py`.
 - [x] Extract Linux target-resolution rules into `skuld_linux_targets.py`.
 - [x] Extract Linux service-table row assembly into `skuld_linux_view.py`.
 - [x] Extract Linux detail-view formatting into `skuld_linux_presenters.py`.

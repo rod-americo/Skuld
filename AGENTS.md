@@ -112,8 +112,8 @@ inside the existing files until a tested extraction is justified.
     service and timer metadata.
   - `skuld_linux_stats.py` owns Linux host overview, unit usage, process/PID
     inspection, GPU memory parsing, and listening-port inspection.
-  - `skuld_linux_timers.py` owns Linux systemd timer directive parsing,
-    duration formatting, and schedule humanization.
+  - `skuld_linux_timers.py` owns Linux systemd timer metadata reads,
+    directive parsing, duration formatting, and schedule humanization.
   - `skuld_linux_targets.py` owns Linux target-resolution rules for display
     names, IDs, scoped unit names, and multi-target de-duplication.
   - `skuld_linux_view.py` owns Linux service-table row assembly and state

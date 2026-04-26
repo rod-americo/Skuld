@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import Dict, List, Optional, Set
+from typing import Callable, Dict, List, Optional, Set
 
 
 SYSTEMD_DURATION_LABELS = {
@@ -295,3 +295,126 @@ def summarize_calendar_phrases(phrases: List[str]) -> str:
     if len(merged) == 1:
         return merged[0]
     return f"{merged[0]}; +{len(merged) - 1} more"
+
+
+def timer_triggers_for_display(
+    service: object,
+    *,
+    max_width: int = 48,
+    unit_exists: Callable[..., bool],
+    systemctl_cat: Callable[..., str],
+    schedule_for_display: Callable[[object], str],
+    clip_text: Callable[[str, int], str],
+) -> str:
+    timer_unit = f"{service.name}.timer"
+    summary = "-"
+
+    if unit_exists(timer_unit, scope=service.scope):
+        directives = parse_unit_directive_values(systemctl_cat(timer_unit, scope=service.scope))
+        calendar_parts = [
+            humanize_timer_calendar(raw)
+            for raw in directives.get("OnCalendar", [])
+            if raw.strip()
+        ]
+        calendar_summary = summarize_calendar_phrases(calendar_parts)
+        if calendar_summary:
+            summary = calendar_summary
+        elif directives.get("OnUnitActiveSec"):
+            summary = f"every {compact_systemd_duration(directives['OnUnitActiveSec'][0])}"
+        elif directives.get("OnUnitInactiveSec"):
+            summary = (
+                f"every {compact_systemd_duration(directives['OnUnitInactiveSec'][0])} "
+                "after stop"
+            )
+        elif directives.get("OnStartupSec"):
+            summary = f"{compact_systemd_duration(directives['OnStartupSec'][0])} after startup"
+        elif directives.get("OnBootSec"):
+            summary = f"{compact_systemd_duration(directives['OnBootSec'][0])} after boot"
+        elif directives.get("OnActiveSec"):
+            summary = f"{compact_systemd_duration(directives['OnActiveSec'][0])} after timer starts"
+
+    if summary == "-":
+        schedule = schedule_for_display(service)
+        if schedule:
+            summary = humanize_timer_calendar(schedule)
+
+    return clip_text(summary, max_width) if max_width > 0 else summary
+
+
+def read_timer_schedule(
+    name: str,
+    *,
+    scope: str = "system",
+    systemctl_show: Callable[..., Dict[str, str]],
+    systemctl_cat: Callable[..., str],
+) -> str:
+    timer_unit = f"{name}.timer"
+    show = systemctl_show(timer_unit, ["OnCalendar"], scope=scope)
+    schedule = (show.get("OnCalendar", "") or "").strip()
+    if schedule:
+        return schedule
+    directives = parse_unit_directive_values(systemctl_cat(timer_unit, scope=scope))
+    values = [value.strip() for value in directives.get("OnCalendar", []) if value.strip()]
+    return values[-1] if values else ""
+
+
+def read_timer_persistent(
+    name: str,
+    *,
+    scope: str = "system",
+    default: bool = True,
+    unit_exists: Callable[..., bool],
+    systemctl_show: Callable[..., Dict[str, str]],
+    systemctl_cat: Callable[..., str],
+    parse_bool: Callable[..., bool],
+) -> bool:
+    timer_unit = f"{name}.timer"
+    if not unit_exists(timer_unit, scope=scope):
+        return default
+    show = systemctl_show(timer_unit, ["Persistent"], scope=scope)
+    value = (show.get("Persistent", "") or "").strip()
+    if value:
+        return parse_bool(value, default=default)
+    directives = parse_unit_directive_values(systemctl_cat(timer_unit, scope=scope))
+    values = [raw.strip() for raw in directives.get("Persistent", []) if raw.strip()]
+    if values:
+        return parse_bool(values[-1], default=default)
+    return default
+
+
+def read_timer_next_run(
+    name: str,
+    *,
+    scope: str = "system",
+    systemctl_show: Callable[..., Dict[str, str]],
+) -> str:
+    timer_unit = f"{name}.timer"
+    show = systemctl_show(timer_unit, ["NextElapseUSecRealtime"], scope=scope)
+    value = (show.get("NextElapseUSecRealtime", "") or "").strip()
+    if not value or value.lower() == "n/a":
+        return "-"
+    return value
+
+
+def read_timer_last_run(
+    name: str,
+    *,
+    scope: str = "system",
+    systemctl_show: Callable[..., Dict[str, str]],
+) -> str:
+    timer_unit = f"{name}.timer"
+    show = systemctl_show(timer_unit, ["LastTriggerUSec"], scope=scope)
+    value = (show.get("LastTriggerUSec", "") or "").strip()
+    if not value or value.lower() == "n/a":
+        return "-"
+    return value
+
+
+def schedule_for_display(
+    service: object,
+    *,
+    read_timer_schedule: Callable[..., str],
+) -> str:
+    if service.schedule:
+        return service.schedule
+    return read_timer_schedule(service.name, scope=service.scope)

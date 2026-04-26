@@ -502,81 +502,55 @@ def clip_text(text: str, width: int) -> str:
 
 
 def timer_triggers_for_display(svc: ManagedService, max_width: int = 48) -> str:
-    timer_unit = f"{svc.name}.timer"
-    summary = "-"
-
-    if unit_exists(timer_unit, scope=svc.scope):
-        directives = timers.parse_unit_directive_values(systemctl_cat(timer_unit, scope=svc.scope))
-        calendar_parts = [timers.humanize_timer_calendar(raw) for raw in directives.get("OnCalendar", []) if raw.strip()]
-        calendar_summary = timers.summarize_calendar_phrases(calendar_parts)
-        if calendar_summary:
-            summary = calendar_summary
-        elif directives.get("OnUnitActiveSec"):
-            summary = f"every {timers.compact_systemd_duration(directives['OnUnitActiveSec'][0])}"
-        elif directives.get("OnUnitInactiveSec"):
-            summary = f"every {timers.compact_systemd_duration(directives['OnUnitInactiveSec'][0])} after stop"
-        elif directives.get("OnStartupSec"):
-            summary = f"{timers.compact_systemd_duration(directives['OnStartupSec'][0])} after startup"
-        elif directives.get("OnBootSec"):
-            summary = f"{timers.compact_systemd_duration(directives['OnBootSec'][0])} after boot"
-        elif directives.get("OnActiveSec"):
-            summary = f"{timers.compact_systemd_duration(directives['OnActiveSec'][0])} after timer starts"
-
-    if summary == "-":
-        schedule = schedule_for_display(svc)
-        if schedule:
-            summary = timers.humanize_timer_calendar(schedule)
-
-    return clip_text(summary, max_width) if max_width > 0 else summary
+    return timers.timer_triggers_for_display(
+        svc,
+        max_width=max_width,
+        unit_exists=unit_exists,
+        systemctl_cat=systemctl_cat,
+        schedule_for_display=schedule_for_display,
+        clip_text=clip_text,
+    )
 
 
 def read_timer_schedule(name: str, scope: str = "system") -> str:
-    timer_unit = f"{name}.timer"
-    show = systemctl_show(timer_unit, ["OnCalendar"], scope=scope)
-    schedule = (show.get("OnCalendar", "") or "").strip()
-    if schedule:
-        return schedule
-    directives = parse_unit_directives(systemctl_cat(timer_unit, scope=scope))
-    return (directives.get("OnCalendar", "") or "").strip()
+    return timers.read_timer_schedule(
+        name,
+        scope=scope,
+        systemctl_show=systemctl_show,
+        systemctl_cat=systemctl_cat,
+    )
 
 
 def read_timer_persistent(name: str, scope: str = "system", default: bool = True) -> bool:
-    timer_unit = f"{name}.timer"
-    if not unit_exists(timer_unit, scope=scope):
-        return default
-    show = systemctl_show(timer_unit, ["Persistent"], scope=scope)
-    value = (show.get("Persistent", "") or "").strip()
-    if value:
-        return parse_bool(value, default=default)
-    directives = parse_unit_directives(systemctl_cat(timer_unit, scope=scope))
-    raw = (directives.get("Persistent", "") or "").strip()
-    if raw:
-        return parse_bool(raw, default=default)
-    return default
+    return timers.read_timer_persistent(
+        name,
+        scope=scope,
+        default=default,
+        unit_exists=unit_exists,
+        systemctl_show=systemctl_show,
+        systemctl_cat=systemctl_cat,
+        parse_bool=parse_bool,
+    )
 
 
 def read_timer_next_run(name: str, scope: str = "system") -> str:
-    timer_unit = f"{name}.timer"
-    show = systemctl_show(timer_unit, ["NextElapseUSecRealtime"], scope=scope)
-    value = (show.get("NextElapseUSecRealtime", "") or "").strip()
-    if not value or value.lower() == "n/a":
-        return "-"
-    return value
+    return timers.read_timer_next_run(
+        name,
+        scope=scope,
+        systemctl_show=systemctl_show,
+    )
 
 
 def read_timer_last_run(name: str, scope: str = "system") -> str:
-    timer_unit = f"{name}.timer"
-    show = systemctl_show(timer_unit, ["LastTriggerUSec"], scope=scope)
-    value = (show.get("LastTriggerUSec", "") or "").strip()
-    if not value or value.lower() == "n/a":
-        return "-"
-    return value
+    return timers.read_timer_last_run(
+        name,
+        scope=scope,
+        systemctl_show=systemctl_show,
+    )
 
 
 def schedule_for_display(svc: ManagedService) -> str:
-    if svc.schedule:
-        return svc.schedule
-    return read_timer_schedule(svc.name, scope=svc.scope)
+    return timers.schedule_for_display(svc, read_timer_schedule=read_timer_schedule)
 
 
 def sync_registry_from_systemd(target: Optional[ManagedService] = None) -> int:

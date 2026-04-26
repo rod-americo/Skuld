@@ -820,6 +820,42 @@ or service-manager adapters.
 - Letting parser modules import backend modules directly, which would create
   circular dependencies and make the parser harder to test.
 
+## 2026-04-26 - Move Linux Timer Metadata Reads Into Timer Module
+
+**Context**
+
+Linux timer display still lived in `skuld_linux.py` after the parser and most
+command flows had been extracted. The backend mixed compact table trigger
+rendering with live `systemctl show` reads, timer unit fallback parsing, and
+registry schedule fallback behavior.
+
+**Decision**
+
+Move Linux timer metadata reads and trigger-display construction into
+`skuld_linux_timers.py`. Keep backend wrappers that inject `systemctl`,
+unit-existence, schedule, and text-clipping callbacks.
+
+**Impact**
+
+- Timer behavior has focused tests outside the backend module.
+- `skuld_linux.py` keeps the public function names used by existing tests and
+  command wiring while no longer owning the timer decision tree.
+- Timer parsing and live metadata reads now live in one responsibility module.
+
+**Tradeoff**
+
+- The timer module uses object-shaped services for display because the Linux
+  service dataclass remains backend-specific.
+- Backend wrappers remain necessary until public patch points are intentionally
+  narrowed.
+
+**Alternatives rejected**
+
+- Moving timer display into the table-view module, which would mix service-table
+  assembly with systemd timer semantics.
+- Removing backend wrappers and breaking tests that patch existing function
+  names directly.
+
 ## 2026-04-26 - Extract macOS Service Table Row Assembly
 
 **Context**

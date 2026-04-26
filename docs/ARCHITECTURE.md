@@ -154,6 +154,7 @@ points at `skuld_entrypoint:main`.
 
 `skuld_linux_timers.py` owns Linux timer formatting:
 
+- timer metadata reads from `systemctl show` and unit-file fallbacks.
 - systemd directive parsing.
 - systemd duration compaction and humanization.
 - `OnCalendar` summary formatting for compact service tables.
@@ -320,7 +321,7 @@ the parser modules do not import backend state or host adapters.
   by `skuld_linux.py`.
 - `skuld_linux_stats.py` provides Linux host overview, unit usage, process/PID,
   GPU, and port inspection helpers used by `skuld_linux.py`.
-- `skuld_linux_timers.py` provides Linux timer display helpers used by
+- `skuld_linux_timers.py` provides Linux timer metadata and display helpers used by
   `skuld_linux.py`.
 - `skuld_linux_targets.py` provides Linux target-resolution helpers used by
   `skuld_linux.py`.
