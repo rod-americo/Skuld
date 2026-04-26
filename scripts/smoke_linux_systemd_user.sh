@@ -98,9 +98,11 @@ if [[ -n "$HOST" ]]; then
   trap cleanup_remote_repo EXIT
   COPYFILE_DISABLE=1 tar --no-xattrs -C "$ROOT" -czf - \
     skuld \
+    skuld_entrypoint.py \
     skuld_cli.py \
     skuld_common.py \
     skuld_linux.py \
+    skuld_linux_runtime.py \
     skuld_linux_systemd.py \
     skuld_linux_stats.py \
     skuld_linux_timers.py \

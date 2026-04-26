@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import argparse
-import json
 import os
 import re
 import subprocess
@@ -11,6 +10,7 @@ from typing import Dict, List, Optional, Set
 
 import skuld_common as common
 import skuld_cli
+import skuld_linux_runtime as linux_runtime
 import skuld_linux_stats as linux_stats
 import skuld_linux_systemd as systemd
 import skuld_linux_timers as timers
@@ -26,7 +26,7 @@ DEFAULT_ENV_FILE = Path(".env")
 USE_ENV_SUDO = True
 FORCE_TABLE_ASCII = False
 FORCE_TABLE_UNICODE = False
-SYSTEMD_UNIT_STARTED_MESSAGE_ID = "39f53479d3a045ac8e11786248231fbf"
+SYSTEMD_UNIT_STARTED_MESSAGE_ID = linux_runtime.SYSTEMD_UNIT_STARTED_MESSAGE_ID
 SORT_CHOICES = ("id", "name", "cpu", "memory")
 VALID_SCOPES = ("system", "user")
 DISCOVERABLE_SCOPE_CHOICES = ("all", "system", "user")
@@ -469,11 +469,7 @@ def sudo_run_command(args: argparse.Namespace) -> None:
 
 
 def journal_permission_hint(stderr_text: str) -> bool:
-    lower = stderr_text.lower()
-    return (
-        "not seeing messages from other users and the system" in lower
-        or "permission denied" in lower
-    )
+    return linux_runtime.journal_permission_hint(stderr_text)
 
 
 def require_systemctl() -> None:
@@ -639,34 +635,11 @@ def render_host_panel() -> None:
 
 
 def load_runtime_stats() -> Dict[str, Dict[str, int]]:
-    try:
-        data = json.loads(RUNTIME_STATS_FILE.read_text(encoding="utf-8"))
-    except Exception:
-        return {}
-    if not isinstance(data, dict):
-        return {}
-    services = data.get("services")
-    if not isinstance(services, dict):
-        return {}
-
-    normalized: Dict[str, Dict[str, int]] = {}
-    for name, item in services.items():
-        if not isinstance(name, str) or not isinstance(item, dict):
-            continue
-        executions = parse_int(str(item.get("executions", 0)))
-        restarts = parse_int(str(item.get("restarts", 0)))
-        normalized[name] = {
-            "executions": max(0, executions),
-            "restarts": max(0, restarts),
-        }
-    return normalized
+    return linux_runtime.load_runtime_stats(RUNTIME_STATS_FILE)
 
 
 def format_restarts_exec(name: str, runtime_stats: Dict[str, Dict[str, int]]) -> str:
-    item = runtime_stats.get(name)
-    if not item:
-        return "-"
-    return f"{item.get('restarts', 0)}/{item.get('executions', 0)}"
+    return linux_runtime.format_restarts_exec(name, runtime_stats)
 
 
 def clip_text(text: str, width: int) -> str:
@@ -1161,42 +1134,25 @@ def logs(args: argparse.Namespace) -> None:
 
 
 def count_unit_starts(unit: str, scope: str = "system", since: Optional[str] = None, boot: bool = False) -> int:
-    scope_env = systemd_scope_env(scope)
-    cmd = journalctl_command(
-        scope,
-        [
-            "-u",
-            unit,
-            f"MESSAGE_ID={SYSTEMD_UNIT_STARTED_MESSAGE_ID}",
-            "-o",
-            "json",
-            "--no-pager",
-        ],
+    return linux_runtime.count_unit_starts(
+        unit=unit,
+        scope=scope,
+        systemd_scope_env=systemd_scope_env,
+        journalctl_command=journalctl_command,
+        run_cmd=run,
+        run_sudo_cmd=run_sudo,
+        since=since,
+        boot=boot,
     )
-    if since:
-        cmd.extend(["--since", since])
-    if boot:
-        cmd.append("-b")
-
-    proc = run(cmd, check=False, capture=True, env=scope_env)
-    stderr = (proc.stderr or "").strip()
-    stdout = proc.stdout or ""
-    if normalize_scope(scope) == "system" and journal_permission_hint(stderr):
-        proc = run_sudo(cmd, check=False, capture=True)
-        stderr = (proc.stderr or "").strip()
-        stdout = proc.stdout or ""
-
-    lines = [line for line in stdout.splitlines() if line.strip()]
-    return len(lines)
 
 
 def read_restart_count(name: str, scope: str = "system") -> str:
-    service_unit = f"{name}.service"
-    if not unit_exists(service_unit, scope=scope):
-        return "-"
-    show = systemctl_show(service_unit, ["NRestarts"], scope=scope)
-    raw = (show.get("NRestarts", "") or "").strip()
-    return raw if raw else "-"
+    return linux_runtime.read_restart_count(
+        name=name,
+        scope=scope,
+        unit_exists=unit_exists,
+        systemctl_show=systemctl_show,
+    )
 
 
 def stats(args: argparse.Namespace) -> None:

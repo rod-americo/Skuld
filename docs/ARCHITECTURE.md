@@ -84,8 +84,15 @@ points at `skuld_entrypoint:main`.
 - Linux registry schema and validation rules.
 - Target resolution by ID, display name, backend name, and `system:` or `user:`
   scope.
-- Linux command-level stats from journald and registry runtime stats.
 - Linux command handlers and backend state rendering.
+
+`skuld_linux_runtime.py` owns Linux runtime and journald stats:
+
+- runtime stats JSON reads.
+- restart/execution display formatting.
+- journald execution counting.
+- `NRestarts` reads through `systemctl show`.
+- journal permission-hint detection for sudo fallback.
 
 `skuld_linux_systemd.py` owns the low-level Linux service-manager adapter:
 
@@ -182,6 +189,8 @@ registration because their command options and operational adapters differ.
   env file parsing, sudo password lookup, subprocess wrappers, output
   formatting, byte/duration formatting, sorting, clipping, table rendering, and
   responsive table fitting.
+- `skuld_linux_runtime.py` provides Linux runtime stats, journald counting, and
+  restart-count helpers used by `skuld_linux.py`.
 - `skuld_linux_systemd.py` provides the Linux `systemd` adapter used by
   `skuld_linux.py`.
 - `skuld_linux_stats.py` provides Linux host overview, unit usage, process/PID,
@@ -303,7 +312,7 @@ Host-local configuration:
 ## 10. Hotspots And Technical Debt
 
 - The Linux and macOS files still contain large backend-specific command
-  handlers, though Linux service-manager/stats/timer and macOS
+  handlers, though Linux runtime/service-manager/stats/timer and macOS
   launchd/process/runtime/schedule responsibilities have been extracted.
 - There is still no formal registry migration framework; canonicalization is
   tied to explicit mutating commands.

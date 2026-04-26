@@ -434,6 +434,40 @@ and port discovery into `skuld_linux_stats.py`. Keep wrapper functions in
 - Moving Linux command handlers and table rendering in the same change.
 - Letting the stats module import `skuld_linux.py` directly.
 
+## 2026-04-26 - Extract Linux Runtime Helpers
+
+**Context**
+
+`skuld_linux.py` still owned runtime stats JSON parsing, journald execution
+counting, restart count display, and journal permission-hint handling. These
+responsibilities are operational runtime helpers rather than parser or command
+handler logic.
+
+**Decision**
+
+Move Linux runtime stats reads, journald execution counting, restart-count
+helpers, and journal permission-hint detection into `skuld_linux_runtime.py`.
+Keep wrappers in `skuld_linux.py` so existing handlers and tests retain stable
+patch points.
+
+**Impact**
+
+- `skuld_linux.py` is smaller without changing CLI behavior.
+- Journald counting and runtime stats parsing have focused unit tests.
+- The Linux smoke payload explicitly includes the new module for remote
+  validation.
+
+**Tradeoff**
+
+- `skuld_linux.py` still owns the `logs` and `stats` command handlers.
+- The runtime module receives command callbacks instead of importing the
+  backend directly.
+
+**Alternatives rejected**
+
+- Moving the full `logs` handler in the same change.
+- Letting the runtime module import `skuld_linux.py` directly.
+
 ## 2026-04-25 - Extract macOS Launchd Adapter
 
 **Context**

@@ -76,6 +76,9 @@ is not a greenfield scaffold checklist.
   available.
 - [x] Move registry canonicalization behind explicit write paths instead of
   default read side effects.
+- [x] Extract Linux runtime stats JSON reads, journald execution counting,
+  restart count formatting, and journal permission hints into
+  `skuld_linux_runtime.py`.
 - [x] Extract Linux `systemd` low-level adapter behavior into
   `skuld_linux_systemd.py`.
 - [x] Extract Linux host/unit stats and port inspection into
@@ -91,8 +94,8 @@ is not a greenfield scaffold checklist.
   `skuld_macos_schedules.py`.
 - [x] Add installable package metadata and an importable CLI entrypoint.
 - [x] Add CI for syntax, unit tests, gate, doctor, shell checks, and packaging.
-- [ ] Continue backend splitting around command handlers, rendering, and Linux
-  journald/runtime responsibilities where tests justify it.
+- [ ] Continue backend splitting around command handlers, rendering, and
+  target-resolution responsibilities where tests justify it.
 
 ## 5. Do Not Do In The Next Round
 
