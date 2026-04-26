@@ -61,6 +61,8 @@ intent.
 - Moved Linux `systemctl`/`journalctl` command construction and low-level
   systemd execution behind a dedicated adapter module while preserving CLI
   behavior.
+- Moved Linux host overview, unit usage, PID/cgroup inspection, GPU parsing,
+  and listening-port discovery into `skuld_linux_stats.py`.
 - Moved Linux timer duration/calendar formatting out of the main Linux backend.
 - Moved macOS `launchctl` target formatting, parsing, and low-level execution
   behind a dedicated adapter module while preserving CLI behavior.

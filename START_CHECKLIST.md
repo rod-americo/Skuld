@@ -71,12 +71,15 @@ is not a greenfield scaffold checklist.
   default read side effects.
 - [x] Extract Linux `systemd` low-level adapter behavior into
   `skuld_linux_systemd.py`.
+- [x] Extract Linux host/unit stats and port inspection into
+  `skuld_linux_stats.py`.
 - [x] Extract Linux systemd timer formatting into `skuld_linux_timers.py`.
 - [x] Extract macOS `launchd` low-level adapter behavior into
   `skuld_macos_launchd.py`.
 - [x] Extract macOS schedule parsing and display formatting into
   `skuld_macos_schedules.py`.
-- [ ] Decide whether further backend splitting is now justified by tests.
+- [ ] Continue backend splitting around command handlers, rendering, and macOS
+  process/log/stat responsibilities where tests justify it.
 
 ## 5. Do Not Do In The Next Round
 

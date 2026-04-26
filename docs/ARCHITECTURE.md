@@ -82,8 +82,7 @@ that module's `main()`.
 - Linux registry schema and validation rules.
 - Target resolution by ID, display name, backend name, and `system:` or `user:`
   scope.
-- Linux stats from journald, `systemctl show`, `/proc`, `ss`, and optional
-  `nvidia-smi`.
+- Linux command-level stats from journald and registry runtime stats.
 - Linux command handlers and backend state rendering.
 
 `skuld_linux_systemd.py` owns the low-level Linux service-manager adapter:
@@ -92,6 +91,14 @@ that module's `main()`.
 - `systemctl` and `journalctl` command construction.
 - User-scope environment discovery.
 - Low-level `systemctl show`, `cat`, `is-active`, and action execution.
+
+`skuld_linux_stats.py` owns Linux host and unit inspection:
+
+- host overview from `/proc` and load averages.
+- unit CPU/memory usage from `systemctl show` with `/proc` fallback.
+- service PID and cgroup process inspection.
+- listening-port discovery through `ss`, `/proc`, and optional sudo retry.
+- optional GPU memory parsing from `nvidia-smi`.
 
 `skuld_linux_timers.py` owns Linux timer formatting:
 
@@ -160,6 +167,8 @@ registration because their command options and operational adapters differ.
   responsive table fitting.
 - `skuld_linux_systemd.py` provides the Linux `systemd` adapter used by
   `skuld_linux.py`.
+- `skuld_linux_stats.py` provides Linux host overview, unit usage, process/PID,
+  GPU, and port inspection helpers used by `skuld_linux.py`.
 - `skuld_linux_timers.py` provides Linux timer display helpers used by
   `skuld_linux.py`.
 - `skuld_macos_launchd.py` provides the macOS `launchd` adapter used by
@@ -272,11 +281,12 @@ Host-local configuration:
 ## 10. Hotspots And Technical Debt
 
 - The Linux and macOS files still contain large backend-specific command
-  handlers and service-manager adapter code.
+  handlers, though Linux service-manager, stats, and timer responsibilities
+  have been extracted.
 - There is still no formal registry migration framework; canonicalization is
   tied to explicit mutating commands.
-- Backend command execution, target resolution, and CLI presentation are tightly
-  coupled in each backend.
+- Target resolution and CLI presentation are still tightly coupled in each
+  backend.
 - Live service operation is high-impact. Disposable smoke scripts now exercise
   real launchd and `systemd --user` paths, but they are still host-dependent
   checks rather than a full compatibility matrix.

@@ -400,6 +400,40 @@ parsing, and calendar summary merging into `skuld_linux_timers.py`.
 - Moving all Linux stats and table rendering in the same change.
 - Leaving pure formatting code embedded in the Linux backend.
 
+## 2026-04-26 - Extract Linux Stats And Port Inspection
+
+**Context**
+
+`skuld_linux.py` still mixed command handlers with host overview, unit CPU and
+memory usage, cgroup/PID inspection, GPU parsing, and listening-port discovery.
+That made the backend harder to reason about and harder to test without
+patching large command flows.
+
+**Decision**
+
+Move Linux host overview, unit usage, PID/cgroup inspection, GPU memory parsing,
+and port discovery into `skuld_linux_stats.py`. Keep wrapper functions in
+`skuld_linux.py` so existing handlers and tests retain stable patch points.
+
+**Impact**
+
+- `skuld_linux.py` is smaller without changing CLI behavior.
+- Stats and port parsing now have focused unit tests.
+- The Linux smoke payload explicitly includes the new module for remote
+  validation.
+
+**Tradeoff**
+
+- `skuld_linux.py` still owns command handlers, target resolution, registry
+  schema, table rendering, and journald command-level stats.
+- The new module receives low-level command callbacks instead of importing the
+  backend, avoiding a circular dependency.
+
+**Alternatives rejected**
+
+- Moving Linux command handlers and table rendering in the same change.
+- Letting the stats module import `skuld_linux.py` directly.
+
 ## 2026-04-25 - Extract macOS Launchd Adapter
 
 **Context**

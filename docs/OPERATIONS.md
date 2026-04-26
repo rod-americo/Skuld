@@ -66,7 +66,7 @@ overrides.
 ## 5. Minimum Validation
 
 ```bash
-python3 -m py_compile ./skuld ./skuld_cli.py ./skuld_common.py ./skuld_linux_systemd.py ./skuld_linux_timers.py ./skuld_macos_launchd.py ./skuld_macos_schedules.py ./skuld_observability.py ./skuld_registry.py ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py
+python3 -m py_compile ./skuld ./skuld_cli.py ./skuld_common.py ./skuld_linux_systemd.py ./skuld_linux_stats.py ./skuld_linux_timers.py ./skuld_macos_launchd.py ./skuld_macos_schedules.py ./skuld_observability.py ./skuld_registry.py ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py
 python3 -m unittest discover -s tests
 ./skuld --help
 python3 scripts/check_project_gate.py
@@ -195,7 +195,7 @@ Operational impact by change type:
 
 | Change | Restart impact |
 | --- | --- |
-| `./skuld`, `skuld_linux.py`, `skuld_macos.py` | Rerun the CLI. Existing backend services are not automatically restarted. |
+| `./skuld`, backend modules, shared helper modules | Rerun the CLI. Existing backend services are not automatically restarted. |
 | `scripts/skuld_journal_stats_collector.py` | Reinstall or update the collector where the Linux timer was installed. |
 | `scripts/install_runtime_stats_timer.sh` | Rerun installer intentionally; it mutates systemd files with sudo. |
 | `config/doctor.json` | Rerun `python3 scripts/project_doctor.py --audit-config`. |
