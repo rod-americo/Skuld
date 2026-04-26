@@ -40,6 +40,7 @@ py-modules = [
   "skuld_macos",
   "skuld_macos_launchd",
   "skuld_macos_processes",
+  "skuld_macos_runtime",
   "skuld_macos_schedules",
   "skuld_observability",
   "skuld_registry",

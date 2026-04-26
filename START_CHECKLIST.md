@@ -85,12 +85,14 @@ is not a greenfield scaffold checklist.
   `skuld_macos_launchd.py`.
 - [x] Extract macOS process-tree, host overview, CPU/memory, and port helpers
   into `skuld_macos_processes.py`.
+- [x] Extract macOS event stats, runtime stats updates, recent-run PID
+  extraction, file-log paths, and tail helpers into `skuld_macos_runtime.py`.
 - [x] Extract macOS schedule parsing and display formatting into
   `skuld_macos_schedules.py`.
 - [x] Add installable package metadata and an importable CLI entrypoint.
 - [x] Add CI for syntax, unit tests, gate, doctor, shell checks, and packaging.
-- [ ] Continue backend splitting around command handlers, rendering, and macOS
-  log/event-stat responsibilities where tests justify it.
+- [ ] Continue backend splitting around command handlers, rendering, and Linux
+  journald/runtime responsibilities where tests justify it.
 
 ## 5. Do Not Do In The Next Round
 

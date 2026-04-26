@@ -528,6 +528,42 @@ existing command handlers and tests retain stable patch points.
 - Moving macOS logs and event stats in the same change.
 - Letting the process module import `skuld_macos.py` directly.
 
+## 2026-04-26 - Extract macOS Runtime Helpers
+
+**Context**
+
+`skuld_macos.py` still owned event JSONL parsing, runtime stats JSON updates,
+recent-run PID extraction, file-log path resolution, and `tail` invocation.
+Those responsibilities are tied to runtime files rather than parser or launchd
+adapter behavior.
+
+**Decision**
+
+Move macOS event stats, runtime stats updates, recent-run PID extraction,
+file-log path resolution, and tail helpers into `skuld_macos_runtime.py`. Keep
+the `logs` command handler in `skuld_macos.py` because it still coordinates CLI
+arguments, stdout labels, and follow-mode threads.
+
+**Impact**
+
+- `skuld_macos.py` is smaller without changing CLI behavior.
+- Runtime file parsing and log path resolution have focused unit tests.
+- macOS process, launchd, runtime, and schedule responsibilities now have
+  separate modules.
+
+**Tradeoff**
+
+- `skuld_macos.py` still owns command handlers, target resolution, registry
+  schema, and table rendering.
+- The runtime module receives paths and callbacks instead of importing the
+  backend directly.
+
+**Alternatives rejected**
+
+- Moving the entire `logs` command handler in the same change.
+- Letting the runtime module import `ManagedService` or `skuld_macos.py`
+  directly.
+
 ## 2026-04-26 - Add Standard Python Packaging Metadata
 
 **Context**

@@ -115,10 +115,8 @@ points at `skuld_entrypoint:main`.
 - `ManagedService` and `DiscoverableService` dataclasses.
 - macOS registry schema and validation rules.
 - Target resolution by ID, display name, and launchd label.
-- macOS event stats and command handlers.
 - macOS command handlers and backend state rendering.
-- Compatible log/event path inspection for registry entries that point at
-  Skuld-managed macOS files.
+- CLI coordination for logs and event stats.
 
 `skuld_macos_launchd.py` owns the low-level macOS service-manager adapter:
 
@@ -135,6 +133,15 @@ points at `skuld_entrypoint:main`.
 - CPU and memory display from `ps`.
 - listening-port parsing from `lsof`.
 - host overview from `sysctl`, load averages, and `vm_stat`.
+
+`skuld_macos_runtime.py` owns macOS runtime files and log helpers:
+
+- event stats parsing from JSONL files.
+- runtime stats JSON updates.
+- recent-run root PID extraction from event files.
+- compatible file-log path resolution from Skuld log dirs or launchd plist
+  `StandardOutPath`/`StandardErrorPath`.
+- `tail` command invocation for file logs.
 
 `skuld_macos_schedules.py` owns macOS schedule helpers:
 
@@ -185,6 +192,8 @@ registration because their command options and operational adapters differ.
   `skuld_macos.py`.
 - `skuld_macos_processes.py` provides macOS process-tree, host overview,
   CPU/memory, and port helpers used by `skuld_macos.py`.
+- `skuld_macos_runtime.py` provides macOS event stats, runtime stats, log-path,
+  and tail helpers used by `skuld_macos.py`.
 - `skuld_macos_schedules.py` provides macOS schedule display helpers used by
   `skuld_macos.py`.
 - `skuld_observability.py` provides opt-in redacted debug output controlled by
@@ -295,7 +304,7 @@ Host-local configuration:
 
 - The Linux and macOS files still contain large backend-specific command
   handlers, though Linux service-manager/stats/timer and macOS
-  launchd/process/schedule responsibilities have been extracted.
+  launchd/process/runtime/schedule responsibilities have been extracted.
 - There is still no formal registry migration framework; canonicalization is
   tied to explicit mutating commands.
 - Target resolution and CLI presentation are still tightly coupled in each

@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 import argparse
-import datetime as dt
-import json
 import os
 import plistlib
 import re
@@ -16,6 +14,7 @@ import skuld_common as common
 import skuld_cli
 import skuld_macos_launchd as launchd
 import skuld_macos_processes as processes
+import skuld_macos_runtime as runtime
 import skuld_macos_schedules as schedules
 from skuld_registry import RegistryStore
 
@@ -628,98 +627,36 @@ def terminate_process_tree(root_pid: int, grace_seconds: float = 2.0) -> None:
 
 
 def restart_policy_allows_restart(value: str) -> bool:
-    policy = (value or "on-failure").strip().lower()
-    return policy not in {"no", "never"}
+    return runtime.restart_policy_allows_restart(value)
 
 
 def format_event_timestamp(value: str) -> str:
-    try:
-        return dt.datetime.fromisoformat(value.replace("Z", "+00:00")).astimezone().strftime("%Y-%m-%d %H:%M")
-    except Exception:
-        return value
+    return runtime.format_event_timestamp(value)
 
 
 def read_event_stats(service: ManagedService) -> Dict[str, object]:
-    event_path = event_file_for_service(service.name, service.scope)
-    executions = 0
-    last_run = "-"
-    last_exit_status = "-"
-    if not event_path.exists():
-        return {
-            "executions": 0,
-            "restarts": 0,
-            "last_run": "-",
-            "last_exit_status": "-",
-        }
-    for raw in event_path.read_text(encoding="utf-8").splitlines():
-        raw = raw.strip()
-        if not raw:
-            continue
-        try:
-            item = json.loads(raw)
-        except json.JSONDecodeError:
-            continue
-        if item.get("event") == "start":
-            executions += 1
-            last_run = format_event_timestamp(str(item.get("ts", "-")))
-        elif item.get("event") == "end":
-            last_exit_status = str(item.get("exit_status", "-"))
-    restarts = max(0, executions - 1) if (not service.schedule and restart_policy_allows_restart(service.restart)) else 0
-    return {
-        "executions": executions,
-        "restarts": restarts,
-        "last_run": last_run,
-        "last_exit_status": last_exit_status,
-    }
+    return runtime.read_event_stats(
+        event_file_for_service(service.name, service.scope),
+        schedule=service.schedule,
+        restart=service.restart,
+    )
 
 
 def update_runtime_stats(service: ManagedService) -> Dict[str, Dict[str, object]]:
-    ensure_storage()
-    try:
-        payload = json.loads(RUNTIME_STATS_FILE.read_text(encoding="utf-8"))
-    except Exception:
-        payload = {"services": {}}
-    if not isinstance(payload, dict):
-        payload = {"services": {}}
-    services = payload.get("services")
-    if not isinstance(services, dict):
-        services = {}
-        payload["services"] = services
-    stats = read_event_stats(service)
-    services[service.name] = stats
-    RUNTIME_STATS_FILE.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    return services
+    return runtime.update_runtime_stats(
+        RUNTIME_STATS_FILE,
+        ensure_storage,
+        service.name,
+        read_event_stats(service),
+    )
 
 
 def read_service_events(service: ManagedService) -> List[Dict[str, object]]:
-    path = event_file_for_service(service.name, service.scope)
-    if not path.exists():
-        return []
-    events: List[Dict[str, object]] = []
-    for raw in path.read_text(encoding="utf-8").splitlines():
-        line = raw.strip()
-        if not line:
-            continue
-        try:
-            item = json.loads(line)
-        except Exception:
-            continue
-        if isinstance(item, dict):
-            events.append(item)
-    return events
+    return runtime.read_service_events(event_file_for_service(service.name, service.scope))
 
 
 def read_recent_run_root_pids(service: ManagedService, limit: int = 3) -> List[int]:
-    starts = []
-    for item in read_service_events(service):
-        if str(item.get("event")) != "start":
-            continue
-        pid = parse_int(str(item.get("child_pid", item.get("pid", 0))))
-        if pid > 0:
-            starts.append(pid)
-    if not starts:
-        return []
-    return list(reversed(starts[-max(1, limit):]))
+    return runtime.read_recent_run_root_pids(read_service_events(service), limit=limit)
 
 
 def format_restarts_exec(service: ManagedService, runtime_stats: Dict[str, Dict[str, object]]) -> str:
@@ -904,36 +841,15 @@ def status(args: argparse.Namespace) -> None:
 
 
 def tail_file(path: Path, lines: int, follow: bool) -> None:
-    cmd = ["tail", "-n", str(lines)]
-    if follow:
-        cmd.append("-f")
-    cmd.append(str(path))
-    try:
-        run(cmd, check=False)
-    except KeyboardInterrupt:
-        return
+    runtime.tail_file(run, path, lines, follow)
 
 
 def log_paths_for_service(service: ManagedService) -> Tuple[Optional[Path], Optional[Path]]:
-    if service.managed_by_skuld or service.log_dir:
-        log_dir = Path(service.log_dir)
-        return log_dir / "stdout.log", log_dir / "stderr.log"
-
-    plist_path = plist_path_for_service(service)
-    if not plist_path.exists():
-        return None, None
-
-    try:
-        with plist_path.open("rb") as handle:
-            plist = plistlib.load(handle)
-    except Exception:
-        return None, None
-
-    stdout_raw = str(plist.get("StandardOutPath", "")).strip()
-    stderr_raw = str(plist.get("StandardErrorPath", "")).strip()
-    stdout_path = Path(stdout_raw) if stdout_raw else None
-    stderr_path = Path(stderr_raw) if stderr_raw else None
-    return stdout_path, stderr_path
+    return runtime.log_paths_for_service(
+        managed_by_skuld=service.managed_by_skuld,
+        log_dir=service.log_dir,
+        plist_path=plist_path_for_service(service),
+    )
 
 
 def logs(args: argparse.Namespace) -> None:

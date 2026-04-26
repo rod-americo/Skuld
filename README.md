@@ -87,6 +87,7 @@ Internal modules:
 | `skuld_macos.py` | macOS parser, registry schema, command handlers, target resolution, stats, logs, and table state. |
 | `skuld_macos_launchd.py` | Low-level launchd command construction and execution helpers. |
 | `skuld_macos_processes.py` | macOS process tree, termination, host overview, CPU/memory, and port inspection helpers. |
+| `skuld_macos_runtime.py` | macOS event stats, runtime stats file updates, recent-run PID extraction, file-log paths, and tail helpers. |
 | `skuld_macos_schedules.py` | macOS schedule parsing, trigger formatting, and next-run display. |
 
 ## Quick Start
@@ -263,7 +264,7 @@ or application-specific logs may not expose logs through Skuld.
 Minimum repository validation:
 
 ```bash
-python3 -m py_compile ./skuld ./skuld_entrypoint.py ./skuld_cli.py ./skuld_common.py ./skuld_linux_systemd.py ./skuld_linux_stats.py ./skuld_linux_timers.py ./skuld_macos_launchd.py ./skuld_macos_processes.py ./skuld_macos_schedules.py ./skuld_observability.py ./skuld_registry.py ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py
+python3 -m py_compile ./skuld ./skuld_entrypoint.py ./skuld_cli.py ./skuld_common.py ./skuld_linux_systemd.py ./skuld_linux_stats.py ./skuld_linux_timers.py ./skuld_macos_launchd.py ./skuld_macos_processes.py ./skuld_macos_runtime.py ./skuld_macos_schedules.py ./skuld_observability.py ./skuld_registry.py ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py
 python3 -m unittest discover -s tests
 ./skuld --help
 python3 scripts/check_project_gate.py
@@ -305,7 +306,8 @@ Run live smokes only with explicit operator intent because they mutate
 ## Known Weak Spots
 
 - `skuld_linux.py` and `skuld_macos.py` are still large backend files even after
-  Linux adapter/stats/timer and macOS adapter/process/schedule extractions.
+  Linux adapter/stats/timer and macOS adapter/process/runtime/schedule
+  extractions.
 - Linux and macOS stats depend on host-specific service-manager permissions,
   journal retention, process visibility, and compatible log paths.
 - Unit tests prove behavior with faked backend commands; live smokes prove

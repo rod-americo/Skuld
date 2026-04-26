@@ -68,6 +68,8 @@ intent.
   behind a dedicated adapter module while preserving CLI behavior.
 - Moved macOS process-tree, termination, host overview, CPU/memory, and
   listening-port helpers into `skuld_macos_processes.py`.
+- Moved macOS event stats, runtime stats updates, recent-run PID extraction,
+  file-log path resolution, and tail helpers into `skuld_macos_runtime.py`.
 - Moved macOS launchd schedule parsing and next-run display out of the main
   macOS backend.
 - macOS `logs` can now read externally tracked launchd jobs when their plist
