@@ -80,10 +80,14 @@ points at `skuld_entrypoint:main`.
 
 `skuld_linux.py` owns the Linux implementation:
 
-- `ManagedService` and `DiscoverableService` dataclasses.
-- Linux registry schema and validation rules.
 - Linux command handlers and parser wiring.
 - Backend coordination for host operations that have not been extracted yet.
+
+`skuld_linux_model.py` owns the Linux service model:
+
+- `ManagedService` and `DiscoverableService` dataclasses.
+- Linux registry normalization and validation rules.
+- scope normalization, scoped-name formatting, and registry identity helpers.
 
 `skuld_linux_actions.py` owns Linux host-mutating service actions:
 
@@ -151,10 +155,14 @@ points at `skuld_entrypoint:main`.
 
 `skuld_macos.py` owns the macOS implementation:
 
-- `ManagedService` and `DiscoverableService` dataclasses.
-- macOS registry schema and validation rules.
 - macOS command handlers and parser wiring.
 - Backend coordination for host operations that have not been extracted yet.
+
+`skuld_macos_model.py` owns the macOS service model:
+
+- `ManagedService` and `DiscoverableService` dataclasses.
+- macOS registry normalization and validation rules.
+- launchd scope normalization and registry sorting helpers.
 
 `skuld_macos_actions.py` owns macOS host-mutating launchd actions:
 
@@ -260,6 +268,8 @@ registration because their command options and operational adapters differ.
   `skuld_linux.py`.
 - `skuld_linux_actions.py` provides Linux host-mutating lifecycle and exec
   orchestration used by `skuld_linux.py`.
+- `skuld_linux_model.py` provides Linux service models and registry
+  normalization used by `skuld_linux.py`.
 - `skuld_linux_commands.py` provides Linux registry and read-only command
   orchestration used by `skuld_linux.py`.
 - `skuld_linux_presenters.py` provides Linux detail-view output formatting used
@@ -276,6 +286,8 @@ registration because their command options and operational adapters differ.
   `skuld_macos.py`.
 - `skuld_macos_actions.py` provides macOS host-mutating lifecycle and exec
   orchestration used by `skuld_macos.py`.
+- `skuld_macos_model.py` provides macOS service models and registry
+  normalization used by `skuld_macos.py`.
 - `skuld_macos_commands.py` provides macOS registry and read-only command
   orchestration used by `skuld_macos.py`.
 - `skuld_macos_presenters.py` provides macOS detail-view output formatting used

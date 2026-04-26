@@ -671,6 +671,45 @@ adapter functions in the backend modules.
 - Creating a cross-platform action abstraction before Linux timers and macOS
   launchd schedules have compatible semantics.
 
+## 2026-04-26 - Extract Backend-Specific Service Models
+
+**Context**
+
+Helper modules were forced to use object-shaped services partly because the
+backend-specific dataclasses and registry normalization lived inside the large
+backend orchestration files.
+
+**Decision**
+
+Move Linux service dataclasses, registry normalization, and identifier helpers
+into `skuld_linux_model.py`. Move macOS service dataclasses and registry
+normalization into `skuld_macos_model.py`, while keeping macOS runtime path
+resolution injected from `skuld_macos.py` because it depends on patched
+host-local paths in tests and operation.
+
+**Impact**
+
+- Backend model contracts are importable without importing parser and command
+  orchestration.
+- Registry normalization tests continue to exercise the same backend public
+  functions through thin wrappers.
+- Future helper modules can type against backend-specific service models rather
+  than accepting opaque objects.
+
+**Tradeoff**
+
+- macOS still keeps a small `normalize_service()` wrapper in `skuld_macos.py`
+  to pass host-local path callbacks into the model normalizer.
+- Linux and macOS models remain separate because their registry fields and
+  identity rules differ.
+
+**Alternatives rejected**
+
+- Creating one cross-platform service dataclass and flattening real backend
+  differences.
+- Moving macOS runtime path roots into the model module and breaking isolated
+  state patching.
+
 ## 2026-04-26 - Extract macOS Service Table Row Assembly
 
 **Context**

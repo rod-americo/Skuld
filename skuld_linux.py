@@ -4,7 +4,7 @@ import os
 import re
 import subprocess
 import sys
-from dataclasses import dataclass, asdict
+from dataclasses import asdict
 from pathlib import Path
 from typing import Dict, List, Optional, Set
 
@@ -12,6 +12,19 @@ import skuld_common as common
 import skuld_cli
 import skuld_linux_actions as linux_actions
 import skuld_linux_commands as linux_commands
+from skuld_linux_model import (
+    DiscoverableService,
+    ManagedService,
+    VALID_SCOPES,
+    format_scoped_name,
+    managed_service_key,
+    managed_sort_key,
+    normalize_registry_item,
+    normalize_scope,
+    scope_sort_value,
+    split_scope_token,
+    validate_registry_service,
+)
 import skuld_linux_runtime as linux_runtime
 import skuld_linux_stats as linux_stats
 import skuld_linux_systemd as systemd
@@ -33,30 +46,7 @@ FORCE_TABLE_ASCII = False
 FORCE_TABLE_UNICODE = False
 SYSTEMD_UNIT_STARTED_MESSAGE_ID = linux_runtime.SYSTEMD_UNIT_STARTED_MESSAGE_ID
 SORT_CHOICES = ("id", "name", "cpu", "memory")
-VALID_SCOPES = ("system", "user")
 DISCOVERABLE_SCOPE_CHOICES = ("all", "system", "user")
-@dataclass
-class ManagedService:
-    name: str
-    scope: str
-    exec_cmd: str
-    description: str
-    display_name: str = ""
-    schedule: str = ""
-    working_dir: str = ""
-    user: str = ""
-    restart: str = "on-failure"
-    timer_persistent: bool = True
-    id: int = 0
-
-
-@dataclass
-class DiscoverableService:
-    index: int
-    scope: str
-    name: str
-    service_state: str
-    timer_state: str
 
 
 def ensure_storage() -> None:
@@ -77,65 +67,6 @@ def get_sudo_password() -> Optional[str]:
         script_dir=Path(__file__).resolve().parent,
         state_home=SKULD_HOME,
     )
-
-
-def normalize_scope(value: str) -> str:
-    return systemd.normalize_scope(value)
-
-
-def scope_sort_value(scope: str) -> int:
-    return 0 if normalize_scope(scope) == "system" else 1
-
-
-def managed_service_key(name: str, scope: str) -> tuple:
-    return (normalize_scope(scope), name)
-
-
-def managed_sort_key(service: ManagedService) -> tuple:
-    return (service.name.lower(), scope_sort_value(service.scope), service.id)
-
-
-def format_scoped_name(name: str, scope: str) -> str:
-    return f"{normalize_scope(scope)}:{name}"
-
-
-def split_scope_token(token: str) -> tuple[Optional[str], str]:
-    raw = (token or "").strip()
-    if ":" not in raw:
-        return None, raw
-    maybe_scope, remainder = raw.split(":", 1)
-    try:
-        normalized = normalize_scope(maybe_scope)
-    except ValueError:
-        return None, raw
-    if not remainder.strip():
-        return None, raw
-    return normalized, remainder.strip()
-
-
-def normalize_registry_item(item: Dict[str, object]) -> ManagedService:
-    display_name = str(item.get("display_name", item.get("name", ""))).strip()
-    name = str(item.get("name", "")).strip()
-    if not display_name:
-        display_name = name
-    return ManagedService(
-        name=name,
-        scope=normalize_scope(str(item.get("scope", "system"))),
-        exec_cmd=str(item.get("exec_cmd", "")).strip(),
-        description=str(item.get("description", "")).strip(),
-        display_name=display_name,
-        schedule=str(item.get("schedule", "")).strip(),
-        working_dir=str(item.get("working_dir", "")).strip(),
-        user=str(item.get("user", "")).strip(),
-        restart=str(item.get("restart", "on-failure")).strip() or "on-failure",
-        timer_persistent=parse_bool(str(item.get("timer_persistent", True))),
-        id=parse_int(str(item.get("id", 0))),
-    )
-
-
-def validate_registry_service(service: ManagedService, _index: int) -> None:
-    validate_name(service.name)
-    validate_name(service.display_name)
 
 
 def registry_store() -> RegistryStore[ManagedService]:

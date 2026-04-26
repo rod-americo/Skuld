@@ -93,6 +93,8 @@ is not a greenfield scaffold checklist.
   `skuld_linux_commands.py`.
 - [x] Extract Linux host-mutating lifecycle and exec orchestration into
   `skuld_linux_actions.py`.
+- [x] Extract Linux service dataclasses and registry normalization into
+  `skuld_linux_model.py`.
 - [x] Extract macOS `launchd` low-level adapter behavior into
   `skuld_macos_launchd.py`.
 - [x] Extract macOS process-tree, host overview, CPU/memory, and port helpers
@@ -108,6 +110,8 @@ is not a greenfield scaffold checklist.
   `skuld_macos_commands.py`.
 - [x] Extract macOS host-mutating lifecycle and exec orchestration into
   `skuld_macos_actions.py`.
+- [x] Extract macOS service dataclasses and registry normalization into
+  `skuld_macos_model.py`.
 - [x] Add installable package metadata and an importable CLI entrypoint.
 - [x] Add CI for syntax, unit tests, gate, doctor, shell checks, and packaging.
 - [ ] Continue backend splitting around command handlers, rendering, and

@@ -2,10 +2,9 @@
 import argparse
 import os
 import plistlib
-import re
 import subprocess
 import sys
-from dataclasses import asdict, dataclass
+from dataclasses import asdict
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -14,6 +13,15 @@ import skuld_cli
 import skuld_macos_actions as macos_actions
 import skuld_macos_commands as macos_commands
 import skuld_macos_launchd as launchd
+from skuld_macos_model import (
+    DiscoverableService,
+    ManagedService,
+    managed_sort_key,
+    normalize_service as normalize_model_service,
+    resolve_scope,
+    validate_name,
+    validate_registry_service,
+)
 import skuld_macos_processes as processes
 import skuld_macos_runtime as runtime
 import skuld_macos_schedules as schedules
@@ -23,7 +31,6 @@ import skuld_tables as tables
 from skuld_registry import RegistryStore
 
 VERSION = "0.3.0"
-NAME_RE = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9._@-]*$")
 DEFAULT_ENV_FILE = Path(".env")
 SKULD_HOME = Path(os.environ.get("SKULD_HOME", Path.home() / "Library/Application Support/skuld"))
 REGISTRY_FILE = SKULD_HOME / "services.json"
@@ -32,32 +39,6 @@ USE_ENV_SUDO = True
 FORCE_TABLE_ASCII = False
 FORCE_TABLE_UNICODE = False
 SORT_CHOICES = ("id", "name", "cpu", "memory")
-@dataclass
-class ManagedService:
-    name: str
-    exec_cmd: str
-    description: str
-    display_name: str = ""
-    launchd_label: str = ""
-    plist_path_hint: str = ""
-    managed_by_skuld: bool = True
-    schedule: str = ""
-    working_dir: str = ""
-    user: str = ""
-    restart: str = "on-failure"
-    timer_persistent: bool = True
-    id: int = 0
-    backend: str = "launchd"
-    scope: str = "agent"
-    log_dir: str = ""
-
-
-@dataclass
-class DiscoverableService:
-    index: int
-    label: str
-    pid: str
-    status: str
 
 
 def ensure_storage() -> None:
@@ -82,17 +63,8 @@ def get_sudo_password() -> Optional[str]:
     )
 
 
-def parse_bool(value: str, default: bool = True) -> bool:
-    return common.parse_bool(value, default=default)
-
-
 def parse_int(value: str) -> int:
     return common.parse_int(value)
-
-
-def validate_name(name: str) -> None:
-    if not NAME_RE.match(name):
-        raise ValueError("Invalid name. Use [a-zA-Z0-9._@-] and start with a letter/number.")
 
 
 def ensure_display_name_available(display_name: str, current_name: Optional[str] = None) -> None:
@@ -129,13 +101,6 @@ def prompt_display_name(target: str, suggested: str) -> str:
     chosen = value or suggested
     validate_name(chosen)
     return chosen
-
-
-def resolve_scope(value: str) -> str:
-    scope = (value or "agent").strip().lower()
-    if scope not in {"daemon", "agent"}:
-        raise RuntimeError("Invalid scope. Use 'daemon' or 'agent'.")
-    return scope
 
 
 def resolve_name_arg(args: argparse.Namespace, required: bool = True) -> Optional[str]:
@@ -329,40 +294,11 @@ def wrapper_script_for_service(name: str, scope: str) -> Path:
 
 
 def normalize_service(item: Dict[str, object]) -> ManagedService:
-    scope = resolve_scope(str(item.get("scope", "daemon")))
-    name = str(item.get("name", "")).strip()
-    managed_by_skuld = parse_bool(str(item.get("managed_by_skuld", True)))
-    log_dir_default = str(log_dir_for_service(name, scope)) if managed_by_skuld else ""
-    log_dir = str(item.get("log_dir", "")).strip() or log_dir_default
-    return ManagedService(
-        name=name,
-        exec_cmd=str(item.get("exec_cmd", "")).strip(),
-        description=str(item.get("description", "")).strip(),
-        display_name=str(item.get("display_name", name)).strip() or name,
-        launchd_label=str(item.get("launchd_label", service_label(name))).strip() or service_label(name),
-        plist_path_hint=str(item.get("plist_path_hint", "")).strip(),
-        managed_by_skuld=managed_by_skuld,
-        schedule=str(item.get("schedule", "")).strip(),
-        working_dir=str(item.get("working_dir", "")).strip(),
-        user=str(item.get("user", "")).strip(),
-        restart=str(item.get("restart", "on-failure")).strip() or "on-failure",
-        timer_persistent=parse_bool(str(item.get("timer_persistent", True))),
-        id=parse_int(str(item.get("id", 0))),
-        backend="launchd",
-        scope=scope,
-        log_dir=log_dir,
+    return normalize_model_service(
+        item,
+        log_dir_for_service=log_dir_for_service,
+        service_label=service_label,
     )
-
-
-def validate_registry_service(service: ManagedService, index: int) -> None:
-    validate_name(service.name)
-    validate_name(service.display_name)
-    if service.scope == "agent" and service.user:
-        raise RuntimeError(f"Invalid registry entry #{index}: 'user' is only valid for daemon scope.")
-
-
-def managed_sort_key(service: ManagedService) -> tuple:
-    return (service.name.lower(), service.id)
 
 
 def registry_store() -> RegistryStore[ManagedService]:
