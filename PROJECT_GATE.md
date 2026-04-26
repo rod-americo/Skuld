@@ -17,11 +17,11 @@ from growing without discipline, and which operational costs are accepted.
 
 ## 3. What does this project share with the ecosystem?
 
-- configuration: Host-local settings are environment variables and optional `.env` files, with no committed machine-specific runtime config.
+- configuration: Host-local settings are CLI flags, environment variables, and optional `.env` files, with no committed machine-specific runtime config.
 - logging: Skuld reads backend logs from `journalctl` on Linux and compatible file logs on macOS; it does not provide a central logging service.
 - runtime: Runtime state lives under `SKULD_HOME`, platform user data directories, or documented system paths such as `/var/lib/skuld`.
 - contracts: The main contract is the services registry JSON plus CLI target resolution by display name, ID, backend name, and backend scope.
-- authentication or transport: There is no network transport; privilege elevation is local `sudo`, optionally using short-lived environment or `.env` password support.
+- authentication or transport: There is no network transport; privilege elevation is local `sudo`, preferably through the native sudo timestamp and optionally through short-lived environment or `.env` password support.
 
 ## 4. What must this project not carry?
 

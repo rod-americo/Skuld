@@ -80,7 +80,7 @@ Internal modules:
 | `skuld_common.py` | Formatting, table rendering, subprocess helpers, env lookup, and sudo helpers. |
 | `skuld_registry.py` | Generic registry load/save/upsert/remove mechanics. |
 | `skuld_observability.py` | Opt-in redacted debug output through `SKULD_DEBUG`. |
-| `skuld_sudo.py` | Shared CLI orchestration for `sudo check` and `sudo run`. |
+| `skuld_sudo.py` | Shared CLI orchestration for `sudo check`, `sudo auth`, `sudo forget`, and `sudo run`. |
 | `skuld_linux.py` | Linux composition root: parser construction, handler wiring, and CLI main. |
 | `skuld_linux_actions.py` | Linux host-mutating service action orchestration for start, stop, restart, and exec. |
 | `skuld_linux_catalog.py` | Linux systemd catalog discovery, target resolution, and track orchestration. |
@@ -172,11 +172,22 @@ outside the worktree by default.
 | `SKULD_HOME` | no | Override the registry/runtime home directory. |
 | `SKULD_ENV_FILE` | no | Override the `.env` path used for sudo password lookup. |
 | `SKULD_SUDO_PASSWORD` | no | Allow non-interactive sudo for short-lived local use. |
+| `SKULD_COLUMNS` | no | Default comma-separated service-table columns for `skuld` and `skuld list`. |
 | `SKULD_RUNTIME_STATS_FILE` | Linux only | Override the Linux journal stats JSON path. |
 | `SKULD_DEBUG` | no | Emit redacted debug lines to stderr. |
 
-`SKULD_SUDO_PASSWORD` and `.env` sudo support are convenience mechanisms for
-short-lived local operation. They are not production credential management.
+Prefer the native sudo timestamp instead of storing a password:
+
+```bash
+./skuld sudo auth
+./skuld sudo check
+./skuld sudo forget
+```
+
+`skuld sudo auth` runs the normal system `sudo -v` prompt and lets later Skuld
+sudo calls use `sudo -n` against the native timestamp cache. `SKULD_SUDO_PASSWORD`
+and `.env` sudo support remain compatibility mechanisms for short-lived local
+operation. They are not production credential management.
 
 ## Commands
 
@@ -199,6 +210,8 @@ short-lived local operation. They are not production credential management.
 ./skuld sync
 ./skuld version
 ./skuld sudo check
+./skuld sudo auth
+./skuld sudo forget
 ./skuld sudo run -- <command>
 ```
 
@@ -207,6 +220,18 @@ short-lived local operation. They are not production credential management.
 ```text
 id | name | service | timer | triggers | cpu | memory | ports
 ```
+
+Column selection can be set per invocation or by environment:
+
+```bash
+./skuld --columns id,name,service
+./skuld list --columns name,cpu,memory
+SKULD_COLUMNS=id,name,service,timer ./skuld
+```
+
+Supported column keys are `id`, `name`, `service`, `timer`, `triggers`, `cpu`,
+`memory`, and `ports`. Use `default`, `auto`, or `all` to restore the automatic
+layout.
 
 Supported sort examples:
 

@@ -1,8 +1,11 @@
 from __future__ import annotations
 
 import ast
+import argparse
+import os
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import skuld_linux
 import skuld_macos
@@ -47,6 +50,36 @@ class BackendCompositionTest(unittest.TestCase):
         self.assertTrue(LEGACY_BACKEND_WRAPPERS.isdisjoint(functions))
         self.assertIsInstance(skuld_macos.CONTEXT, MacOSBackendContext)
         self.assertIsInstance(skuld_macos.HANDLERS, MacOSCommandHandlers)
+
+    def test_contexts_resolve_table_columns_from_cli_or_env(self) -> None:
+        parser = argparse.ArgumentParser()
+        args = argparse.Namespace(
+            no_env_sudo=False,
+            ascii=False,
+            unicode=False,
+            columns="name,cpu",
+        )
+        linux_context = LinuxBackendContext()
+        macos_context = MacOSBackendContext()
+
+        linux_context.configure_cli_globals(args, parser)
+        macos_context.configure_cli_globals(args, parser)
+
+        self.assertEqual(linux_context.service_table_columns, ("name", "cpu"))
+        self.assertEqual(macos_context.service_table_columns, ("name", "cpu"))
+
+        env_args = argparse.Namespace(
+            no_env_sudo=False,
+            ascii=False,
+            unicode=False,
+            columns=None,
+        )
+        with patch.dict(os.environ, {"SKULD_COLUMNS": "id,service"}):
+            linux_context.configure_cli_globals(env_args, parser)
+            macos_context.configure_cli_globals(env_args, parser)
+
+        self.assertEqual(linux_context.service_table_columns, ("id", "service"))
+        self.assertEqual(macos_context.service_table_columns, ("id", "service"))
 
 
 if __name__ == "__main__":

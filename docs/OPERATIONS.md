@@ -63,6 +63,7 @@ Runtime configuration:
 | `SKULD_HOME` | no | Linux and macOS | Override registry/runtime home. |
 | `SKULD_ENV_FILE` | no | Linux and macOS | Override env file lookup for sudo password support. |
 | `SKULD_SUDO_PASSWORD` | no | Linux and macOS | Non-interactive sudo password for short-lived local use. |
+| `SKULD_COLUMNS` | no | Linux and macOS | Default comma-separated columns for `skuld` and `skuld list`. |
 | `SKULD_RUNTIME_STATS_FILE` | no | Linux | Override journal stats JSON path. |
 | `SKULD_DEBUG` | no | Linux and macOS | Emit redacted debug diagnostics to stderr. |
 
@@ -114,6 +115,7 @@ Non-mutating smoke:
 ./skuld --help
 ./skuld version
 ./skuld list --help
+./skuld sudo --help
 ```
 
 Linux live smoke can create a disposable `systemd --user` service locally or
@@ -289,8 +291,17 @@ macOS log unavailable:
 Sudo password support:
 
 - Symptom: Skuld warns about `SKULD_SUDO_PASSWORD`.
-- Action: prefer interactive sudo or short-lived local env usage. Never commit
-  `.env`.
+- Action: prefer the native sudo timestamp workflow. Run `./skuld sudo auth`
+  once, then `./skuld sudo check`; Skuld sudo calls without a stored password
+  use `sudo -n` and fail if the timestamp is not active. Use
+  `./skuld sudo forget` to invalidate the timestamp. Never commit `.env`.
+
+Invalid table columns:
+
+- Symptom: Skuld exits with `Unknown service table column`.
+- Action: use a comma-separated subset of `id`, `name`, `service`, `timer`,
+  `triggers`, `cpu`, `memory`, and `ports`; use `default`, `auto`, or `all` to
+  restore the automatic layout.
 
 Runtime stats timer preview or removal:
 
@@ -332,4 +343,5 @@ Before running them, confirm:
 - New backend dependency.
 - New service-manager mutation behavior.
 - New sudo behavior.
+- New table-column configuration behavior.
 - New smoke or recovery procedure.

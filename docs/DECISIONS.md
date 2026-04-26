@@ -3,6 +3,50 @@
 This file records lightweight architectural and operational decisions. Keep new
 entries factual: context, decision, impact, tradeoff, and rejected alternatives.
 
+## 2026-04-26 - Prefer Native Sudo Timestamps And Configurable Table Columns
+
+**Context**
+
+Skuld supported `SKULD_SUDO_PASSWORD` and `.env` lookup for non-interactive
+sudo. That solved automation but encouraged local password storage. The compact
+service table also had a fixed column policy, so users with different terminal
+sizes or operational priorities could not choose the visible columns.
+
+**Decision**
+
+Add `skuld sudo auth` to run the native `sudo -v` prompt and refresh the host
+sudo timestamp, and add `skuld sudo forget` to invalidate it. When no explicit
+password is configured, Skuld now runs sudo operations with `sudo -n` so it
+uses only an already-active native timestamp and does not prompt unexpectedly.
+
+Add `--columns` and `SKULD_COLUMNS` for service-table selection. Explicit
+selection preserves the requested order and disables automatic column hiding for
+those selected columns; the default layout keeps the existing responsive
+auto-hide behavior.
+
+**Impact**
+
+- Users no longer need to store a sudo password for normal local operation.
+- Sudo failures are clearer: authenticate with `skuld sudo auth` or adjust host
+  sudo policy intentionally.
+- `skuld` and `skuld list` can show only the columns an operator cares about.
+
+**Tradeoff**
+
+- Native sudo timestamp behavior depends on host sudo policy and timeout.
+- Explicit column selection can produce wider tables if the user selects more
+  columns than the terminal can comfortably render.
+- `SKULD_SUDO_PASSWORD` remains as a compatibility path, so docs and warnings
+  must continue to treat it as sensitive.
+
+**Alternatives rejected**
+
+- Removing `SKULD_SUDO_PASSWORD` immediately, which would be a sharper
+  compatibility break than needed for this step.
+- Prompting implicitly inside every sudo operation, which is brittle for
+  captured commands and non-interactive calls.
+- Adding a new persistent config file just for column selection.
+
 ## 2026-04-26 - Make Backend Entrypoints Thin Composition Roots
 
 **Context**

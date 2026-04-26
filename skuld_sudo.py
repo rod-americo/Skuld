@@ -38,7 +38,39 @@ def sudo_check(
         ok("sudo is available.")
         return
     details = (proc.stderr or proc.stdout or "").strip()
-    raise RuntimeError(f"sudo is not available non-interactively. {details}".strip())
+    raise RuntimeError(
+        (
+            "sudo is not available non-interactively. "
+            "Run `skuld sudo auth` to refresh the native sudo timestamp, "
+            "or configure host sudo policy intentionally. "
+            f"{details}"
+        ).strip()
+    )
+
+
+def sudo_auth(
+    *,
+    run: Callable[..., object],
+    ok: Callable[[str], None],
+) -> None:
+    proc = run(["sudo", "-v"], check=False)
+    if proc.returncode == 0:
+        ok("sudo credentials cached by the native sudo timestamp.")
+        return
+    raise RuntimeError("sudo authentication failed.")
+
+
+def sudo_forget(
+    *,
+    run: Callable[..., object],
+    ok: Callable[[str], None],
+) -> None:
+    proc = run(["sudo", "-k"], check=False, capture=True)
+    if proc.returncode == 0:
+        ok("sudo timestamp invalidated.")
+        return
+    details = (proc.stderr or proc.stdout or "").strip()
+    raise RuntimeError(f"sudo timestamp invalidation failed. {details}".strip())
 
 
 def sudo_run_command(
@@ -56,4 +88,9 @@ def sudo_run_command(
     warn_env_sudo_usage(get_sudo_password=get_sudo_password, info=info)
     proc = run_sudo(command, check=False)
     if proc.returncode != 0:
-        raise RuntimeError(f"sudo command failed with exit code {proc.returncode}.")
+        raise RuntimeError(
+            (
+                f"sudo command failed with exit code {proc.returncode}. "
+                "Run `skuld sudo auth` first if the native sudo timestamp is not active."
+            ).strip()
+        )

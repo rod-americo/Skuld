@@ -4,6 +4,7 @@ import io
 import types
 import unittest
 from contextlib import redirect_stdout
+from unittest.mock import patch
 
 import skuld_common as common
 
@@ -57,6 +58,27 @@ class CommonHelperTest(unittest.TestCase):
         output = stdout.getvalue()
         self.assertIn("+----+------+", output)
         self.assertIn("| id | name |", output)
+
+    def test_run_sudo_command_uses_native_timestamp_without_password(self) -> None:
+        with patch.object(common, "run_command", return_value=types.SimpleNamespace(returncode=0)) as run:
+            common.run_sudo_command(["id", "-u"], sudo_password=None, check=False, capture=True)
+
+        run.assert_called_once_with(
+            ["sudo", "-n", "id", "-u"],
+            check=False,
+            capture=True,
+        )
+
+    def test_run_sudo_command_uses_stdin_only_when_password_is_explicit(self) -> None:
+        with patch.object(common, "run_command", return_value=types.SimpleNamespace(returncode=0)) as run:
+            common.run_sudo_command(["id"], sudo_password="secret", check=False)
+
+        run.assert_called_once_with(
+            ["sudo", "-S", "-k", "-p", "", "id"],
+            check=False,
+            capture=False,
+            input_text="secret\n",
+        )
 
 
 if __name__ == "__main__":

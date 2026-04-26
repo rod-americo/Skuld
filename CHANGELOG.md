@@ -9,6 +9,10 @@ intent.
 
 ### Added
 
+- `skuld sudo auth` and `skuld sudo forget` for native sudo timestamp
+  authentication without storing a sudo password.
+- `--columns` and `SKULD_COLUMNS` for configuring visible service-table
+  columns.
 - Structural recovery baseline from the project starter, adapted to Skuld's
   existing architecture.
 - `PROJECT_GATE.md` with repository purpose, boundaries, and maintenance cost.
@@ -49,6 +53,8 @@ intent.
   spots.
 - Reworked `AGENTS.md` to include reading order, layer rules, validation,
   documentation rules, and architecture guardrails.
+- Sudo operations without `SKULD_SUDO_PASSWORD` now use `sudo -n`, requiring an
+  active native sudo timestamp instead of prompting implicitly.
 - Clarified that the current public CLI tracks and operates existing services
   but does not create or edit service definitions.
 - Expanded `.gitignore` for local runtime, logs, caches, and local config

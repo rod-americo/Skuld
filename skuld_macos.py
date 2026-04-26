@@ -5,6 +5,7 @@ import argparse
 
 import skuld_cli
 import skuld_macos_parser as macos_parser
+import skuld_tables as tables
 from skuld_macos_context import MacOSBackendContext, SORT_CHOICES
 from skuld_macos_handlers import MacOSCommandHandlers
 from skuld_macos_model import DiscoverableService, ManagedService
@@ -18,6 +19,7 @@ HANDLERS = MacOSCommandHandlers(CONTEXT)
 def build_parser() -> argparse.ArgumentParser:
     return macos_parser.build_parser(
         sort_choices=SORT_CHOICES,
+        column_choices=tables.SERVICE_TABLE_COLUMN_KEYS,
         version=VERSION,
         list_services=HANDLERS.list_services,
         catalog=HANDLERS.catalog,
@@ -34,6 +36,8 @@ def build_parser() -> argparse.ArgumentParser:
         describe=HANDLERS.describe,
         sync=HANDLERS.sync,
         sudo_check=CONTEXT.sudo_check,
+        sudo_auth=CONTEXT.sudo_auth,
+        sudo_forget=CONTEXT.sudo_forget,
         sudo_run_command=CONTEXT.sudo_run_command,
     )
 

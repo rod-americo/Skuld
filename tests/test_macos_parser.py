@@ -18,6 +18,7 @@ class MacParserTest(unittest.TestCase):
 
         return macos_parser.build_parser(
             sort_choices=("id", "name", "cpu", "memory"),
+            column_choices=("id", "name", "service", "timer", "triggers", "cpu", "memory", "ports"),
             version="9.9.9",
             list_services=_noop,
             catalog=_noop,
@@ -34,8 +35,25 @@ class MacParserTest(unittest.TestCase):
             describe=_noop,
             sync=_noop,
             sudo_check=_noop,
+            sudo_auth=_noop,
+            sudo_forget=_noop,
             sudo_run_command=_noop,
         )
+
+    def test_top_level_columns_configures_default_table(self) -> None:
+        args = self.build_parser().parse_args(["--columns", "id,name,service"])
+
+        self.assertEqual(args.columns, "id,name,service")
+
+    def test_list_columns_configures_table_after_subcommand(self) -> None:
+        args = self.build_parser().parse_args(["list", "--columns", "name,cpu"])
+
+        self.assertEqual(args.columns, "name,cpu")
+
+    def test_top_level_columns_survive_list_subcommand_defaults(self) -> None:
+        args = self.build_parser().parse_args(["--columns", "id,name", "list"])
+
+        self.assertEqual(args.columns, "id,name")
 
     def test_track_keeps_launchd_target_and_alias_contract(self) -> None:
         args = self.build_parser().parse_args(["track", "1", "com.example.Worker", "--alias", "worker"])
@@ -65,6 +83,12 @@ class MacParserTest(unittest.TestCase):
 
         self.assertIsNone(args.name)
         self.assertEqual(args.name_flag, "api")
+
+    def test_sudo_auth_and_forget_are_registered(self) -> None:
+        for command in ("auth", "forget"):
+            with self.subTest(command=command):
+                args = self.build_parser().parse_args(["sudo", command])
+                self.assertIs(args.func, _noop)
 
 
 if __name__ == "__main__":

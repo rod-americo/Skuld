@@ -22,6 +22,8 @@ Includes:
   logs, stats, describe, sync, rename, and untrack commands.
 - Rendering a compact operational table with service state, timer state,
   triggers, CPU, memory, and ports when available.
+- Allowing the operator to choose visible service-table columns through
+  `--columns` or `SKULD_COLUMNS`.
 - Providing local structural validation through project gate and doctor scripts.
 
 Does not include:
@@ -42,7 +44,9 @@ External inputs:
 - Existing `launchd` labels visible through `launchctl list` on macOS.
 - Registry JSON from Skuld runtime storage.
 - Environment variables and optional `.env` files for `SKULD_HOME`,
-  `SKULD_ENV_FILE`, `SKULD_SUDO_PASSWORD`, and Linux runtime stats override.
+  `SKULD_ENV_FILE`, `SKULD_SUDO_PASSWORD`, `SKULD_COLUMNS`, and Linux runtime
+  stats override.
+- Native sudo timestamp state refreshed through `skuld sudo auth`.
 - Backend logs from `journalctl` on Linux or compatible files on macOS.
 
 External outputs:
@@ -423,10 +427,11 @@ the parser modules do not import backend state or host adapters.
   `SKULD_DEBUG`.
 - `skuld_registry.py` provides generic registry storage mechanics while leaving
   backend schemas and validation rules in each backend.
-- `skuld_sudo.py` provides shared CLI orchestration for `sudo check` and
-  `sudo run` while backend adapters keep service-manager-specific sudo usage.
+- `skuld_sudo.py` provides shared CLI orchestration for `sudo check`,
+  `sudo auth`, `sudo forget`, and `sudo run` while backend adapters keep
+  service-manager-specific sudo usage.
 - `skuld_tables.py` provides shared service-table column policy, fitting,
-  sorting, and host-panel helpers used by both backends.
+  column selection, sorting, and host-panel helpers used by both backends.
 
 ## 5. Main Flow
 

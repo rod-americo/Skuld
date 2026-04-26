@@ -9,12 +9,14 @@ invariants, and external integration assumptions.
 
 | Name | Origin | Format | Required | Notes |
 | --- | --- | --- | --- | --- |
-| CLI command | Operator | argv parsed by `argparse` | yes | Commands are routed in `skuld_linux.py` or `skuld_macos.py`. |
+| CLI command | Operator | argv parsed by `argparse` | yes | Commands are parsed by backend parser modules and routed through backend handlers. |
 | Registry file | Skuld runtime path | JSON array | yes for operations | Created as `[]` if missing. Invalid JSON fails explicitly. |
 | Service catalog | `systemd` or `launchd` | command output | yes for discovery | Linux uses `systemctl list-unit-files`; macOS uses `launchctl list`. |
 | Service state | `systemd` or `launchd` | command output | yes for operation views | Used by list, status, doctor, describe, and sync. |
 | Logs | `journalctl` or files | text stream | command-specific | Linux supports journal filters; macOS reads compatible log files or launchd plist log paths. |
-| Sudo credential | env or `.env` | string | no | `SKULD_SUDO_PASSWORD` is sensitive and should be short-lived. |
+| Sudo timestamp | native `sudo` cache | host-local state | no | Refreshed with `skuld sudo auth`; used through `sudo -n`. |
+| Sudo credential | env or `.env` | string | no | Compatibility path only; `SKULD_SUDO_PASSWORD` is sensitive and should be short-lived. |
+| Table columns | CLI or env | comma-separated keys | no | `--columns` or `SKULD_COLUMNS`; default keeps automatic layout. |
 | Debug switch | env | boolean-like string | no | `SKULD_DEBUG` enables redacted stderr diagnostics. |
 | Runtime stats | stats JSON or event files | JSON | no | Used to show execution/restart counters when present. |
 
@@ -106,6 +108,10 @@ invariants, and external integration assumptions.
 - Linux `system:name` and `user:name` are distinct backend identities.
 - The same `display_name` cannot refer to two registry entries.
 - `SKULD_SUDO_PASSWORD` must never be logged.
+- Sudo operations without an explicit password must use the native sudo
+  timestamp non-interactively through `sudo -n`.
+- Explicit table-column selection must preserve requested column order and must
+  reject unknown column names.
 - macOS `--since`, `--timer`, `--output`, and `--plain` are compatibility flags
   on logs; some are ignored or rejected as documented by help text and runtime
   behavior.
@@ -118,6 +124,9 @@ invariants, and external integration assumptions.
   domain, permissions, and plist visibility.
 - Runtime stats depend on journal retention, event file availability, and host
   permissions.
+- Native sudo timestamp availability depends on host sudo policy, TTY
+  availability for `skuld sudo auth`, and the sudo timeout configured by the
+  host.
 - Live smoke scripts prove disposable local service-manager paths on hosts where
   `launchd` or `systemd --user` is available, but they are not a distribution or
   OS-version compatibility matrix.
@@ -134,3 +143,5 @@ restart procedures, or new validation.
   made.
 - 2026-04-25: Made no-write registry normalization the default for read paths;
   explicit mutating commands still persist canonical JSON.
+- 2026-04-26: Added native sudo timestamp commands and configurable
+  service-table columns; no registry schema change was made.

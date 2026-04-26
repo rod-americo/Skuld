@@ -5,6 +5,7 @@ import argparse
 
 import skuld_cli
 import skuld_linux_parser as linux_parser
+import skuld_tables as tables
 from skuld_linux_catalog import DISCOVERABLE_SCOPE_CHOICES
 from skuld_linux_context import LinuxBackendContext, SORT_CHOICES
 from skuld_linux_handlers import LinuxCommandHandlers
@@ -19,6 +20,7 @@ HANDLERS = LinuxCommandHandlers(CONTEXT)
 def build_parser() -> argparse.ArgumentParser:
     return linux_parser.build_parser(
         sort_choices=SORT_CHOICES,
+        column_choices=tables.SERVICE_TABLE_COLUMN_KEYS,
         discoverable_scope_choices=DISCOVERABLE_SCOPE_CHOICES,
         version=VERSION,
         list_services=HANDLERS.list_services,
@@ -36,6 +38,8 @@ def build_parser() -> argparse.ArgumentParser:
         describe=HANDLERS.describe,
         sync=HANDLERS.sync,
         sudo_check=CONTEXT.sudo_check,
+        sudo_auth=CONTEXT.sudo_auth,
+        sudo_forget=CONTEXT.sudo_forget,
         sudo_run_command=CONTEXT.sudo_run_command,
     )
 

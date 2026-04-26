@@ -23,6 +23,7 @@ def _add_multi_target_args(parser: argparse.ArgumentParser) -> None:
 def build_parser(
     *,
     sort_choices: Sequence[str],
+    column_choices: Sequence[str],
     discoverable_scope_choices: Sequence[str],
     version: str,
     list_services: Callable[..., None],
@@ -40,6 +41,8 @@ def build_parser(
     describe: Callable[..., None],
     sync: Callable[..., None],
     sudo_check: Callable[..., None],
+    sudo_auth: Callable[..., None],
+    sudo_forget: Callable[..., None],
     sudo_run_command: Callable[..., None],
 ) -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
@@ -59,6 +62,14 @@ def build_parser(
         default="name",
         help="Sort service views by name, id, cpu, or memory",
     )
+    parser.add_argument(
+        "--columns",
+        metavar="LIST",
+        help=(
+            "Comma-separated table columns "
+            f"({', '.join(column_choices)}); use default for automatic layout"
+        ),
+    )
     subparsers = parser.add_subparsers(dest="command", required=False)
 
     list_parser = subparsers.add_parser("list", help="List services tracked by skuld")
@@ -67,6 +78,15 @@ def build_parser(
         choices=sort_choices,
         default="name",
         help="Sort by name, id, cpu, or memory",
+    )
+    list_parser.add_argument(
+        "--columns",
+        metavar="LIST",
+        default=argparse.SUPPRESS,
+        help=(
+            "Comma-separated table columns "
+            f"({', '.join(column_choices)}); use default for automatic layout"
+        ),
     )
     list_parser.set_defaults(func=list_services)
 
@@ -181,6 +201,18 @@ def build_parser(
         help="Check whether sudo can run non-interactively",
     )
     sudo_check_parser.set_defaults(func=sudo_check)
+
+    sudo_auth_parser = sudo_subparsers.add_parser(
+        "auth",
+        help="Refresh the native sudo timestamp with the system sudo prompt",
+    )
+    sudo_auth_parser.set_defaults(func=sudo_auth)
+
+    sudo_forget_parser = sudo_subparsers.add_parser(
+        "forget",
+        help="Invalidate the native sudo timestamp",
+    )
+    sudo_forget_parser.set_defaults(func=sudo_forget)
 
     sudo_run_parser = sudo_subparsers.add_parser("run", help="Run one command through sudo")
     sudo_run_parser.add_argument("command", nargs=argparse.REMAINDER)

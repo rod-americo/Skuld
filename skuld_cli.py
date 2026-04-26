@@ -6,6 +6,7 @@ from typing import Callable, Sequence
 
 
 POST_REFRESH_COMMANDS = {"track", "rename", "untrack", "exec", "start", "stop", "restart", "sync"}
+REGISTRY_FREE_COMMANDS = {"version", "sudo"}
 QUICK_HELP = "Quick help: skuld track <id ...> | skuld <id|name> exec/start/stop/restart/status/logs/stats/describe/rename/untrack"
 
 
@@ -24,7 +25,7 @@ def run_backend_main(
 
     try:
         command = getattr(args, "command", None)
-        if command != "version":
+        if command not in REGISTRY_FREE_COMMANDS:
             load_registry()
         if not command:
             list_services_compact(resolve_sort_arg(args))

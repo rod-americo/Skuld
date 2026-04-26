@@ -1,4 +1,4 @@
-from typing import Callable, Dict, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Sequence, Tuple
 
 import skuld_common as common
 
@@ -13,6 +13,7 @@ SERVICE_TABLE_COLUMNS = (
     {"key": "memory", "header": "memory", "min_width": 6, "shrink": False},
     {"key": "ports", "header": "ports", "min_width": 5, "shrink": True},
 )
+SERVICE_TABLE_COLUMN_KEYS = tuple(str(column["key"]) for column in SERVICE_TABLE_COLUMNS)
 SERVICE_TABLE_SHRINK_ORDER = ("triggers", "name", "ports")
 SERVICE_TABLE_HIDE_ORDER = ("ports", "memory", "cpu", "triggers", "timer")
 
@@ -25,15 +26,69 @@ def shrink_service_table_widths(
     return common.shrink_table_widths(columns, widths, max_width, SERVICE_TABLE_SHRINK_ORDER)
 
 
+def parse_service_table_columns(value: Optional[str]) -> Optional[Tuple[str, ...]]:
+    if value is None:
+        return None
+    raw = value.strip()
+    if not raw:
+        return None
+    if raw.lower() in {"all", "auto", "default"}:
+        return None
+
+    selected: List[str] = []
+    invalid: List[str] = []
+    for item in raw.split(","):
+        key = item.strip().lower()
+        if not key:
+            continue
+        if key not in SERVICE_TABLE_COLUMN_KEYS:
+            invalid.append(key)
+            continue
+        if key not in selected:
+            selected.append(key)
+
+    if invalid:
+        allowed = ", ".join(SERVICE_TABLE_COLUMN_KEYS)
+        raise ValueError(
+            f"Unknown service table column(s): {', '.join(invalid)}. "
+            f"Allowed columns: {allowed}."
+        )
+    if not selected:
+        raise ValueError("At least one service table column must be selected.")
+    return tuple(selected)
+
+
+def resolve_service_table_columns(
+    cli_value: Optional[str],
+    *,
+    env_value: Optional[str],
+) -> Optional[Tuple[str, ...]]:
+    if cli_value is not None:
+        return parse_service_table_columns(cli_value)
+    return parse_service_table_columns(env_value)
+
+
+def select_service_table_columns(
+    columns: Optional[Sequence[str]],
+) -> Tuple[Tuple[Dict[str, object], ...], bool]:
+    if columns is None:
+        return SERVICE_TABLE_COLUMNS, True
+
+    by_key = {str(column["key"]): column for column in SERVICE_TABLE_COLUMNS}
+    return tuple(dict(by_key[key]) for key in columns), False
+
+
 def fit_service_table(
     rows: List[Dict[str, object]],
     max_width: Optional[int] = None,
+    columns: Optional[Sequence[str]] = None,
 ) -> Tuple[List[str], List[List[str]]]:
+    service_columns, allow_auto_hide = select_service_table_columns(columns)
     return common.fit_table(
         rows,
-        service_columns=SERVICE_TABLE_COLUMNS,
+        service_columns=service_columns,
         shrink_order=SERVICE_TABLE_SHRINK_ORDER,
-        hide_order=SERVICE_TABLE_HIDE_ORDER,
+        hide_order=SERVICE_TABLE_HIDE_ORDER if allow_auto_hide else (),
         max_width=max_width,
     )
 

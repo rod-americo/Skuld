@@ -67,8 +67,7 @@ is not a greenfield scaffold checklist.
   host-panel helpers into `skuld_tables.py`.
 - [x] Extract shared log line-count argument resolution into
   `skuld_common.py`.
-- [x] Extract shared `sudo check` and `sudo run` command orchestration into
-  `skuld_sudo.py`.
+- [x] Extract shared sudo command orchestration into `skuld_sudo.py`.
 - [x] Extract common backend main-loop behavior into `skuld_cli.py`.
 - [x] Add redacted opt-in debug diagnostics through `SKULD_DEBUG`.
 - [x] Add smoke documentation and scripts for a disposable user service on
@@ -146,6 +145,10 @@ is not a greenfield scaffold checklist.
   parser wiring and main-loop dispatch.
 - [x] Add installable package metadata and an importable CLI entrypoint.
 - [x] Add CI for syntax, unit tests, gate, doctor, shell checks, and packaging.
+- [x] Add native sudo timestamp flow with `skuld sudo auth`, `sudo -n` runtime
+  sudo calls, and `skuld sudo forget`.
+- [x] Add configurable service-table columns through `--columns` and
+  `SKULD_COLUMNS`.
 - [ ] Continue by hardening context boundaries if future changes show repeated
   wiring mistakes, not by moving behavior back into backend entrypoints.
 

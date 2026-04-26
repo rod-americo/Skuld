@@ -48,6 +48,7 @@ class MacOSBackendContext:
     use_env_sudo: bool = True
     force_table_ascii: bool = False
     force_table_unicode: bool = False
+    service_table_columns: Optional[Tuple[str, ...]] = None
     script_dir: Path = field(default_factory=lambda: Path(__file__).resolve().parent)
 
     def __post_init__(self) -> None:
@@ -66,6 +67,13 @@ class MacOSBackendContext:
         self.force_table_unicode = bool(args.unicode)
         if self.force_table_ascii and self.force_table_unicode:
             parser.error("choose only one of --ascii or --unicode")
+        try:
+            self.service_table_columns = tables.resolve_service_table_columns(
+                getattr(args, "columns", None),
+                env_value=os.environ.get("SKULD_COLUMNS"),
+            )
+        except ValueError as exc:
+            parser.error(str(exc))
 
     def ensure_storage(self) -> None:
         macos_registry.ensure_storage(
@@ -271,6 +279,12 @@ class MacOSBackendContext:
             ok=self.ok,
         )
 
+    def sudo_auth(self, _args: argparse.Namespace) -> None:
+        skuld_sudo.sudo_auth(run=self.run, ok=self.ok)
+
+    def sudo_forget(self, _args: argparse.Namespace) -> None:
+        skuld_sudo.sudo_forget(run=self.run, ok=self.ok)
+
     def sudo_run_command(self, args: argparse.Namespace) -> None:
         skuld_sudo.sudo_run_command(
             args,
@@ -287,7 +301,11 @@ class MacOSBackendContext:
         rows: List[Dict[str, object]],
         max_width: Optional[int] = None,
     ) -> Tuple[List[str], List[List[str]]]:
-        return tables.fit_service_table(rows, max_width=max_width)
+        return tables.fit_service_table(
+            rows,
+            max_width=max_width,
+            columns=self.service_table_columns,
+        )
 
     def current_user_home(self) -> Path:
         return macos_paths.current_user_home()

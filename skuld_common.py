@@ -110,10 +110,10 @@ def run_sudo_command(
     capture: bool = False,
 ) -> subprocess.CompletedProcess:
     observability.debug("run_sudo", capture=capture, check=check, password_set=bool(sudo_password), cmd=" ".join(shlex.quote(item) for item in cmd))
-    full = ["sudo"] + list(cmd)
     if sudo_password:
         full = ["sudo", "-S", "-k", "-p", ""] + list(cmd)
         return run_command(full, check=check, capture=capture, input_text=sudo_password + "\n")
+    full = ["sudo", "-n"] + list(cmd)
     return run_command(full, check=check, capture=capture)
 
 

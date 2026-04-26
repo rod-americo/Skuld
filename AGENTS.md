@@ -173,10 +173,10 @@ inside the existing files until a tested extraction is justified.
     subprocess wrappers, and sudo env lookup.
   - `skuld_observability.py` owns opt-in redacted debug output.
   - `skuld_registry.py` owns generic registry load/save/upsert/remove mechanics.
-  - `skuld_sudo.py` owns shared CLI orchestration for `sudo check` and
-    `sudo run`.
+  - `skuld_sudo.py` owns shared CLI orchestration for `sudo check`,
+    `sudo auth`, `sudo forget`, and `sudo run`.
   - `skuld_tables.py` owns shared service-table column policy, fitting,
-    sorting, and host-panel rendering helpers.
+    column selection, sorting, and host-panel rendering helpers.
 - Interface:
   - CLI arguments, help text, stdout/stderr output, table rendering
 
@@ -232,6 +232,8 @@ files are large; avoid making them larger through unrelated refactors.
 - Do not version `.env`, runtime state, generated logs, pycache, service
   registries, local stats files, dumps, or local config overrides.
 - Warn users when `.env` or `SKULD_SUDO_PASSWORD` sudo support is involved.
+- Prefer `skuld sudo auth` and the native sudo timestamp over storing a sudo
+  password.
 - Prefer portable documentation paths such as `./skuld`, `$HOME`, and `$(pwd)`.
 - Avoid machine-specific absolute paths unless a user explicitly asks for them.
 
@@ -300,7 +302,8 @@ SSH.
 - Linux journal and port inspection can require permissions that vary by host.
 - macOS logs are only reliable for jobs with compatible Skuld-managed log paths
   or launchd plists that declare `StandardOutPath`/`StandardErrorPath`.
-- `SKULD_SUDO_PASSWORD` support is convenient but sensitive.
+- `SKULD_SUDO_PASSWORD` support is convenient but sensitive; the preferred path
+  is `skuld sudo auth` plus native sudo timestamp caching.
 - The unit suite fakes service-manager commands; live backend smokes still need
   disposable services and explicit operator intent.
 
