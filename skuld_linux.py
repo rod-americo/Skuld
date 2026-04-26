@@ -568,17 +568,14 @@ def parse_bool(value: str, default: bool = True) -> bool:
 
 
 def _render_services_table(compact: bool, sort_by: str = "name") -> None:
-    require_systemctl()
-    services = list(load_registry())
-    if not services:
-        render_discoverable_services_hint()
-        return
-
-    gpu_memory_by_pid = read_gpu_memory_by_pid()
-    print()
-    render_host_panel()
-    rows = linux_view.build_service_rows(
-        services,
+    linux_view.render_services_table(
+        compact=compact,
+        sort_by=sort_by,
+        require_systemctl=require_systemctl,
+        load_registry=load_registry,
+        render_discoverable_services_hint=render_discoverable_services_hint,
+        read_gpu_memory_by_pid=read_gpu_memory_by_pid,
+        render_host_panel=render_host_panel,
         unit_exists=unit_exists,
         unit_active=unit_active,
         display_unit_state=display_unit_state,
@@ -586,12 +583,10 @@ def _render_services_table(compact: bool, sort_by: str = "name") -> None:
         read_unit_usage=read_unit_usage,
         timer_triggers_for_display=timer_triggers_for_display,
         read_unit_ports=read_unit_ports,
-        gpu_memory_by_pid=gpu_memory_by_pid,
+        sort_service_rows=tables.sort_service_rows,
+        fit_service_table=fit_service_table,
+        render_table=render_table,
     )
-    ordered_rows = tables.sort_service_rows(rows, sort_by)
-    headers, fitted_rows = fit_service_table(ordered_rows)
-    render_table(headers, fitted_rows)
-    print()
 
 
 def list_services(args: argparse.Namespace) -> None:

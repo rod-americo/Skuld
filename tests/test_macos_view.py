@@ -75,6 +75,67 @@ class MacosViewTest(unittest.TestCase):
             ],
         )
 
+    def test_render_services_table_shows_catalog_hint_when_registry_is_empty(self) -> None:
+        calls: list[str] = []
+
+        view.render_services_table(
+            compact=True,
+            sort_by="name",
+            load_registry=lambda: [],
+            render_discoverable_services_hint=lambda: calls.append("hint"),
+            render_host_panel=lambda: calls.append("host"),
+            read_event_stats=lambda _service: {},
+            read_pid=lambda _service: 0,
+            read_cpu_memory=lambda _pid: {"cpu": "-", "memory": "-"},
+            service_loaded=lambda _service: False,
+            colorize=colorize,
+            humanize_schedule_for_display=lambda _schedule, _persistent: "-",
+            read_ports=lambda _pid: "-",
+            sort_service_rows=lambda rows, _sort_by: rows,
+            fit_service_table=lambda rows: (["id"], [[str(row["id"])] for row in rows]),
+            render_table=lambda _headers, _rows: calls.append("table"),
+            emit_blank=lambda: calls.append("blank"),
+        )
+
+        self.assertEqual(calls, ["hint"])
+
+    def test_render_services_table_renders_rows_through_table_pipeline(self) -> None:
+        service = types.SimpleNamespace(
+            id=2,
+            name="com.example.worker",
+            display_name="worker",
+            schedule="",
+            timer_persistent=True,
+        )
+        calls: list[str] = []
+
+        view.render_services_table(
+            compact=False,
+            sort_by="id",
+            load_registry=lambda: [service],
+            render_discoverable_services_hint=lambda: calls.append("hint"),
+            render_host_panel=lambda: calls.append("host"),
+            read_event_stats=lambda _service: {},
+            read_pid=lambda _service: 42,
+            read_cpu_memory=lambda _pid: {"cpu": "1ms", "memory": "1MB"},
+            service_loaded=lambda _service: True,
+            colorize=colorize,
+            humanize_schedule_for_display=lambda _schedule, _persistent: "-",
+            read_ports=lambda _pid: "-",
+            sort_service_rows=lambda rows, sort_by: calls.append(f"sort:{sort_by}") or rows,
+            fit_service_table=lambda rows: (["id", "name"], [[str(row["id"]), str(row["name"])] for row in rows]),
+            render_table=lambda headers, rows: calls.append(f"table:{headers}:{rows}"),
+            emit_blank=lambda: calls.append("blank"),
+        )
+
+        self.assertEqual(calls, [
+            "blank",
+            "host",
+            "sort:id",
+            "table:['id', 'name']:[['2', 'worker']]",
+            "blank",
+        ])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -66,6 +66,66 @@ class LinuxViewTest(unittest.TestCase):
             ],
         )
 
+    def test_render_services_table_shows_catalog_hint_when_registry_is_empty(self) -> None:
+        calls: list[str] = []
+
+        view.render_services_table(
+            compact=True,
+            sort_by="name",
+            require_systemctl=lambda: calls.append("require"),
+            load_registry=lambda: [],
+            render_discoverable_services_hint=lambda: calls.append("hint"),
+            read_gpu_memory_by_pid=lambda: {},
+            render_host_panel=lambda: calls.append("host"),
+            unit_exists=lambda *_args, **_kwargs: False,
+            unit_active=lambda *_args, **_kwargs: "inactive",
+            display_unit_state=lambda value: value,
+            colorize=colorize,
+            read_unit_usage=lambda *_args, **_kwargs: {"cpu": "-", "memory": "-"},
+            timer_triggers_for_display=lambda _service: "-",
+            read_unit_ports=lambda *_args, **_kwargs: "-",
+            sort_service_rows=lambda rows, _sort_by: rows,
+            fit_service_table=lambda rows: (["id"], [[str(row["id"])] for row in rows]),
+            render_table=lambda _headers, _rows: calls.append("table"),
+            emit_blank=lambda: calls.append("blank"),
+        )
+
+        self.assertEqual(calls, ["require", "hint"])
+
+    def test_render_services_table_renders_rows_through_table_pipeline(self) -> None:
+        service = types.SimpleNamespace(id=2, name="api", display_name="api", scope="user")
+        calls: list[str] = []
+
+        view.render_services_table(
+            compact=False,
+            sort_by="id",
+            require_systemctl=lambda: calls.append("require"),
+            load_registry=lambda: [service],
+            render_discoverable_services_hint=lambda: calls.append("hint"),
+            read_gpu_memory_by_pid=lambda: {123: 1},
+            render_host_panel=lambda: calls.append("host"),
+            unit_exists=lambda unit, scope="system": unit == "api.service",
+            unit_active=lambda _unit, scope="system": "active",
+            display_unit_state=lambda value: value,
+            colorize=colorize,
+            read_unit_usage=lambda *_args, **_kwargs: {"cpu": "1ms", "memory": "1MB"},
+            timer_triggers_for_display=lambda _service: "-",
+            read_unit_ports=lambda *_args, **_kwargs: "-",
+            sort_service_rows=lambda rows, sort_by: calls.append(f"sort:{sort_by}") or rows,
+            fit_service_table=lambda rows: (["id", "name"], [[str(row["id"]), str(row["name"])] for row in rows]),
+            render_table=lambda headers, rows: calls.append(f"table:{headers}:{rows}"),
+            emit_blank=lambda: calls.append("blank"),
+        )
+
+        self.assertEqual(calls, [
+            "require",
+            "blank",
+            "host",
+            "sort:id",
+            "table:['id', 'name']:[['2', 'api']]",
+            "blank",
+        ])
+
 
 if __name__ == "__main__":
     unittest.main()

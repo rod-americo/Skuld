@@ -172,11 +172,12 @@ points at `skuld_entrypoint:main`.
 - ambiguity errors for unit names tracked in more than one systemd scope.
 - multi-target de-duplication for commands that accept many services.
 
-`skuld_linux_view.py` owns Linux table row assembly:
+`skuld_linux_view.py` owns Linux table rendering flow:
 
 - service and timer state display mapping.
 - row construction from backend callbacks for service state, usage, triggers,
   and ports.
+- compact table rendering orchestration after the backend injects callbacks.
 
 ### 4.3 macOS Backend
 
@@ -281,11 +282,12 @@ points at `skuld_entrypoint:main`.
 - discoverable catalog resolution by index or label.
 - multi-target de-duplication for commands that accept many services.
 
-`skuld_macos_view.py` owns macOS table row assembly:
+`skuld_macos_view.py` owns macOS table rendering flow:
 
 - service and timer state display mapping.
 - row construction from backend callbacks for event stats, PID, usage,
   schedules, and ports.
+- compact table rendering orchestration after the backend injects callbacks.
 
 ### 4.4 Operational Scripts
 
@@ -348,8 +350,8 @@ the parser modules do not import backend state or host adapters.
   `skuld_linux.py`.
 - `skuld_linux_targets.py` provides Linux target-resolution helpers used by
   `skuld_linux.py`.
-- `skuld_linux_view.py` provides Linux service-table row assembly helpers used
-  by `skuld_linux.py`.
+- `skuld_linux_view.py` provides Linux service-table flow and row assembly
+  helpers used by `skuld_linux.py`.
 - `skuld_macos_launchd.py` provides the macOS `launchd` adapter used by
   `skuld_macos.py`.
 - `skuld_macos_actions.py` provides macOS host-mutating lifecycle and exec
@@ -378,8 +380,8 @@ the parser modules do not import backend state or host adapters.
   `skuld_macos.py`.
 - `skuld_macos_targets.py` provides macOS target-resolution helpers used by
   `skuld_macos.py`.
-- `skuld_macos_view.py` provides macOS service-table row assembly helpers used
-  by `skuld_macos.py`.
+- `skuld_macos_view.py` provides macOS service-table flow and row assembly
+  helpers used by `skuld_macos.py`.
 - `skuld_observability.py` provides opt-in redacted debug output controlled by
   `SKULD_DEBUG`.
 - `skuld_registry.py` provides generic registry storage mechanics while leaving

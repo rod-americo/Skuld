@@ -1031,6 +1031,41 @@ and callback injection continue to patch backend-level functions.
 - Removing backend wrappers and requiring callers to patch the new modules
   directly.
 
+## 2026-04-26 - Move Service Table Flow Into View Modules
+
+**Context**
+
+Linux and macOS row assembly already lived in `skuld_linux_view.py` and
+`skuld_macos_view.py`, but the backend files still owned the table rendering
+flow: empty-registry hinting, host panel rendering, row sorting, table fitting,
+and final table output.
+
+**Decision**
+
+Move service-table rendering flow into the existing backend-specific view
+modules. Keep backend wrappers that inject registry, host, service-manager, and
+table callbacks.
+
+**Impact**
+
+- Table flow has focused tests for both empty registries and populated
+  registries.
+- Backend files no longer own compact table orchestration.
+- View modules now own both row assembly and the table pipeline they feed.
+
+**Tradeoff**
+
+- The view modules still receive many callbacks because host operations remain
+  backend-specific and patchable.
+- The `compact` flag remains accepted by the flow even though current table
+  rendering does not branch on it.
+
+**Alternatives rejected**
+
+- Moving table flow into `skuld_tables.py`, which would mix generic table
+  fitting with backend-specific service state reads.
+- Removing backend wrappers and changing `list_services_compact()` callers.
+
 ## 2026-04-26 - Extract macOS Service Table Row Assembly
 
 **Context**

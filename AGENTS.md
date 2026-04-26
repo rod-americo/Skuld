@@ -123,8 +123,8 @@ inside the existing files until a tested extraction is justified.
     directive parsing, duration formatting, and schedule humanization.
   - `skuld_linux_targets.py` owns Linux target-resolution rules for display
     names, IDs, scoped unit names, and multi-target de-duplication.
-  - `skuld_linux_view.py` owns Linux service-table row assembly and state
-    display mapping.
+  - `skuld_linux_view.py` owns Linux service-table flow, row assembly, and
+    state display mapping.
   - `skuld_macos_launchd.py` owns macOS `launchd` command construction,
     domain/target formatting, launchctl parsing, and low-level launchctl
     execution.
@@ -155,8 +155,8 @@ inside the existing files until a tested extraction is justified.
     options, compatibility aliases, and handler registration.
   - `skuld_macos_commands.py` owns extracted macOS registry and read-only
     command orchestration.
-  - `skuld_macos_view.py` owns macOS service-table row assembly and state
-    display mapping.
+  - `skuld_macos_view.py` owns macOS service-table flow, row assembly, and
+    state display mapping.
   - `skuld_common.py` owns IO-agnostic CLI helpers, formatting, table fitting,
     subprocess wrappers, and sudo env lookup.
   - `skuld_observability.py` owns opt-in redacted debug output.

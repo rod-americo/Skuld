@@ -85,3 +85,51 @@ def build_service_rows(
             }
         )
     return rows
+
+
+def render_services_table(
+    *,
+    compact: bool,
+    sort_by: str,
+    require_systemctl: Callable[[], None],
+    load_registry: Callable[[], List[object]],
+    render_discoverable_services_hint: Callable[[], None],
+    read_gpu_memory_by_pid: Callable[[], Optional[Dict[int, int]]],
+    render_host_panel: Callable[[], None],
+    unit_exists: Callable[..., bool],
+    unit_active: Callable[..., str],
+    display_unit_state: Callable[[str], str],
+    colorize: Callable[[str, str], str],
+    read_unit_usage: Callable[..., Dict[str, str]],
+    timer_triggers_for_display: Callable[[object], str],
+    read_unit_ports: Callable[..., str],
+    sort_service_rows: Callable[[List[Dict[str, object]], str], List[Dict[str, object]]],
+    fit_service_table: Callable[[List[Dict[str, object]]], tuple[List[str], List[List[str]]]],
+    render_table: Callable[[List[str], List[List[str]]], None],
+    emit_blank: Callable[[], None] = print,
+) -> None:
+    del compact
+    require_systemctl()
+    services = list(load_registry())
+    if not services:
+        render_discoverable_services_hint()
+        return
+
+    gpu_memory_by_pid = read_gpu_memory_by_pid()
+    emit_blank()
+    render_host_panel()
+    rows = build_service_rows(
+        services,
+        unit_exists=unit_exists,
+        unit_active=unit_active,
+        display_unit_state=display_unit_state,
+        colorize=colorize,
+        read_unit_usage=read_unit_usage,
+        timer_triggers_for_display=timer_triggers_for_display,
+        read_unit_ports=read_unit_ports,
+        gpu_memory_by_pid=gpu_memory_by_pid,
+    )
+    ordered_rows = sort_service_rows(rows, sort_by)
+    headers, fitted_rows = fit_service_table(ordered_rows)
+    render_table(headers, fitted_rows)
+    emit_blank()

@@ -617,14 +617,12 @@ def render_host_panel() -> None:
 
 
 def _render_services_table(compact: bool, sort_by: str = "name") -> None:
-    services = list(load_registry())
-    if not services:
-        render_discoverable_services_hint()
-        return
-    print()
-    render_host_panel()
-    rows = macos_view.build_service_rows(
-        services,
+    macos_view.render_services_table(
+        compact=compact,
+        sort_by=sort_by,
+        load_registry=load_registry,
+        render_discoverable_services_hint=render_discoverable_services_hint,
+        render_host_panel=render_host_panel,
         read_event_stats=read_event_stats,
         read_pid=read_pid,
         read_cpu_memory=read_cpu_memory,
@@ -632,11 +630,10 @@ def _render_services_table(compact: bool, sort_by: str = "name") -> None:
         colorize=colorize,
         humanize_schedule_for_display=schedules.humanize_schedule_for_display,
         read_ports=read_ports,
+        sort_service_rows=tables.sort_service_rows,
+        fit_service_table=fit_service_table,
+        render_table=render_table,
     )
-    ordered_rows = tables.sort_service_rows(rows, sort_by)
-    headers, fitted_rows = fit_service_table(ordered_rows)
-    render_table(headers, fitted_rows)
-    print()
 
 
 def list_services(args: argparse.Namespace) -> None:

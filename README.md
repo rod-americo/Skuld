@@ -95,7 +95,7 @@ Internal modules:
 | `skuld_linux_stats.py` | Linux host overview, unit usage, process/PID inspection, GPU parsing, and listening-port inspection. |
 | `skuld_linux_timers.py` | Linux timer metadata reads, directive parsing, and display formatting. |
 | `skuld_linux_targets.py` | Linux target-resolution rules for display names, IDs, scoped names, and multi-target de-duplication. |
-| `skuld_linux_view.py` | Linux service-table row assembly and state display mapping. |
+| `skuld_linux_view.py` | Linux service-table flow, row assembly, and state display mapping. |
 | `skuld_macos.py` | macOS registry schema, command wrappers, backend callback wiring, stats, logs, and table state. |
 | `skuld_macos_actions.py` | macOS host-mutating launchd action orchestration for start, stop, restart, and exec. |
 | `skuld_macos_catalog.py` | macOS launchd catalog discovery, rendering, and track orchestration. |
@@ -111,7 +111,7 @@ Internal modules:
 | `skuld_macos_schedules.py` | macOS schedule parsing, trigger formatting, and next-run display. |
 | `skuld_macos_sync.py` | macOS registry backfill from live launchd plist metadata. |
 | `skuld_macos_targets.py` | macOS target-resolution rules for labels, display names, IDs, catalog entries, and multi-target de-duplication. |
-| `skuld_macos_view.py` | macOS service-table row assembly and state display mapping. |
+| `skuld_macos_view.py` | macOS service-table flow, row assembly, and state display mapping. |
 | `skuld_tables.py` | Shared service-table column policy, fitting, sorting, and host-panel helpers. |
 
 ## Quick Start

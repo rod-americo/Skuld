@@ -90,7 +90,8 @@ is not a greenfield scaffold checklist.
 - [x] Extract Linux systemd timer metadata reads and formatting into
   `skuld_linux_timers.py`.
 - [x] Extract Linux target-resolution rules into `skuld_linux_targets.py`.
-- [x] Extract Linux service-table row assembly into `skuld_linux_view.py`.
+- [x] Extract Linux service-table rendering flow and row assembly into
+  `skuld_linux_view.py`.
 - [x] Extract Linux detail-view formatting into `skuld_linux_presenters.py`.
 - [x] Extract Linux registry and detail command helpers into
   `skuld_linux_commands.py`.
@@ -115,7 +116,8 @@ is not a greenfield scaffold checklist.
 - [x] Extract macOS schedule parsing and display formatting into
   `skuld_macos_schedules.py`.
 - [x] Extract macOS target-resolution rules into `skuld_macos_targets.py`.
-- [x] Extract macOS service-table row assembly into `skuld_macos_view.py`.
+- [x] Extract macOS service-table rendering flow and row assembly into
+  `skuld_macos_view.py`.
 - [x] Extract macOS detail-view formatting into `skuld_macos_presenters.py`.
 - [x] Extract macOS registry and detail command helpers into
   `skuld_macos_commands.py`.
