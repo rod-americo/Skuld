@@ -894,27 +894,14 @@ def doctor(_args: argparse.Namespace) -> None:
     if not services:
         render_discoverable_services_hint()
         return
-    issues = 0
-    for service in services:
-        prefix = f"[{service.display_name}|{service.name}]"
-        plist_path = plist_path_for_service(service)
-        if not plist_path.exists():
-            print(f"{prefix} ERROR missing plist ({plist_path})")
-            issues += 1
-        else:
-            print(f"{prefix} plist=ok")
-        if service.managed_by_skuld and not wrapper_script_for_service(service.name, service.scope).exists():
-            print(f"{prefix} ERROR missing wrapper script")
-            issues += 1
-        loaded = service_loaded(service)
-        print(f"{prefix} loaded={'yes' if loaded else 'no'}")
-        if service.scope == "agent" and service.user:
-            print(f"{prefix} ERROR agent scope cannot store user")
-            issues += 1
-    if issues == 0:
-        ok("doctor: no issues found.")
-    else:
-        err(f"doctor: found {issues} issue(s).")
+    macos_commands.doctor_services(
+        services,
+        plist_path_for_service=plist_path_for_service,
+        wrapper_script_for_service=wrapper_script_for_service,
+        service_loaded=service_loaded,
+        ok=ok,
+        err=err,
+    )
 
 def rename(args: argparse.Namespace) -> None:
     service = resolve_managed_arg(args)

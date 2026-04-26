@@ -94,7 +94,8 @@ intent.
 - Moved macOS target-resolution rules into `skuld_macos_targets.py`.
 - Moved selected Linux and macOS detail-view line formatting into
   `skuld_linux_presenters.py` and `skuld_macos_presenters.py`.
-- Moved Linux and macOS registry-only `rename`/`untrack` helpers into
+- Moved Linux and macOS registry-only `rename`/`untrack` helpers and `doctor`
+  orchestration into
   `skuld_linux_commands.py` and `skuld_macos_commands.py`.
 - Changed macOS live smoke cleanup to boot out the disposable LaunchAgent by
   service target before falling back to the plist path.

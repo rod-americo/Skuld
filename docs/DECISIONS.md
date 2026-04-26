@@ -596,28 +596,31 @@ side effects in the backend modules.
 
 **Context**
 
-`rename` and `untrack` are registry-only command paths, but their service
-object reconstruction and registry removal logic still lived inline in the
-backend files next to service-manager operations.
+`rename` and `untrack` are registry-only command paths, and `doctor` is a
+read-only operational check. Their object reconstruction, registry removal, and
+diagnostic orchestration still lived inline in the backend files next to
+service-manager operations.
 
 **Decision**
 
-Move Linux and macOS registry-only command helpers into
-`skuld_linux_commands.py` and `skuld_macos_commands.py`. Keep argument parsing,
-target resolution, and user-visible command registration in the backend modules.
+Move Linux and macOS registry-only command helpers plus `doctor` orchestration
+into `skuld_linux_commands.py` and `skuld_macos_commands.py`. Keep argument
+parsing, target resolution, and user-visible command registration in the
+backend modules.
 
 **Impact**
 
 - Registry mutation behavior has focused unit tests.
-- The backend command handlers for `rename` and `untrack` are smaller.
+- The backend command handlers for `rename`, `untrack`, and `doctor` are
+  smaller.
 - The packaged console entrypoint and Linux remote smoke payload include the new
   command modules.
 
 **Tradeoff**
 
 - Service-manager mutating commands such as start, stop, restart, exec, track,
-  sync, and doctor remain backend-local because they need narrower extraction
-  and live-smoke coverage.
+  and sync remain backend-local because they need narrower extraction and
+  live-smoke coverage.
 
 **Alternatives rejected**
 

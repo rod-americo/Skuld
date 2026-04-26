@@ -75,6 +75,35 @@ class LinuxCommandsTest(unittest.TestCase):
         self.assertEqual(removed, [("api", "user")])
         self.assertEqual(messages, ["Removed 'api' from the skuld registry."])
 
+    def test_doctor_reports_missing_expected_timer(self) -> None:
+        output = []
+        errors = []
+
+        def unit_exists(unit: str, scope: str = "system") -> bool:
+            return unit == "api.service"
+
+        issues = commands.doctor_services(
+            [service()],
+            unit_exists=unit_exists,
+            unit_active=lambda unit, scope="system": "active",
+            display_unit_state=lambda state: state,
+            read_timer_schedule=lambda name, scope="system": "",
+            systemctl_cat=lambda unit, scope="system": "ExecStart=/bin/api\n",
+            parse_unit_directives=lambda text: {"ExecStart": "/bin/api"},
+            format_scoped_name=lambda name, scope: f"{scope}:{name}",
+            ok=output.append,
+            err=errors.append,
+            emit=output.append,
+        )
+
+        self.assertEqual(issues, 1)
+        self.assertIn("[api|user:api] service=active", output)
+        self.assertIn(
+            "[api|user:api] ERROR expected timer is missing (api.timer)",
+            output,
+        )
+        self.assertEqual(errors, ["doctor: found 1 issue(s)."])
+
 
 if __name__ == "__main__":
     unittest.main()

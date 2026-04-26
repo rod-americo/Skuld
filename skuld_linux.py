@@ -1151,46 +1151,18 @@ def doctor(_args: argparse.Namespace) -> None:
     if not services:
         print("No services tracked by skuld.")
         return
-
-    issues = 0
-    for svc in services:
-        service_unit = f"{svc.name}.service"
-        timer_unit = f"{svc.name}.timer"
-        line_prefix = f"[{svc.display_name}|{format_scoped_name(svc.name, svc.scope)}]"
-
-        if not unit_exists(service_unit, scope=svc.scope):
-            print(f"{line_prefix} ERROR missing service unit ({service_unit})")
-            issues += 1
-        else:
-            st = unit_active(service_unit, scope=svc.scope)
-            print(f"{line_prefix} service={display_unit_state(st)}")
-
-        has_timer = bool(svc.schedule)
-        runtime_schedule = read_timer_schedule(svc.name, scope=svc.scope)
-        if not has_timer and runtime_schedule:
-            print(
-                f"{line_prefix} WARN registry schedule is empty, "
-                f"but timer OnCalendar is '{runtime_schedule}'"
-            )
-            issues += 1
-        if has_timer and not unit_exists(timer_unit, scope=svc.scope):
-            print(f"{line_prefix} ERROR expected timer is missing ({timer_unit})")
-            issues += 1
-        if (not has_timer) and unit_exists(timer_unit, scope=svc.scope):
-            print(f"{line_prefix} WARN timer exists, but registry has no schedule")
-            issues += 1
-
-        if unit_exists(service_unit, scope=svc.scope):
-            cat = parse_unit_directives(systemctl_cat(service_unit, scope=svc.scope))
-            current_exec = cat.get("ExecStart", "")
-            if svc.exec_cmd and svc.exec_cmd not in current_exec:
-                print(f"{line_prefix} WARN ExecStart differs from registry")
-                issues += 1
-
-    if issues == 0:
-        ok("doctor: no issues found.")
-    else:
-        err(f"doctor: found {issues} issue(s).")
+    linux_commands.doctor_services(
+        services,
+        unit_exists=unit_exists,
+        unit_active=unit_active,
+        display_unit_state=display_unit_state,
+        read_timer_schedule=read_timer_schedule,
+        systemctl_cat=systemctl_cat,
+        parse_unit_directives=parse_unit_directives,
+        format_scoped_name=format_scoped_name,
+        ok=ok,
+        err=err,
+    )
 
 
 def describe(args: argparse.Namespace) -> None:

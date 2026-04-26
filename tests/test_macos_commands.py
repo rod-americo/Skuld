@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import types
 import unittest
+from pathlib import Path
 
 import skuld_macos_commands as commands
 
@@ -82,6 +83,31 @@ class MacosCommandsTest(unittest.TestCase):
 
         self.assertEqual(removed, ["com.example.worker"])
         self.assertEqual(messages, ["Removed 'worker' from the skuld registry."])
+
+    def test_doctor_reports_missing_plist_and_wrapper(self) -> None:
+        output = []
+        errors = []
+
+        item = service()
+        item.managed_by_skuld = True
+
+        issues = commands.doctor_services(
+            [item],
+            plist_path_for_service=lambda service: Path("/tmp/missing.plist"),
+            wrapper_script_for_service=lambda name, scope: Path("/tmp/missing-wrapper"),
+            service_loaded=lambda service: False,
+            ok=output.append,
+            err=errors.append,
+            emit=output.append,
+        )
+
+        self.assertEqual(issues, 2)
+        self.assertIn(
+            "[worker|com.example.worker] ERROR missing plist (/tmp/missing.plist)",
+            output,
+        )
+        self.assertIn("[worker|com.example.worker] loaded=no", output)
+        self.assertEqual(errors, ["doctor: found 2 issue(s)."])
 
 
 if __name__ == "__main__":
