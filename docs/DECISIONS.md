@@ -529,6 +529,38 @@ the view module does not import `skuld_linux.py`.
 - Moving Linux and macOS row assembly together in one change.
 - Letting `skuld_linux_view.py` import the backend module directly.
 
+## 2026-04-26 - Extract Linux Target Resolution
+
+**Context**
+
+Linux target resolution still lived inline in `skuld_linux.py`, mixing backend
+command flow with display-name lookup, numeric ID lookup, scoped unit-name
+lookup, ambiguity errors, and multi-target de-duplication.
+
+**Decision**
+
+Move Linux target-resolution rules into `skuld_linux_targets.py`. Keep actual
+registry reads and Linux-specific normalization in `skuld_linux.py` and pass
+them into the target module as callbacks.
+
+**Impact**
+
+- Linux target resolution has focused unit tests.
+- `skuld_linux.py` is smaller and delegates selection rules to a named module.
+- Remote Linux smoke packaging includes the new target module.
+
+**Tradeoff**
+
+- `skuld_linux.py` still exposes wrapper functions so existing command handlers
+  do not need a broad rewrite.
+- macOS target resolution remains backend-local until a separate extraction.
+
+**Alternatives rejected**
+
+- Creating a cross-platform target module now. Linux and macOS identifiers have
+  different scope semantics, so a shared abstraction would add risk before both
+  sides have independent tests.
+
 ## 2026-04-26 - Extract macOS Service Table Row Assembly
 
 **Context**

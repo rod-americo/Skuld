@@ -106,6 +106,7 @@ if [[ -n "$HOST" ]]; then
     skuld_linux_systemd.py \
     skuld_linux_stats.py \
     skuld_linux_timers.py \
+    skuld_linux_targets.py \
     skuld_linux_view.py \
     skuld_macos_launchd.py \
     skuld_observability.py \

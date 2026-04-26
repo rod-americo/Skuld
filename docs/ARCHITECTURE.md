@@ -115,6 +115,12 @@ points at `skuld_entrypoint:main`.
 - systemd duration compaction and humanization.
 - `OnCalendar` summary formatting for compact service tables.
 
+`skuld_linux_targets.py` owns Linux target resolution:
+
+- display name, numeric ID, and scoped unit-name resolution.
+- ambiguity errors for unit names tracked in more than one systemd scope.
+- multi-target de-duplication for commands that accept many services.
+
 `skuld_linux_view.py` owns Linux table row assembly:
 
 - service and timer state display mapping.
@@ -208,6 +214,8 @@ registration because their command options and operational adapters differ.
 - `skuld_linux_stats.py` provides Linux host overview, unit usage, process/PID,
   GPU, and port inspection helpers used by `skuld_linux.py`.
 - `skuld_linux_timers.py` provides Linux timer display helpers used by
+  `skuld_linux.py`.
+- `skuld_linux_targets.py` provides Linux target-resolution helpers used by
   `skuld_linux.py`.
 - `skuld_linux_view.py` provides Linux service-table row assembly helpers used
   by `skuld_linux.py`.
@@ -330,13 +338,13 @@ Host-local configuration:
 ## 10. Hotspots And Technical Debt
 
 - The Linux and macOS files still contain large backend-specific command
-  handlers, though Linux runtime/service-manager/stats/timer/view and macOS
-  launchd/process/runtime/schedule/view responsibilities plus shared table
-  policy have been extracted.
+  handlers, though Linux runtime/service-manager/stats/timer/target/view and
+  macOS launchd/process/runtime/schedule/view responsibilities plus shared
+  table policy have been extracted.
 - There is still no formal registry migration framework; canonicalization is
   tied to explicit mutating commands.
-- Target resolution and CLI presentation are still tightly coupled in each
-  backend.
+- macOS target resolution and some CLI presentation are still tightly coupled in
+  the backend.
 - Live service operation is high-impact. Disposable smoke scripts now exercise
   real launchd and `systemd --user` paths, but they are still host-dependent
   checks rather than a full compatibility matrix.

@@ -17,6 +17,7 @@ class PackagingMetadataTest(unittest.TestCase):
         self.assertIn('"skuld_entrypoint"', text)
         self.assertIn('"skuld_linux"', text)
         self.assertIn('"skuld_linux_runtime"', text)
+        self.assertIn('"skuld_linux_targets"', text)
         self.assertIn('"skuld_linux_view"', text)
         self.assertIn('"skuld_macos"', text)
         self.assertIn('"skuld_macos_runtime"', text)

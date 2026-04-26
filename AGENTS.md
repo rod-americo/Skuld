@@ -24,7 +24,7 @@ Before significant changes, read these files in order:
    `skuld_macos.py`, or `./skuld`
 8. Shared helpers when relevant: `skuld_cli.py`, `skuld_common.py`,
    `skuld_linux_runtime.py`, `skuld_linux_systemd.py`, `skuld_linux_stats.py`,
-   `skuld_linux_timers.py`, `skuld_linux_view.py`,
+   `skuld_linux_timers.py`, `skuld_linux_targets.py`, `skuld_linux_view.py`,
    `skuld_macos_launchd.py`, `skuld_macos_processes.py`,
    `skuld_macos_runtime.py`, `skuld_macos_schedules.py`,
    `skuld_macos_view.py`,
@@ -86,6 +86,8 @@ inside the existing files until a tested extraction is justified.
     inspection, GPU memory parsing, and listening-port inspection.
   - `skuld_linux_timers.py` owns Linux systemd timer directive parsing,
     duration formatting, and schedule humanization.
+  - `skuld_linux_targets.py` owns Linux target-resolution rules for display
+    names, IDs, scoped unit names, and multi-target de-duplication.
   - `skuld_linux_view.py` owns Linux service-table row assembly and state
     display mapping.
   - `skuld_macos_launchd.py` owns macOS `launchd` command construction,
@@ -168,7 +170,7 @@ files are large; avoid making them larger through unrelated refactors.
 Run this before finalizing repository-wide structural or operational changes:
 
 ```bash
-python3 -m py_compile ./skuld ./skuld_entrypoint.py ./skuld_cli.py ./skuld_common.py ./skuld_linux_runtime.py ./skuld_linux_systemd.py ./skuld_linux_stats.py ./skuld_linux_timers.py ./skuld_linux_view.py ./skuld_macos_launchd.py ./skuld_macos_processes.py ./skuld_macos_runtime.py ./skuld_macos_schedules.py ./skuld_macos_view.py ./skuld_observability.py ./skuld_registry.py ./skuld_tables.py ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py
+python3 -m py_compile ./skuld ./skuld_entrypoint.py ./skuld_cli.py ./skuld_common.py ./skuld_linux_runtime.py ./skuld_linux_systemd.py ./skuld_linux_stats.py ./skuld_linux_timers.py ./skuld_linux_targets.py ./skuld_linux_view.py ./skuld_macos_launchd.py ./skuld_macos_processes.py ./skuld_macos_runtime.py ./skuld_macos_schedules.py ./skuld_macos_view.py ./skuld_observability.py ./skuld_registry.py ./skuld_tables.py ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py
 python3 -m unittest discover -s tests
 ./skuld --help
 python3 scripts/check_project_gate.py

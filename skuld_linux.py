@@ -13,6 +13,7 @@ import skuld_cli
 import skuld_linux_runtime as linux_runtime
 import skuld_linux_stats as linux_stats
 import skuld_linux_systemd as systemd
+import skuld_linux_targets as linux_targets
 import skuld_linux_timers as timers
 import skuld_linux_view as linux_view
 import skuld_tables as tables
@@ -253,13 +254,12 @@ def validate_name(name: str) -> None:
 
 
 def ensure_display_name_available(display_name: str, current_id: Optional[int] = None) -> None:
-    validate_name(display_name)
-    for svc in load_registry():
-        if svc.display_name != display_name:
-            continue
-        if current_id is not None and svc.id == current_id:
-            return
-        raise RuntimeError(f"Display name '{display_name}' is already in use.")
+    linux_targets.ensure_display_name_available(
+        display_name,
+        current_id=current_id,
+        validate_name=validate_name,
+        load_registry=load_registry,
+    )
 
 
 def normalize_service_name(value: str) -> str:
@@ -298,98 +298,36 @@ def prompt_display_name(target: str, suggested: str) -> str:
 
 
 def resolve_name_arg(args: argparse.Namespace, required: bool = True) -> Optional[str]:
-    positional = getattr(args, "name", None)
-    flag_value = getattr(args, "name_flag", None)
-    if positional and flag_value and positional != flag_value:
-        raise RuntimeError(f"Conflicting names provided: positional='{positional}' and --name='{flag_value}'.")
-    name = flag_value or positional
-    if required and not name:
-        raise RuntimeError("Service name is required. Use NAME or --name NAME.")
-    return name
+    return linux_targets.resolve_name_arg(args, required=required)
 
 
 def resolve_managed_from_token(token: str) -> Optional[ManagedService]:
-    raw_token = (token or "").strip()
-    svc = get_managed_by_display_name(raw_token)
-    if svc:
-        return svc
-    if raw_token.isdigit():
-        return get_managed_by_id(int(raw_token))
-    scope, name = normalize_target_token(raw_token)
-    if scope is not None:
-        return get_managed(name, scope=scope)
-    matches = find_managed_by_name(name)
-    if len(matches) == 1:
-        return matches[0]
-    if len(matches) > 1:
-        choices = ", ".join(format_scoped_name(item.name, item.scope) for item in sorted(matches, key=managed_sort_key))
-        raise RuntimeError(
-            f"Managed service '{name}' is ambiguous across scopes. "
-            f"Use an id, display name, or one of: {choices}."
-        )
-    return None
+    return linux_targets.resolve_managed_from_token(
+        token,
+        get_managed_by_display_name=get_managed_by_display_name,
+        get_managed_by_id=get_managed_by_id,
+        normalize_target_token=normalize_target_token,
+        get_managed=get_managed,
+        find_managed_by_name=find_managed_by_name,
+        format_scoped_name=format_scoped_name,
+        managed_sort_key=managed_sort_key,
+    )
 
 
 def resolve_managed_arg(args: argparse.Namespace, required: bool = True) -> Optional[ManagedService]:
-    positional = getattr(args, "name", None)
-    name_flag = getattr(args, "name_flag", None)
-    id_flag = getattr(args, "id_flag", None)
-
-    if positional and name_flag and positional != name_flag:
-        raise RuntimeError(
-            f"Conflicting targets provided: positional='{positional}' and --name='{name_flag}'."
-        )
-
-    token = name_flag or positional
-    by_token = None
-    if token:
-        by_token = resolve_managed_from_token(token)
-        if not by_token:
-            raise RuntimeError(f"Managed service '{token}' not found (name or id).")
-
-    by_id = None
-    if id_flag is not None:
-        by_id = get_managed_by_id(id_flag)
-        if not by_id:
-            raise RuntimeError(f"Managed service id '{id_flag}' not found.")
-
-    if by_token and by_id and by_token.id != by_id.id:
-        raise RuntimeError(
-            f"Conflicting targets provided: '{token}' resolves to id={by_token.id}, "
-            f"but --id={id_flag}."
-        )
-
-    svc = by_id or by_token
-    if required and not svc:
-        raise RuntimeError("Service target is required. Use NAME/ID, --name NAME, or --id ID.")
-    return svc
+    return linux_targets.resolve_managed_arg(
+        args,
+        required=required,
+        resolve_managed_from_token=resolve_managed_from_token,
+        get_managed_by_id=get_managed_by_id,
+    )
 
 
 def resolve_managed_many_arg(args: argparse.Namespace) -> List[ManagedService]:
-    positional_tokens = getattr(args, "targets", None) or []
-    name_flag = getattr(args, "name_flag", None)
-    id_flag = getattr(args, "id_flag", None)
-
-    tokens: List[str] = list(positional_tokens)
-    if name_flag:
-        tokens.append(name_flag)
-    if id_flag is not None:
-        tokens.append(str(id_flag))
-
-    if not tokens:
-        raise RuntimeError("At least one service target is required. Use NAME/ID, --name NAME, or --id ID.")
-
-    resolved: List[ManagedService] = []
-    seen_ids = set()
-    for token in tokens:
-        svc = resolve_managed_from_token(token)
-        if not svc:
-            raise RuntimeError(f"Managed service '{token}' not found (name or id).")
-        if svc.id in seen_ids:
-            continue
-        seen_ids.add(svc.id)
-        resolved.append(svc)
-    return resolved
+    return linux_targets.resolve_managed_many_arg(
+        args,
+        resolve_managed_from_token=resolve_managed_from_token,
+    )
 
 
 def resolve_lines_arg(args: argparse.Namespace, default: int = 100) -> int:

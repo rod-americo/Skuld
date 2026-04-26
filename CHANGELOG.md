@@ -88,6 +88,7 @@ intent.
   helpers into `skuld_tables.py`.
 - Moved Linux service-table row assembly and state display mapping into
   `skuld_linux_view.py`.
+- Moved Linux target-resolution rules into `skuld_linux_targets.py`.
 - Moved macOS service-table row assembly and state display mapping into
   `skuld_macos_view.py`.
 - Changed macOS live smoke cleanup to boot out the disposable LaunchAgent by
