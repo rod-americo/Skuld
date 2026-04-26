@@ -73,11 +73,13 @@ class LinuxBackendContext:
         if self.force_table_ascii and self.force_table_unicode:
             parser.error("choose only one of --ascii or --unicode")
         try:
+            command = getattr(args, "command", None)
+            cli_columns = None if command == "config" else getattr(args, "columns", None)
             config_value = None
-            if getattr(args, "command", None) != "config":
+            if command != "config":
                 config_value = skuld_config.load_columns_text(self.config_file)
             self.service_table_columns = tables.resolve_service_table_columns(
-                getattr(args, "columns", None),
+                cli_columns,
                 config_value=config_value,
                 env_value=os.environ.get("SKULD_COLUMNS"),
             )
@@ -301,7 +303,14 @@ class LinuxBackendContext:
             print(line)
 
     def config_columns(self, args: argparse.Namespace) -> None:
-        columns = tables.parse_service_table_columns(args.columns)
+        if not args.columns:
+            columns = tables.parse_service_table_columns(
+                skuld_config.load_columns_text(self.config_file)
+            )
+            for line in tables.service_table_column_catalog_lines(columns):
+                print(line)
+            return
+        columns = tables.parse_service_table_column_tokens(args.columns)
         skuld_config.save_columns(self.config_file, columns)
         if columns is None:
             self.service_table_columns = None

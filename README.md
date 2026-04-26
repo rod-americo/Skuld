@@ -213,6 +213,8 @@ operation. They are not production credential management.
 ./skuld sync
 ./skuld version
 ./skuld config show
+./skuld config columns
+./skuld config columns 1 2 3
 ./skuld config columns id,name,service
 ./skuld sudo check
 ./skuld sudo auth
@@ -231,20 +233,26 @@ provided by environment fallback:
 
 ```bash
 ./skuld --columns id,name,service
+./skuld --columns 1,2,3
 ./skuld list --columns name,cpu,memory
+./skuld config columns
+./skuld config columns 1 2 3
 ./skuld config columns id,name,service
+./skuld config columns id name service
 ./skuld config show
 ./skuld config columns default
 SKULD_COLUMNS=id,name,service,timer ./skuld
 ```
 
 Supported column keys are `id`, `name`, `service`, `timer`, `triggers`, `cpu`,
-`memory`, and `ports`. Use `default`, `auto`, or `all` to restore the automatic
-layout. Precedence is `--columns`, then `$SKULD_HOME/config.json`, then
-`SKULD_COLUMNS`, then the automatic default. The compact table pads displayed
-numeric IDs to the widest visible ID, so a table containing ID `12` renders
-`01`, `02`, and `12`; a table containing ID `100` renders `001`, `002`, and
-`100`.
+`memory`, and `ports`. `skuld config columns` shows a numbered catalog, and
+`skuld config columns 1 2 3` saves the same selection as
+`skuld config columns id name service`. Use `default`, `auto`, or `all` to
+restore the automatic layout. Precedence is `--columns`, then
+`$SKULD_HOME/config.json`, then `SKULD_COLUMNS`, then the automatic default.
+The compact table pads displayed numeric IDs to the widest visible ID, so a
+table containing ID `12` renders `01`, `02`, and `12`; a table containing ID
+`100` renders `001`, `002`, and `100`.
 
 Supported sort examples:
 

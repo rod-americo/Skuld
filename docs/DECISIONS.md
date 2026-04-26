@@ -64,6 +64,10 @@ as the service registry array. Resolve table columns in this order:
 `--columns`, then `$SKULD_HOME/config.json`, then `SKULD_COLUMNS`, then the
 automatic default.
 
+Expose `skuld config columns` as a numbered column catalog and accept
+catalog-style selection with IDs, such as `skuld config columns 1 2 3`, while
+still accepting canonical column names and comma-separated values.
+
 Render numeric service IDs with zero padding to the widest visible ID in the
 current service table. This changes display only; registry IDs remain positive
 integers.
@@ -71,6 +75,8 @@ integers.
 **Impact**
 
 - Users can save column preferences without exporting `SKULD_COLUMNS`.
+- Users can choose table columns through the same numbered-selection mental
+  model used by `catalog` and `track`.
 - The registry contract remains focused on tracked services.
 - Long-running registries keep aligned ID output as they pass `9` and `99`
   entries.

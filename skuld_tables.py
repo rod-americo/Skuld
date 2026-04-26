@@ -14,6 +14,16 @@ SERVICE_TABLE_COLUMNS = (
     {"key": "ports", "header": "ports", "min_width": 5, "shrink": True},
 )
 SERVICE_TABLE_COLUMN_KEYS = tuple(str(column["key"]) for column in SERVICE_TABLE_COLUMNS)
+SERVICE_TABLE_COLUMN_DESCRIPTIONS = {
+    "id": "registry id",
+    "name": "display name",
+    "service": "service state",
+    "timer": "timer state",
+    "triggers": "schedule summary",
+    "cpu": "CPU usage",
+    "memory": "memory usage",
+    "ports": "listening ports",
+}
 SERVICE_TABLE_SHRINK_ORDER = ("triggers", "name", "ports")
 SERVICE_TABLE_HIDE_ORDER = ("ports", "memory", "cpu", "triggers", "timer")
 
@@ -32,26 +42,52 @@ def parse_service_table_columns(value: Optional[str]) -> Optional[Tuple[str, ...
     raw = value.strip()
     if not raw:
         return None
-    if raw.lower() in {"all", "auto", "default"}:
+    return parse_service_table_column_tokens([raw])
+
+
+def parse_service_table_column_tokens(values: Sequence[str]) -> Optional[Tuple[str, ...]]:
+    tokens: List[str] = []
+    for value in values:
+        for item in str(value).split(","):
+            token = item.strip().lower()
+            if token:
+                tokens.append(token)
+    if not tokens:
+        return None
+    if len(tokens) == 1 and tokens[0] in {"all", "auto", "default"}:
         return None
 
     selected: List[str] = []
     invalid: List[str] = []
-    for item in raw.split(","):
-        key = item.strip().lower()
-        if not key:
+    invalid_ids: List[str] = []
+    for token in tokens:
+        if token in {"all", "auto", "default"}:
+            invalid.append(token)
             continue
-        if key not in SERVICE_TABLE_COLUMN_KEYS:
-            invalid.append(key)
+        if token.isdigit():
+            index = int(token)
+            if index < 1 or index > len(SERVICE_TABLE_COLUMN_KEYS):
+                invalid_ids.append(token)
+                continue
+            key = SERVICE_TABLE_COLUMN_KEYS[index - 1]
+        elif token in SERVICE_TABLE_COLUMN_KEYS:
+            key = token
+        else:
+            invalid.append(token)
             continue
         if key not in selected:
             selected.append(key)
 
+    if invalid_ids:
+        raise ValueError(
+            f"Service table column id(s) not found: {', '.join(invalid_ids)}. "
+            f"Use ids 1-{len(SERVICE_TABLE_COLUMN_KEYS)}."
+        )
     if invalid:
         allowed = ", ".join(SERVICE_TABLE_COLUMN_KEYS)
         raise ValueError(
             f"Unknown service table column(s): {', '.join(invalid)}. "
-            f"Allowed columns: {allowed}."
+            f"Allowed columns: ids 1-{len(SERVICE_TABLE_COLUMN_KEYS)} or {allowed}."
         )
     if not selected:
         raise ValueError("At least one service table column must be selected.")
@@ -79,6 +115,26 @@ def select_service_table_columns(
 
     by_key = {str(column["key"]): column for column in SERVICE_TABLE_COLUMNS}
     return tuple(dict(by_key[key]) for key in columns), False
+
+
+def service_table_column_catalog_lines(
+    columns: Optional[Sequence[str]],
+) -> List[str]:
+    current = ",".join(columns) if columns else "default"
+    selected = set(columns or ())
+    lines = [f"Current saved columns: {current}", "", "Available table columns:"]
+    for index, key in enumerate(SERVICE_TABLE_COLUMN_KEYS, start=1):
+        marker = "*" if key in selected else " "
+        description = SERVICE_TABLE_COLUMN_DESCRIPTIONS.get(key, "")
+        lines.append(f"{index:>3}. {marker} {key:<8} {description}".rstrip())
+    lines.extend(
+        [
+            "",
+            "Use: skuld config columns <id ...>, skuld config columns <name ...>,",
+            "or skuld config columns default",
+        ]
+    )
+    return lines
 
 
 def fit_service_table(

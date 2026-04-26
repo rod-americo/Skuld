@@ -23,7 +23,8 @@ Includes:
 - Rendering a compact operational table with service state, timer state,
   triggers, CPU, memory, and ports when available.
 - Allowing the operator to choose visible service-table columns through
-  `--columns`, a sibling user `config.json`, or `SKULD_COLUMNS`.
+  numbered column IDs, canonical column names, a sibling user `config.json`, or
+  `SKULD_COLUMNS`.
 - Providing local structural validation through project gate and doctor scripts.
 
 Does not include:
@@ -434,9 +435,9 @@ the parser modules do not import backend state or host adapters.
 - `skuld_sudo.py` provides shared CLI orchestration for `sudo check`,
   `sudo auth`, `sudo forget`, and `sudo run` while backend adapters keep
   service-manager-specific sudo usage.
-- `skuld_tables.py` provides shared service-table column policy, fitting,
-  column selection, display ID padding, sorting, and host-panel helpers used by
-  both backends.
+- `skuld_tables.py` provides shared service-table column policy, numbered
+  column-catalog rendering, fitting, column selection, display ID padding,
+  sorting, and host-panel helpers used by both backends.
 
 ## 5. Main Flow
 

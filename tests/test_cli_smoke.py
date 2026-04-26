@@ -41,6 +41,17 @@ class CliSmokeTest(unittest.TestCase):
         self.assertEqual(proc.returncode, 0, proc.stderr)
         self.assertRegex(proc.stdout.strip(), r"^\d+\.\d+\.\d+$")
 
+    def test_config_columns_catalog_and_numeric_selection(self) -> None:
+        catalog_proc = self.run_cli("config", "columns")
+        self.assertEqual(catalog_proc.returncode, 0, catalog_proc.stderr)
+        self.assertIn("Available table columns:", catalog_proc.stdout)
+        self.assertIn("1.", catalog_proc.stdout)
+        self.assertIn("Use: skuld config columns <id ...>", catalog_proc.stdout)
+
+        save_proc = self.run_cli("config", "columns", "1", "2", "3")
+        self.assertEqual(save_proc.returncode, 0, save_proc.stderr)
+        self.assertIn("[ok] Saved table columns: id,name,service", save_proc.stdout)
+
     def test_neutral_subcommand_help_is_available(self) -> None:
         subcommands = (
             "list",

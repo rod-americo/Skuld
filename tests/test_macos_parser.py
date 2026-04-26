@@ -95,10 +95,16 @@ class MacParserTest(unittest.TestCase):
     def test_config_commands_are_registered(self) -> None:
         show_args = self.build_parser().parse_args(["config", "show"])
         columns_args = self.build_parser().parse_args(["config", "columns", "id,name"])
+        catalog_args = self.build_parser().parse_args(["config", "columns"])
+        numeric_args = self.build_parser().parse_args(["config", "columns", "1", "2", "3"])
 
         self.assertIs(show_args.func, _noop)
-        self.assertEqual(columns_args.columns, "id,name")
+        self.assertEqual(columns_args.columns, ["id,name"])
         self.assertIs(columns_args.func, _noop)
+        self.assertEqual(catalog_args.columns, [])
+        self.assertIs(catalog_args.func, _noop)
+        self.assertEqual(numeric_args.columns, ["1", "2", "3"])
+        self.assertIs(numeric_args.func, _noop)
 
 
 if __name__ == "__main__":

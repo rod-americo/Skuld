@@ -17,7 +17,7 @@ invariants, and external integration assumptions.
 | Logs | `journalctl` or files | text stream | command-specific | Linux supports journal filters; macOS reads compatible log files or launchd plist log paths. |
 | Sudo timestamp | native `sudo` cache | host-local state | no | Refreshed with `skuld sudo auth`; used through `sudo -n`. |
 | Sudo credential | env or `.env` | string | no | Compatibility path only; `SKULD_SUDO_PASSWORD` is sensitive and should be short-lived. |
-| Table columns | CLI, config, or env | comma-separated keys | no | `--columns`, `$SKULD_HOME/config.json`, or `SKULD_COLUMNS`; default keeps automatic layout. |
+| Table columns | CLI, config, or env | numbered IDs or keys | no | `--columns`, `$SKULD_HOME/config.json`, or `SKULD_COLUMNS`; default keeps automatic layout. |
 | Debug switch | env | boolean-like string | no | `SKULD_DEBUG` enables redacted stderr diagnostics. |
 | Runtime stats | stats JSON or event files | JSON | no | Used to show execution/restart counters when present. |
 
@@ -91,7 +91,7 @@ The config file is a JSON object stored next to `services.json`.
 
 | Field | Required | Notes |
 | --- | --- | --- |
-| `columns` | no | List of supported service-table column keys. `skuld config columns default`, `auto`, or `all` removes this preference. |
+| `columns` | no | List of supported service-table column keys. `skuld config columns` shows the numbered catalog. `skuld config columns default`, `auto`, or `all` removes this preference. |
 
 The service registry remains a JSON array. Do not add user preferences to
 `services.json`.
@@ -125,6 +125,8 @@ The service registry remains a JSON array. Do not add user preferences to
   timestamp non-interactively through `sudo -n`.
 - Explicit table-column selection must preserve requested column order and must
   reject unknown column names.
+- Explicit table-column selection may use the numbered column catalog or the
+  canonical column keys. Persisted config stores canonical keys.
 - Table-column precedence is CLI `--columns`, then `$SKULD_HOME/config.json`,
   then `SKULD_COLUMNS`, then automatic layout.
 - Displayed numeric service IDs are zero-padded to the widest visible ID in the

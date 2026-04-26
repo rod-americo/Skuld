@@ -235,10 +235,11 @@ def build_parser(
     )
     config_columns_parser.add_argument(
         "columns",
+        nargs="*",
         metavar="LIST",
         help=(
-            "Comma-separated table columns "
-            f"({', '.join(column_choices)}); use default to clear the saved layout"
+            "Column ids or names "
+            f"({', '.join(column_choices)}); run without LIST to show the catalog"
         ),
     )
     config_columns_parser.set_defaults(func=config_columns)

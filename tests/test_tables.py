@@ -89,6 +89,14 @@ class ServiceTableTest(unittest.TestCase):
             ("name", "cpu"),
         )
         self.assertEqual(
+            tables.resolve_service_table_columns("1,2,3", env_value="id"),
+            ("id", "name", "service"),
+        )
+        self.assertEqual(
+            tables.parse_service_table_column_tokens(["1", "2", "name"]),
+            ("id", "name"),
+        )
+        self.assertEqual(
             tables.resolve_service_table_columns(None, env_value="id,service"),
             ("id", "service"),
         )
@@ -105,6 +113,18 @@ class ServiceTableTest(unittest.TestCase):
     def test_rejects_unknown_service_table_columns(self) -> None:
         with self.assertRaisesRegex(ValueError, "Unknown service table column"):
             tables.parse_service_table_columns("id,owner")
+
+    def test_rejects_unknown_service_table_column_ids(self) -> None:
+        with self.assertRaisesRegex(ValueError, "column id"):
+            tables.parse_service_table_column_tokens(["9"])
+
+    def test_renders_service_table_column_catalog(self) -> None:
+        lines = tables.service_table_column_catalog_lines(("id", "name"))
+
+        self.assertIn("Current saved columns: id,name", lines)
+        self.assertIn("  1. * id       registry id", lines)
+        self.assertIn("  2. * name     display name", lines)
+        self.assertIn("Use: skuld config columns <id ...>, skuld config columns <name ...>,", lines)
 
     def test_render_host_panel_delegates_to_backend_renderer(self) -> None:
         calls = []
