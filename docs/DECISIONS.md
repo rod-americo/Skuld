@@ -498,6 +498,37 @@ backend still reads different operational state.
 - Moving all table row assembly in the same change.
 - Keeping duplicated table constants in both backends.
 
+## 2026-04-26 - Extract Linux Service Table Row Assembly
+
+**Context**
+
+The Linux backend still assembled service-table rows inline, mixing command
+handler flow with display-state mapping, usage lookup, trigger formatting, and
+port lookup.
+
+**Decision**
+
+Move Linux service-table row assembly and state display mapping into
+`skuld_linux_view.py`. Keep backend-specific operational reads as callbacks so
+the view module does not import `skuld_linux.py`.
+
+**Impact**
+
+- `skuld_linux.py` is smaller.
+- Linux row assembly behavior has focused unit tests.
+- The Linux smoke payload includes the new view module for remote validation.
+
+**Tradeoff**
+
+- The backend still owns when to render the table and how to handle empty
+  registry state.
+- macOS row assembly remains backend-local until a separate extraction.
+
+**Alternatives rejected**
+
+- Moving Linux and macOS row assembly together in one change.
+- Letting `skuld_linux_view.py` import the backend module directly.
+
 ## 2026-04-25 - Extract macOS Launchd Adapter
 
 **Context**

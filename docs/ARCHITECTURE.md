@@ -115,6 +115,12 @@ points at `skuld_entrypoint:main`.
 - systemd duration compaction and humanization.
 - `OnCalendar` summary formatting for compact service tables.
 
+`skuld_linux_view.py` owns Linux table row assembly:
+
+- service and timer state display mapping.
+- row construction from backend callbacks for service state, usage, triggers,
+  and ports.
+
 ### 4.3 macOS Backend
 
 `skuld_macos.py` owns the macOS implementation:
@@ -197,6 +203,8 @@ registration because their command options and operational adapters differ.
   GPU, and port inspection helpers used by `skuld_linux.py`.
 - `skuld_linux_timers.py` provides Linux timer display helpers used by
   `skuld_linux.py`.
+- `skuld_linux_view.py` provides Linux service-table row assembly helpers used
+  by `skuld_linux.py`.
 - `skuld_macos_launchd.py` provides the macOS `launchd` adapter used by
   `skuld_macos.py`.
 - `skuld_macos_processes.py` provides macOS process-tree, host overview,
@@ -314,7 +322,7 @@ Host-local configuration:
 ## 10. Hotspots And Technical Debt
 
 - The Linux and macOS files still contain large backend-specific command
-  handlers, though Linux runtime/service-manager/stats/timer and macOS
+  handlers, though Linux runtime/service-manager/stats/timer/view and macOS
   launchd/process/runtime/schedule responsibilities plus shared table policy
   have been extracted.
 - There is still no formal registry migration framework; canonicalization is

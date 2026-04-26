@@ -14,6 +14,7 @@ import skuld_linux_runtime as linux_runtime
 import skuld_linux_stats as linux_stats
 import skuld_linux_systemd as systemd
 import skuld_linux_timers as timers
+import skuld_linux_view as linux_view
 import skuld_tables as tables
 from skuld_registry import RegistryStore
 
@@ -937,49 +938,20 @@ def _render_services_table(compact: bool, sort_by: str = "name") -> None:
         render_discoverable_services_hint()
         return
 
-    rows: List[Dict[str, object]] = []
     gpu_memory_by_pid = read_gpu_memory_by_pid()
-    runtime_stats = load_runtime_stats()
     print()
     render_host_panel()
-    for svc in services:
-        s_unit = f"{svc.name}.service"
-        t_unit = f"{svc.name}.timer"
-        s_state_raw = unit_active(s_unit, scope=svc.scope) if unit_exists(s_unit, scope=svc.scope) else "missing"
-        t_state_raw = unit_active(t_unit, scope=svc.scope) if unit_exists(t_unit, scope=svc.scope) else "n/a"
-        s_state_display = display_unit_state(s_state_raw)
-        t_state_display = display_unit_state(t_state_raw)
-        usage = read_unit_usage(s_unit, scope=svc.scope, gpu_memory_by_pid=gpu_memory_by_pid)
-        if s_state_raw == "active":
-            s_state = colorize("active", "green")
-        elif s_state_raw == "activating":
-            s_state = colorize(s_state_display, "green")
-        elif s_state_raw == "inactive":
-            s_state = colorize("inactive", "yellow")
-        else:
-            s_state = colorize(s_state_display, "red")
-        if t_state_raw == "active":
-            t_state = colorize("active", "green")
-        elif t_state_raw == "activating":
-            t_state = colorize(t_state_display, "green")
-        elif t_state_raw == "inactive":
-            t_state = colorize("inactive", "yellow")
-        elif t_state_raw == "n/a":
-            t_state = colorize("n/a", "gray")
-        else:
-            t_state = colorize(t_state_display, "red")
-        rows.append(
-            {
-                "id": svc.id,
-                "name": svc.display_name,
-                "service": s_state,
-                "timer": t_state,
-                "triggers": timer_triggers_for_display(svc),
-                "cpu": usage["cpu"],
-                "memory": usage["memory"],
-                "ports": read_unit_ports(s_unit, scope=svc.scope),
-            }
-        )
+    rows = linux_view.build_service_rows(
+        services,
+        unit_exists=unit_exists,
+        unit_active=unit_active,
+        display_unit_state=display_unit_state,
+        colorize=colorize,
+        read_unit_usage=read_unit_usage,
+        timer_triggers_for_display=timer_triggers_for_display,
+        read_unit_ports=read_unit_ports,
+        gpu_memory_by_pid=gpu_memory_by_pid,
+    )
     ordered_rows = tables.sort_service_rows(rows, sort_by)
     headers, fitted_rows = fit_service_table(ordered_rows)
     render_table(headers, fitted_rows)

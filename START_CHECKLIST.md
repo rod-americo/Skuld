@@ -86,6 +86,7 @@ is not a greenfield scaffold checklist.
 - [x] Extract Linux host/unit stats and port inspection into
   `skuld_linux_stats.py`.
 - [x] Extract Linux systemd timer formatting into `skuld_linux_timers.py`.
+- [x] Extract Linux service-table row assembly into `skuld_linux_view.py`.
 - [x] Extract macOS `launchd` low-level adapter behavior into
   `skuld_macos_launchd.py`.
 - [x] Extract macOS process-tree, host overview, CPU/memory, and port helpers

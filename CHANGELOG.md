@@ -86,6 +86,8 @@ intent.
   verification.
 - Moved shared service-table column policy, fitting, sorting, and host-panel
   helpers into `skuld_tables.py`.
+- Moved Linux service-table row assembly and state display mapping into
+  `skuld_linux_view.py`.
 - Registry reads now normalize in memory by default. Existing registry files
   are rewritten only by explicit mutating commands or intentional
   `write_back=True` code paths.

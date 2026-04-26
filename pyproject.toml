@@ -38,6 +38,7 @@ py-modules = [
   "skuld_linux_stats",
   "skuld_linux_systemd",
   "skuld_linux_timers",
+  "skuld_linux_view",
   "skuld_macos",
   "skuld_macos_launchd",
   "skuld_macos_processes",
