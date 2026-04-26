@@ -468,6 +468,36 @@ patch points.
 - Moving the full `logs` handler in the same change.
 - Letting the runtime module import `skuld_linux.py` directly.
 
+## 2026-04-26 - Extract Shared Service Table Policy
+
+**Context**
+
+The Linux and macOS backends duplicated service-table column definitions,
+shrink/hide order, table fitting wrappers, row sorting, and host-panel rendering
+glue. That duplication made UI policy changes easy to drift across backends.
+
+**Decision**
+
+Move shared service-table column policy, fitting, sorting, and host-panel
+helpers into `skuld_tables.py`. Keep backend row assembly local because each
+backend still reads different operational state.
+
+**Impact**
+
+- Table width and column policy now live in one module.
+- Both backends continue to own backend-specific row data.
+- Shared table behavior has focused unit tests.
+
+**Tradeoff**
+
+- Command handlers still call backend-local `_render_services_table()`.
+- Row assembly remains backend-specific until more behavior is extracted.
+
+**Alternatives rejected**
+
+- Moving all table row assembly in the same change.
+- Keeping duplicated table constants in both backends.
+
 ## 2026-04-25 - Extract macOS Launchd Adapter
 
 **Context**

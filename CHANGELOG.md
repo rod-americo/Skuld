@@ -84,6 +84,8 @@ intent.
 - Added GitHub Actions CI for non-mutating Ubuntu/macOS validation, including
   syntax, unit tests, gate/doctor checks, shell syntax, and package install
   verification.
+- Moved shared service-table column policy, fitting, sorting, and host-panel
+  helpers into `skuld_tables.py`.
 - Registry reads now normalize in memory by default. Existing registry files
   are rewritten only by explicit mutating commands or intentional
   `write_back=True` code paths.

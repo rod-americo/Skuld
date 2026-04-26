@@ -19,6 +19,7 @@ class PackagingMetadataTest(unittest.TestCase):
         self.assertIn('"skuld_linux_runtime"', text)
         self.assertIn('"skuld_macos"', text)
         self.assertIn('"skuld_macos_runtime"', text)
+        self.assertIn('"skuld_tables"', text)
 
     def test_package_version_matches_backend_versions(self) -> None:
         text = (ROOT / "pyproject.toml").read_text(encoding="utf-8")

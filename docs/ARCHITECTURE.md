@@ -209,6 +209,8 @@ registration because their command options and operational adapters differ.
   `SKULD_DEBUG`.
 - `skuld_registry.py` provides generic registry storage mechanics while leaving
   backend schemas and validation rules in each backend.
+- `skuld_tables.py` provides shared service-table column policy, fitting,
+  sorting, and host-panel helpers used by both backends.
 
 ## 5. Main Flow
 
@@ -313,7 +315,8 @@ Host-local configuration:
 
 - The Linux and macOS files still contain large backend-specific command
   handlers, though Linux runtime/service-manager/stats/timer and macOS
-  launchd/process/runtime/schedule responsibilities have been extracted.
+  launchd/process/runtime/schedule responsibilities plus shared table policy
+  have been extracted.
 - There is still no formal registry migration framework; canonicalization is
   tied to explicit mutating commands.
 - Target resolution and CLI presentation are still tightly coupled in each

@@ -14,6 +14,7 @@ import skuld_linux_runtime as linux_runtime
 import skuld_linux_stats as linux_stats
 import skuld_linux_systemd as systemd
 import skuld_linux_timers as timers
+import skuld_tables as tables
 from skuld_registry import RegistryStore
 
 VERSION = "0.3.0"
@@ -30,18 +31,6 @@ SYSTEMD_UNIT_STARTED_MESSAGE_ID = linux_runtime.SYSTEMD_UNIT_STARTED_MESSAGE_ID
 SORT_CHOICES = ("id", "name", "cpu", "memory")
 VALID_SCOPES = ("system", "user")
 DISCOVERABLE_SCOPE_CHOICES = ("all", "system", "user")
-SERVICE_TABLE_COLUMNS = (
-    {"key": "id", "header": "id", "min_width": 2, "shrink": False},
-    {"key": "name", "header": "name", "min_width": 12, "shrink": True},
-    {"key": "service", "header": "service", "min_width": 7, "shrink": False},
-    {"key": "timer", "header": "timer", "min_width": 5, "shrink": False},
-    {"key": "triggers", "header": "triggers", "min_width": 12, "shrink": True},
-    {"key": "cpu", "header": "cpu", "min_width": 3, "shrink": False},
-    {"key": "memory", "header": "memory", "min_width": 6, "shrink": False},
-    {"key": "ports", "header": "ports", "min_width": 5, "shrink": True},
-)
-SERVICE_TABLE_SHRINK_ORDER = ("triggers", "name", "ports")
-SERVICE_TABLE_HIDE_ORDER = ("ports", "memory", "cpu", "triggers", "timer")
 @dataclass
 class ManagedService:
     name: str
@@ -615,23 +604,15 @@ def clip_plain_text(text: str, width: int) -> str:
 
 
 def shrink_service_table_widths(columns: List[Dict[str, object]], widths: Dict[str, int], max_width: int) -> Dict[str, int]:
-    return common.shrink_table_widths(columns, widths, max_width, SERVICE_TABLE_SHRINK_ORDER)
+    return tables.shrink_service_table_widths(columns, widths, max_width)
 
 
 def fit_service_table(rows: List[Dict[str, object]], max_width: Optional[int] = None) -> tuple[List[str], List[List[str]]]:
-    return common.fit_table(
-        rows,
-        service_columns=SERVICE_TABLE_COLUMNS,
-        shrink_order=SERVICE_TABLE_SHRINK_ORDER,
-        hide_order=SERVICE_TABLE_HIDE_ORDER,
-        max_width=max_width,
-    )
+    return tables.fit_service_table(rows, max_width=max_width)
 
 
 def render_host_panel() -> None:
-    overview = read_host_overview()
-    render_table(list(overview.keys()), [list(overview.values())])
-    print()
+    tables.render_host_panel(read_host_overview(), render_table)
 
 
 def load_runtime_stats() -> Dict[str, Dict[str, int]]:
@@ -999,7 +980,7 @@ def _render_services_table(compact: bool, sort_by: str = "name") -> None:
                 "ports": read_unit_ports(s_unit, scope=svc.scope),
             }
         )
-    ordered_rows = sorted(rows, key=lambda row: service_sort_key(sort_by, row))
+    ordered_rows = tables.sort_service_rows(rows, sort_by)
     headers, fitted_rows = fit_service_table(ordered_rows)
     render_table(headers, fitted_rows)
     print()

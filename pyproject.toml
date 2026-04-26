@@ -45,4 +45,5 @@ py-modules = [
   "skuld_macos_schedules",
   "skuld_observability",
   "skuld_registry",
+  "skuld_tables",
 ]
