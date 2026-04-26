@@ -14,8 +14,9 @@ definition files remain owned by `systemd` or `launchd`.
 ## What This Repository Is
 
 - A standard-library Python CLI for local service visibility and control.
-- A root-level codebase with real runtime behavior in `./skuld`,
-  `skuld_linux.py`, and `skuld_macos.py`.
+- A root-level codebase whose checkout entrypoint is `./skuld`, installable
+  entrypoint is `skuld_entrypoint:main`, and platform composition roots are
+  `skuld_linux.py` and `skuld_macos.py`.
 - A registry-based operator tool for listing, tracking, starting, stopping,
   restarting, executing, inspecting, and reading logs for selected services.
 - A structurally recovered existing repository with tests, docs, gates, doctor
@@ -27,7 +28,9 @@ definition files remain owned by `systemd` or `launchd`.
 - Not a process supervisor.
 - Not a deployment framework, package manager, scheduler authoring tool, fleet
   manager, metrics platform, or log aggregation system.
-- Not a packaged `src/` Python distribution today.
+- Not a published package channel, hosted service, or stable Python library API.
+- Not a `src/`-layout package; the current installable package intentionally
+  preserves the root-level module layout.
 - Not authorized to operate arbitrary host services outside the Skuld registry.
 
 ## Current Maturity
@@ -40,7 +43,7 @@ definition files remain owned by `systemd` or `launchd`.
 | Live validation | Disposable macOS and Linux smoke scripts, including remote Linux over SSH. |
 | CI | Non-mutating Ubuntu/macOS matrix for syntax, tests, docs, doctor, shell checks, and packaging. |
 | Operations | Single-host local operation is documented. |
-| Packaging | `pyproject.toml` exposes an installable console command; direct checkout use remains supported. |
+| Packaging | Local checkout, wheel, and `pipx install .` use are supported; no package channel is published. |
 | Remote/fleet use | Out of scope except for the Linux smoke helper's SSH mode. |
 
 ## Domain Boundary
@@ -160,6 +163,9 @@ For user-level installation from a checkout:
 pipx install .
 skuld --help
 ```
+
+This installs the current checkout. Skuld has package metadata and release
+checks, but it does not currently publish a package to an external channel.
 
 See `docs/INSTALL.md` for install and uninstall details.
 

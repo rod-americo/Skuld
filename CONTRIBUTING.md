@@ -16,18 +16,15 @@ Skuld exists to reduce friction when managing selected local services through
 
 ## Local Development
 
+The README is the canonical place for the full non-mutating validation command
+set. Run the validation block in `README.md` before proposing changes that
+touch behavior, packaging, docs, operations, or service-manager integration.
+
 ```bash
 git clone git@github.com:rod-americo/skuld.git
 cd skuld
 chmod +x ./skuld
-python3 -m py_compile ./skuld ./skuld_entrypoint.py ./skuld_cli.py ./skuld_common.py ./skuld_linux_commands.py ./skuld_linux_presenters.py ./skuld_linux_runtime.py ./skuld_linux_systemd.py ./skuld_linux_stats.py ./skuld_linux_timers.py ./skuld_linux_targets.py ./skuld_linux_view.py ./skuld_macos_commands.py ./skuld_macos_launchd.py ./skuld_macos_presenters.py ./skuld_macos_processes.py ./skuld_macos_runtime.py ./skuld_macos_schedules.py ./skuld_macos_targets.py ./skuld_macos_view.py ./skuld_observability.py ./skuld_registry.py ./skuld_tables.py ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py
-python3 -m unittest discover -s tests
 ./skuld --help
-python3 scripts/check_project_gate.py
-python3 scripts/project_doctor.py
-python3 scripts/project_doctor.py --strict
-python3 scripts/project_doctor.py --audit-config
-bash -n .githooks/pre-commit scripts/install_git_hooks.sh scripts/install_runtime_stats_timer.sh scripts/smoke_macos_launchd.sh scripts/smoke_linux_systemd_user.sh scripts/run_live_smokes.sh
 ```
 
 Live smoke checks are intentionally separate because they mutate disposable
