@@ -744,6 +744,42 @@ callbacks.
 - Treating sync as a generic registry update operation across both backends.
 - Moving runtime path ownership into sync modules.
 
+## 2026-04-26 - Extract Catalog And Track Orchestration
+
+**Context**
+
+Catalog discovery and `track` were still backend-heavy. Linux mixed systemd
+catalog parsing, scoped target resolution, service/timer metadata reads, and
+registry entry construction. macOS mixed launchd catalog parsing, hint
+rendering, launchd metadata reads, and registry entry construction.
+
+**Decision**
+
+Move Linux catalog and track behavior into `skuld_linux_catalog.py`, and move
+macOS catalog and track behavior into `skuld_macos_catalog.py`. Keep backend
+wrappers for public function names, parser wiring, and host adapter injection.
+
+**Impact**
+
+- Discovery parsing and `track` metadata capture have focused unit tests.
+- Backends retain compatibility for existing tests that patch wrapper
+  functions such as `list_discoverable_services()` and
+  `discover_launchd_services()`.
+- Package metadata, CI compile lists, and the Linux remote smoke payload now
+  include the catalog modules.
+
+**Tradeoff**
+
+- The backend files still own parser construction and thin wrapper functions.
+- `DiscoverableService` remains in backend-specific model modules instead of
+  catalog modules so callers use one backend contract import.
+
+**Alternatives rejected**
+
+- Moving parser subcommand registration together with catalog behavior.
+- Creating one cross-platform catalog module despite different systemd and
+  launchd discovery semantics.
+
 ## 2026-04-26 - Extract macOS Service Table Row Assembly
 
 **Context**

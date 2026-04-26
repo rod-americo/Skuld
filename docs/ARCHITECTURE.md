@@ -96,6 +96,13 @@ points at `skuld_entrypoint:main`.
   has a schedule and a matching timer exists.
 - Failure-message construction for lifecycle command errors.
 
+`skuld_linux_catalog.py` owns Linux systemd catalog and track behavior:
+
+- parsing `systemctl list-unit-files` service/timer output.
+- assigning stable catalog IDs across system and user scopes.
+- resolving catalog IDs, service names, and scoped service names for `track`.
+- capturing service/timer metadata when adding registry entries.
+
 `skuld_linux_presenters.py` owns Linux detail-view output formatting:
 
 - line construction for `stats`.
@@ -176,6 +183,12 @@ points at `skuld_entrypoint:main`.
 - `stop` bootout and process-tree termination behavior.
 - `restart` bootout, process cleanup, bootstrap, and optional kickstart.
 - `exec` bootstrap plus immediate kickstart behavior.
+
+`skuld_macos_catalog.py` owns macOS launchd catalog and track behavior:
+
+- parsing `launchctl list` output.
+- rendering visible launchd catalog hints.
+- capturing launchd `print` metadata when adding registry entries.
 
 `skuld_macos_launchd.py` owns the low-level macOS service-manager adapter:
 
@@ -282,6 +295,8 @@ registration because their command options and operational adapters differ.
   `skuld_linux.py`.
 - `skuld_linux_actions.py` provides Linux host-mutating lifecycle and exec
   orchestration used by `skuld_linux.py`.
+- `skuld_linux_catalog.py` provides Linux systemd catalog and track
+  orchestration used by `skuld_linux.py`.
 - `skuld_linux_model.py` provides Linux service models and registry
   normalization used by `skuld_linux.py`.
 - `skuld_linux_commands.py` provides Linux registry and read-only command
@@ -299,6 +314,8 @@ registration because their command options and operational adapters differ.
 - `skuld_macos_launchd.py` provides the macOS `launchd` adapter used by
   `skuld_macos.py`.
 - `skuld_macos_actions.py` provides macOS host-mutating lifecycle and exec
+  orchestration used by `skuld_macos.py`.
+- `skuld_macos_catalog.py` provides macOS launchd catalog and track
   orchestration used by `skuld_macos.py`.
 - `skuld_macos_model.py` provides macOS service models and registry
   normalization used by `skuld_macos.py`.

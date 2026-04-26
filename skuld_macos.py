@@ -9,6 +9,7 @@ from typing import Dict, List, Optional, Tuple
 import skuld_common as common
 import skuld_cli
 import skuld_macos_actions as macos_actions
+import skuld_macos_catalog as macos_catalog
 import skuld_macos_commands as macos_commands
 import skuld_macos_launchd as launchd
 from skuld_macos_model import (
@@ -389,21 +390,7 @@ def resolve_lines_arg(args: argparse.Namespace, default: int = 100) -> int:
 
 
 def discover_launchd_services() -> List[DiscoverableService]:
-    proc = run(["launchctl", "list"], check=False, capture=True)
-    entries: List[DiscoverableService] = []
-    for raw in (proc.stdout or "").splitlines():
-        line = raw.strip()
-        if not line or line.startswith("PID\tStatus\tLabel"):
-            continue
-        parts = line.split(None, 2)
-        if len(parts) != 3:
-            continue
-        pid, status, label = parts
-        entries.append(DiscoverableService(index=0, label=label.strip(), pid=pid.strip(), status=status.strip()))
-    entries.sort(key=lambda item: item.label.lower())
-    for idx, entry in enumerate(entries, start=1):
-        entry.index = idx
-    return entries
+    return macos_catalog.discover_launchd_services(run=run)
 
 
 def resolve_discoverable_targets(tokens: List[str]) -> List[DiscoverableService]:
@@ -422,18 +409,9 @@ def extract_launchctl_value(text: str, key: str) -> str:
 
 
 def render_discoverable_services_hint() -> None:
-    catalog = discover_launchd_services()
-    if not catalog:
-        print("No services tracked by skuld.")
-        print("No visible launchd services were discovered in the current session.")
-        return
-    print("No services tracked by skuld.")
-    print()
-    for entry in catalog[:60]:
-        pid = "-" if entry.pid == "-" else entry.pid
-        print(f"{entry.index:>3}. {entry.label}  pid={pid} status={entry.status}")
-    print()
-    print("Use `skuld track <id ...>` or `skuld track <label ...>` to start tracking services from this catalog.")
+    macos_catalog.render_discoverable_services_hint(
+        discover_launchd_services=discover_launchd_services,
+    )
 
 
 def launchctl_cmd(scope: str, args: List[str], check: bool = True, capture: bool = False) -> subprocess.CompletedProcess:
@@ -565,40 +543,20 @@ def sync_registry_from_launchd(name: Optional[str] = None) -> int:
 
 
 def track(args: argparse.Namespace) -> None:
-    targets = list(args.targets or [])
-    if not targets:
-        raise RuntimeError("Use: skuld track <id ...> or skuld track <label ...>")
-    if args.alias and len(targets) != 1:
-        raise RuntimeError("--alias can only be used when tracking exactly one service.")
-
-    resolved = resolve_discoverable_targets(targets)
-    for entry in resolved:
-        label = entry.label
-        suggested = suggest_display_name(label)
-        alias = (args.alias or prompt_display_name(label, suggested)).strip()
-        ensure_display_name_available(alias)
-        if get_managed(label):
-            raise RuntimeError(f"'{label}' is already tracked in skuld.")
-        raw = launchctl_print_service_raw(label)
-        if not raw:
-            raise RuntimeError(f"Could not inspect launchd service '{label}'.")
-        plist_path = extract_launchctl_value(raw, "path")
-        program = extract_launchctl_value(raw, "program") or label
-        state = extract_launchctl_value(raw, "state")
-        description = label if not state else f"{label} ({state})"
-        service = ManagedService(
-            name=label,
-            exec_cmd=program,
-            description=description,
-            display_name=alias,
-            launchd_label=label,
-            plist_path_hint=plist_path,
-            managed_by_skuld=False,
-            scope="agent",
-            log_dir="",
-        )
-        upsert_registry(service)
-        ok(f"Tracked '{label}' as '{alias}'.")
+    macos_catalog.track_services(
+        list(args.targets or []),
+        alias=args.alias,
+        resolve_discoverable_targets=resolve_discoverable_targets,
+        suggest_display_name=suggest_display_name,
+        prompt_display_name=prompt_display_name,
+        ensure_display_name_available=ensure_display_name_available,
+        get_managed=get_managed,
+        launchctl_print_service_raw=launchctl_print_service_raw,
+        extract_launchctl_value=extract_launchctl_value,
+        service_factory=ManagedService,
+        upsert_registry=upsert_registry,
+        ok=ok,
+    )
 
 def start_stop(args: argparse.Namespace, action: str) -> None:
     macos_actions.apply_lifecycle_action_to_services(

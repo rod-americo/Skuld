@@ -103,6 +103,8 @@ intent.
   into `skuld_linux_model.py` and `skuld_macos_model.py`.
 - Moved Linux and macOS registry sync backfill into `skuld_linux_sync.py` and
   `skuld_macos_sync.py`.
+- Moved Linux and macOS catalog discovery and `track` orchestration into
+  `skuld_linux_catalog.py` and `skuld_macos_catalog.py`.
 - Changed macOS live smoke cleanup to boot out the disposable LaunchAgent by
   service target before falling back to the plist path.
 - Changed macOS launchd bootstrap to avoid persistent `enable` overrides after
