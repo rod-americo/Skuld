@@ -23,9 +23,11 @@ Before significant changes, read these files in order:
 7. The touched entrypoint/backend file: `skuld_entrypoint.py`, `skuld_linux.py`,
    `skuld_macos.py`, or `./skuld`
 8. Shared helpers when relevant: `skuld_cli.py`, `skuld_common.py`,
-   `skuld_linux_runtime.py`, `skuld_linux_systemd.py`, `skuld_linux_stats.py`,
+   `skuld_linux_presenters.py`, `skuld_linux_runtime.py`,
+   `skuld_linux_systemd.py`, `skuld_linux_stats.py`,
    `skuld_linux_timers.py`, `skuld_linux_targets.py`, `skuld_linux_view.py`,
-   `skuld_macos_launchd.py`, `skuld_macos_processes.py`,
+   `skuld_macos_launchd.py`, `skuld_macos_presenters.py`,
+   `skuld_macos_processes.py`,
    `skuld_macos_runtime.py`, `skuld_macos_schedules.py`,
    `skuld_macos_targets.py`, `skuld_macos_view.py`,
    `skuld_observability.py`, `skuld_registry.py`, and `skuld_tables.py`
@@ -79,6 +81,8 @@ inside the existing files until a tested extraction is justified.
     built its parser.
   - `skuld_linux_runtime.py` owns Linux runtime stats JSON reads, journald
     execution counting, restart count formatting, and journal permission hints.
+  - `skuld_linux_presenters.py` owns Linux line-oriented output formatting for
+    selected detail views such as `stats` and `describe`.
   - `skuld_linux_systemd.py` owns Linux `systemd` command construction,
     `systemctl`/`journalctl` scope handling, and low-level systemd command
     execution.
@@ -93,6 +97,8 @@ inside the existing files until a tested extraction is justified.
   - `skuld_macos_launchd.py` owns macOS `launchd` command construction,
     domain/target formatting, launchctl parsing, and low-level launchctl
     execution.
+  - `skuld_macos_presenters.py` owns macOS line-oriented output formatting for
+    selected detail views such as `status`, `stats`, and `describe`.
   - `skuld_macos_processes.py` owns macOS process-tree inspection,
     termination, host overview, CPU/memory inspection, and port parsing.
   - `skuld_macos_runtime.py` owns macOS event stats, runtime stats file
@@ -173,7 +179,7 @@ files are large; avoid making them larger through unrelated refactors.
 Run this before finalizing repository-wide structural or operational changes:
 
 ```bash
-python3 -m py_compile ./skuld ./skuld_entrypoint.py ./skuld_cli.py ./skuld_common.py ./skuld_linux_runtime.py ./skuld_linux_systemd.py ./skuld_linux_stats.py ./skuld_linux_timers.py ./skuld_linux_targets.py ./skuld_linux_view.py ./skuld_macos_launchd.py ./skuld_macos_processes.py ./skuld_macos_runtime.py ./skuld_macos_schedules.py ./skuld_macos_targets.py ./skuld_macos_view.py ./skuld_observability.py ./skuld_registry.py ./skuld_tables.py ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py
+python3 -m py_compile ./skuld ./skuld_entrypoint.py ./skuld_cli.py ./skuld_common.py ./skuld_linux_presenters.py ./skuld_linux_runtime.py ./skuld_linux_systemd.py ./skuld_linux_stats.py ./skuld_linux_timers.py ./skuld_linux_targets.py ./skuld_linux_view.py ./skuld_macos_launchd.py ./skuld_macos_presenters.py ./skuld_macos_processes.py ./skuld_macos_runtime.py ./skuld_macos_schedules.py ./skuld_macos_targets.py ./skuld_macos_view.py ./skuld_observability.py ./skuld_registry.py ./skuld_tables.py ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py
 python3 -m unittest discover -s tests
 ./skuld --help
 python3 scripts/check_project_gate.py

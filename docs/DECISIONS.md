@@ -561,6 +561,37 @@ them into the target module as callbacks.
   different scope semantics, so a shared abstraction would add risk before both
   sides have independent tests.
 
+## 2026-04-26 - Extract Detail View Presenters
+
+**Context**
+
+Linux and macOS command handlers still mixed operational reads with
+line-oriented stdout formatting for detail views such as `status`, `stats`, and
+`describe`.
+
+**Decision**
+
+Move selected line construction into `skuld_linux_presenters.py` and
+`skuld_macos_presenters.py`. Keep host reads, registry resolution, and command
+side effects in the backend modules.
+
+**Impact**
+
+- Detail-view formatting has focused unit tests.
+- Backend command handlers are smaller and easier to inspect.
+- The packaged console entrypoint includes the presenter modules.
+
+**Tradeoff**
+
+- This is not a full command-handler extraction. Operational flows such as
+  `track`, `sync`, `doctor`, `logs`, and start/stop/restart remain in the
+  backend modules.
+
+**Alternatives rejected**
+
+- Moving every command handler at once. That would mix presentation cleanup,
+  host mutation paths, and registry writes in one high-risk change.
+
 ## 2026-04-26 - Extract macOS Service Table Row Assembly
 
 **Context**

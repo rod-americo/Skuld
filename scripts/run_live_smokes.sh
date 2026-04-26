@@ -10,7 +10,8 @@ usage() {
   cat <<EOF
 Usage: $0 [--macos] [--linux] [--linux-host HOST]
 
-Runs explicit live smoke checks against disposable services.
+Runs explicit live smoke checks against disposable services and fails if their
+cleanup audits find leftover smoke state.
 
 Options:
   --macos           Run the local macOS LaunchAgent smoke.

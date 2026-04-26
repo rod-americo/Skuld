@@ -11,6 +11,7 @@ from typing import Dict, List, Optional, Set
 import skuld_common as common
 import skuld_cli
 import skuld_linux_runtime as linux_runtime
+import skuld_linux_presenters as linux_presenters
 import skuld_linux_stats as linux_stats
 import skuld_linux_systemd as systemd
 import skuld_linux_targets as linux_targets
@@ -1054,19 +1055,16 @@ def stats(args: argparse.Namespace) -> None:
     service_unit = f"{name}.service"
     executions = count_unit_starts(service_unit, scope=svc.scope, since=args.since, boot=args.boot)
     restarts = read_restart_count(name, scope=svc.scope)
-
-    print(f"name: {svc.display_name}")
-    print(f"target: {format_scoped_name(name, svc.scope)}")
-    print(f"scope: {svc.scope}")
-    print(f"service_unit: {service_unit}")
-    if args.boot:
-        print("window: current boot")
-    elif args.since:
-        print(f"window: since {args.since}")
-    else:
-        print("window: all retained journal entries")
-    print(f"executions: {executions}")
-    print(f"restarts: {restarts}")
+    linux_presenters.print_lines(
+        linux_presenters.stats_lines(
+            svc,
+            target=format_scoped_name(name, svc.scope),
+            service_unit=service_unit,
+            window=linux_presenters.stats_window(boot=args.boot, since=args.since),
+            executions=executions,
+            restarts=restarts,
+        )
+    )
 
 
 def track(args: argparse.Namespace) -> None:
@@ -1226,28 +1224,14 @@ def describe(args: argparse.Namespace) -> None:
         scope=svc.scope,
     ) if unit_exists(timer_unit, scope=svc.scope) else {}
 
-    print(f"name: {svc.display_name}")
-    print(f"target: {format_scoped_name(svc.name, svc.scope)}")
-    print(f"scope: {svc.scope}")
-    print(f"description: {svc.description}")
-    print(f"exec: {svc.exec_cmd}")
-    print(f"working_dir: {svc.working_dir or '-'}")
-    print(f"user: {svc.user or '-'}")
-    print(f"restart: {svc.restart}")
-    print(f"schedule: {svc.schedule or '-'}")
-    print(f"timer_persistent: {svc.timer_persistent}")
-    print("---")
-    print(f"service_active: {show_service.get('ActiveState', 'unknown')}")
-    print(f"service_substate: {show_service.get('SubState', 'unknown')}")
-    print(f"main_pid: {show_service.get('MainPID', '-')}")
-    print(f"fragment: {show_service.get('FragmentPath', '-')}")
-    if show_timer:
-        print(f"timer_active: {show_timer.get('ActiveState', 'unknown')}")
-        print(f"timer_substate: {show_timer.get('SubState', 'unknown')}")
-        print(f"next_run: {show_timer.get('NextElapseUSecRealtime', '-')}")
-        print(f"last_trigger: {show_timer.get('LastTriggerUSec', '-')}")
-    else:
-        print("timer: n/a")
+    linux_presenters.print_lines(
+        linux_presenters.describe_lines(
+            svc,
+            target=format_scoped_name(svc.name, svc.scope),
+            show_service=show_service,
+            show_timer=show_timer,
+        )
+    )
 
 
 def sync(args: argparse.Namespace) -> None:

@@ -92,6 +92,8 @@ intent.
 - Moved macOS service-table row assembly and state display mapping into
   `skuld_macos_view.py`.
 - Moved macOS target-resolution rules into `skuld_macos_targets.py`.
+- Moved selected Linux and macOS detail-view line formatting into
+  `skuld_linux_presenters.py` and `skuld_macos_presenters.py`.
 - Changed macOS live smoke cleanup to boot out the disposable LaunchAgent by
   service target before falling back to the plist path.
 - Changed macOS launchd bootstrap to avoid persistent `enable` overrides after
@@ -99,9 +101,13 @@ intent.
 - Registry reads now normalize in memory by default. Existing registry files
   are rewritten only by explicit mutating commands or intentional
   `write_back=True` code paths.
+- Live smoke scripts now fail when their cleanup audits find leftover
+  disposable launchd/systemd state, temp directories, or remote repo copies.
 
 ### Notes
 
 - No registry schema change was made in this structural recovery.
 - The automated suite fakes backend service managers; live smoke tests use
   disposable real services and still require explicit operator intent.
+- macOS smoke cleanup audits only the label created by the current run; it does
+  not remove historical launchd disabled-override residue from older runs.

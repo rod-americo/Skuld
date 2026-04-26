@@ -10,14 +10,54 @@ PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
 STATE_DIR="$(mktemp -d "${TMPDIR:-/tmp}/skuld-smoke-macos.XXXXXX")"
 LOG_FILE="$STATE_DIR/process.log"
 
-cleanup() {
+wait_until_unloaded() {
+  attempt=0
+  while [[ "$attempt" -lt 20 ]]; do
+    if ! launchctl print "$DOMAIN/$LABEL" >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep 0.25
+    attempt=$((attempt + 1))
+  done
+  return 1
+}
+
+cleanup_and_audit() {
+  original_status="$1"
+  cleanup_status=0
+
   launchctl bootout "$DOMAIN/$LABEL" >/dev/null 2>&1 \
     || launchctl bootout "$DOMAIN" "$PLIST" >/dev/null 2>&1 \
     || true
+  wait_until_unloaded || true
   rm -f "$PLIST"
   rm -rf "$STATE_DIR"
+
+  if launchctl print "$DOMAIN/$LABEL" >/dev/null 2>&1; then
+    echo "[error] disposable launchd label is still loaded: $DOMAIN/$LABEL" >&2
+    cleanup_status=1
+  fi
+  if [[ -e "$PLIST" ]]; then
+    echo "[error] disposable launchd plist remains: $PLIST" >&2
+    cleanup_status=1
+  fi
+  if [[ -e "$STATE_DIR" ]]; then
+    echo "[error] disposable smoke temp dir remains: $STATE_DIR" >&2
+    cleanup_status=1
+  fi
+  if launchctl print-disabled "$DOMAIN" 2>/dev/null | grep -Fq "$LABEL"; then
+    echo "[error] disposable label remains in launchd disabled overrides: $LABEL" >&2
+    cleanup_status=1
+  fi
+
+  if [[ "$original_status" -ne 0 ]]; then
+    exit "$original_status"
+  fi
+  if [[ "$cleanup_status" -ne 0 ]]; then
+    exit "$cleanup_status"
+  fi
 }
-trap cleanup EXIT
+trap 'cleanup_and_audit "$?"' EXIT
 
 cat >"$PLIST" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>

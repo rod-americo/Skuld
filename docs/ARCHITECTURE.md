@@ -82,9 +82,13 @@ points at `skuld_entrypoint:main`.
 
 - `ManagedService` and `DiscoverableService` dataclasses.
 - Linux registry schema and validation rules.
-- Target resolution by ID, display name, backend name, and `system:` or `user:`
-  scope.
-- Linux command handlers and backend state rendering.
+- Linux command handlers and parser wiring.
+- Backend coordination for host operations that have not been extracted yet.
+
+`skuld_linux_presenters.py` owns Linux detail-view output formatting:
+
+- line construction for `stats`.
+- line construction for `describe`.
 
 `skuld_linux_runtime.py` owns Linux runtime and journald stats:
 
@@ -133,8 +137,7 @@ points at `skuld_entrypoint:main`.
 
 - `ManagedService` and `DiscoverableService` dataclasses.
 - macOS registry schema and validation rules.
-- Target resolution by ID, display name, and launchd label.
-- macOS command handlers and backend state rendering.
+- macOS command handlers and parser wiring.
 - CLI coordination for logs and event stats.
 
 `skuld_macos_launchd.py` owns the low-level macOS service-manager adapter:
@@ -144,6 +147,12 @@ points at `skuld_entrypoint:main`.
 - `launchctl list` key-value parsing.
 - Low-level bootstrap, bootout, kickstart, loaded-state, and service-info
   helpers.
+
+`skuld_macos_presenters.py` owns macOS detail-view output formatting:
+
+- line construction for `status`.
+- line construction for `stats`.
+- line construction for `describe`.
 
 `skuld_macos_processes.py` owns macOS process and host inspection:
 
@@ -217,6 +226,8 @@ registration because their command options and operational adapters differ.
   restart-count helpers used by `skuld_linux.py`.
 - `skuld_linux_systemd.py` provides the Linux `systemd` adapter used by
   `skuld_linux.py`.
+- `skuld_linux_presenters.py` provides Linux detail-view output formatting used
+  by `skuld_linux.py`.
 - `skuld_linux_stats.py` provides Linux host overview, unit usage, process/PID,
   GPU, and port inspection helpers used by `skuld_linux.py`.
 - `skuld_linux_timers.py` provides Linux timer display helpers used by
@@ -227,6 +238,8 @@ registration because their command options and operational adapters differ.
   by `skuld_linux.py`.
 - `skuld_macos_launchd.py` provides the macOS `launchd` adapter used by
   `skuld_macos.py`.
+- `skuld_macos_presenters.py` provides macOS detail-view output formatting used
+  by `skuld_macos.py`.
 - `skuld_macos_processes.py` provides macOS process-tree, host overview,
   CPU/memory, and port helpers used by `skuld_macos.py`.
 - `skuld_macos_runtime.py` provides macOS event stats, runtime stats, log-path,
@@ -346,12 +359,13 @@ Host-local configuration:
 ## 10. Hotspots And Technical Debt
 
 - The Linux and macOS files still contain large backend-specific command
-  handlers, though Linux runtime/service-manager/stats/timer/target/view and
-  macOS launchd/process/runtime/schedule/target/view responsibilities plus
-  shared table policy have been extracted.
+  handlers, though Linux presenter/runtime/service-manager/stats/timer/target/view
+  and macOS launchd/presenter/process/runtime/schedule/target/view responsibilities
+  plus shared table policy have been extracted.
 - There is still no formal registry migration framework; canonicalization is
   tied to explicit mutating commands.
-- Some CLI presentation remains tightly coupled in each backend.
+- Some CLI presentation, especially operational command output and doctor
+  output, remains tightly coupled in each backend.
 - Live service operation is high-impact. Disposable smoke scripts now exercise
   real launchd and `systemd --user` paths, but they are still host-dependent
   checks rather than a full compatibility matrix.

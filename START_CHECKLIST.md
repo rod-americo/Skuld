@@ -88,6 +88,7 @@ is not a greenfield scaffold checklist.
 - [x] Extract Linux systemd timer formatting into `skuld_linux_timers.py`.
 - [x] Extract Linux target-resolution rules into `skuld_linux_targets.py`.
 - [x] Extract Linux service-table row assembly into `skuld_linux_view.py`.
+- [x] Extract Linux detail-view formatting into `skuld_linux_presenters.py`.
 - [x] Extract macOS `launchd` low-level adapter behavior into
   `skuld_macos_launchd.py`.
 - [x] Extract macOS process-tree, host overview, CPU/memory, and port helpers
@@ -98,6 +99,7 @@ is not a greenfield scaffold checklist.
   `skuld_macos_schedules.py`.
 - [x] Extract macOS target-resolution rules into `skuld_macos_targets.py`.
 - [x] Extract macOS service-table row assembly into `skuld_macos_view.py`.
+- [x] Extract macOS detail-view formatting into `skuld_macos_presenters.py`.
 - [x] Add installable package metadata and an importable CLI entrypoint.
 - [x] Add CI for syntax, unit tests, gate, doctor, shell checks, and packaging.
 - [ ] Continue backend splitting around command handlers, rendering, and

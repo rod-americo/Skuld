@@ -79,7 +79,7 @@ overrides.
 ## 5. Minimum Validation
 
 ```bash
-python3 -m py_compile ./skuld ./skuld_entrypoint.py ./skuld_cli.py ./skuld_common.py ./skuld_linux_runtime.py ./skuld_linux_systemd.py ./skuld_linux_stats.py ./skuld_linux_timers.py ./skuld_linux_targets.py ./skuld_linux_view.py ./skuld_macos_launchd.py ./skuld_macos_processes.py ./skuld_macos_runtime.py ./skuld_macos_schedules.py ./skuld_macos_targets.py ./skuld_macos_view.py ./skuld_observability.py ./skuld_registry.py ./skuld_tables.py ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py
+python3 -m py_compile ./skuld ./skuld_entrypoint.py ./skuld_cli.py ./skuld_common.py ./skuld_linux_presenters.py ./skuld_linux_runtime.py ./skuld_linux_systemd.py ./skuld_linux_stats.py ./skuld_linux_timers.py ./skuld_linux_targets.py ./skuld_linux_view.py ./skuld_macos_launchd.py ./skuld_macos_presenters.py ./skuld_macos_processes.py ./skuld_macos_runtime.py ./skuld_macos_schedules.py ./skuld_macos_targets.py ./skuld_macos_view.py ./skuld_observability.py ./skuld_registry.py ./skuld_tables.py ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py
 python3 -m unittest discover -s tests
 ./skuld --help
 python3 scripts/check_project_gate.py
@@ -142,8 +142,11 @@ scripts/smoke_macos_launchd.sh
 ```
 
 The cleanup path boots out the disposable service by launchd service target
-before falling back to the plist path. This avoids accumulating smoke labels in
-launchd's persistent disabled/enabled override view.
+before falling back to the plist path. After cleanup, the script fails if the
+new disposable label is still loaded, its plist or temp directory remains, or
+that new label appears in launchd's persistent disabled/enabled override view.
+It does not try to clean historical launchd override entries from older smoke
+runs.
 
 To run selected live smokes through one command:
 
@@ -154,8 +157,11 @@ scripts/run_live_smokes.sh --macos --linux-host vidar
 
 The smoke scripts use temporary `SKULD_HOME` directories, track the disposable
 service, exercise `status`, `doctor`, `restart`, `exec`, and `untrack`, then
-remove the service definition they created. They still mutate the local service
-manager, so run them only with explicit operator intent.
+remove the service definition they created. Cleanup is self-auditing: macOS
+checks the new launchd label, plist, temp directory, and disabled override
+view; Linux checks the disposable user unit, unit file, local state directory,
+and remote repository copy when SSH mode is used. They still mutate the local
+service manager, so run them only with explicit operator intent.
 
 The helper scripts `scripts/smoke_process.sh` and `scripts/smoke_trigger.sh`
 remain payloads for disposable smoke units.

@@ -52,14 +52,38 @@ ALIAS="$3"
 STATE_DIR="$4"
 UNIT_FILE="$HOME/.config/systemd/user/$UNIT_NAME.service"
 
-cleanup() {
+cleanup_and_audit() {
+  original_status="$1"
+  cleanup_status=0
+
   systemctl --user stop "$UNIT_NAME.service" >/dev/null 2>&1 || true
   rm -f "$UNIT_FILE"
   systemctl --user daemon-reload >/dev/null 2>&1 || true
   systemctl --user reset-failed "$UNIT_NAME.service" >/dev/null 2>&1 || true
   rm -rf "$STATE_DIR"
+
+  if systemctl --user list-units --full --all --no-legend "$UNIT_NAME.service" 2>/dev/null |
+    awk '{print $1}' | grep -Fxq "$UNIT_NAME.service"; then
+    echo "[error] disposable systemd user unit remains loaded: $UNIT_NAME.service" >&2
+    cleanup_status=1
+  fi
+  if [[ -e "$UNIT_FILE" ]]; then
+    echo "[error] disposable systemd user unit file remains: $UNIT_FILE" >&2
+    cleanup_status=1
+  fi
+  if [[ -e "$STATE_DIR" ]]; then
+    echo "[error] disposable smoke temp dir remains: $STATE_DIR" >&2
+    cleanup_status=1
+  fi
+
+  if [[ "$original_status" -ne 0 ]]; then
+    exit "$original_status"
+  fi
+  if [[ "$cleanup_status" -ne 0 ]]; then
+    exit "$cleanup_status"
+  fi
 }
-trap cleanup EXIT
+trap 'cleanup_and_audit "$?"' EXIT
 
 mkdir -p "$HOME/.config/systemd/user" "$STATE_DIR"
 cat >"$UNIT_FILE" <<EOF
@@ -92,16 +116,33 @@ REMOTE
 
 if [[ -n "$HOST" ]]; then
   REMOTE_DIR="$(ssh "$HOST" 'mktemp -d /tmp/skuld-smoke-repo.XXXXXX')"
-  cleanup_remote_repo() {
+  cleanup_remote_repo_and_audit() {
+    original_status="$1"
+    cleanup_status=0
+
     ssh "$HOST" "rm -rf '$REMOTE_DIR'" >/dev/null 2>&1 || true
+    if ssh "$HOST" "test ! -e '$REMOTE_DIR'" >/dev/null 2>&1; then
+      :
+    else
+      echo "[error] disposable remote repo temp dir remains on $HOST: $REMOTE_DIR" >&2
+      cleanup_status=1
+    fi
+
+    if [[ "$original_status" -ne 0 ]]; then
+      exit "$original_status"
+    fi
+    if [[ "$cleanup_status" -ne 0 ]]; then
+      exit "$cleanup_status"
+    fi
   }
-  trap cleanup_remote_repo EXIT
+  trap 'cleanup_remote_repo_and_audit "$?"' EXIT
   COPYFILE_DISABLE=1 tar --no-xattrs -C "$ROOT" -czf - \
     skuld \
     skuld_entrypoint.py \
     skuld_cli.py \
     skuld_common.py \
     skuld_linux.py \
+    skuld_linux_presenters.py \
     skuld_linux_runtime.py \
     skuld_linux_systemd.py \
     skuld_linux_stats.py \

@@ -81,6 +81,7 @@ Internal modules:
 | `skuld_registry.py` | Generic registry load/save/upsert/remove mechanics. |
 | `skuld_observability.py` | Opt-in redacted debug output through `SKULD_DEBUG`. |
 | `skuld_linux.py` | Linux parser, registry schema, command handlers, target resolution, stats, and table state. |
+| `skuld_linux_presenters.py` | Linux line-oriented output formatting for selected detail views. |
 | `skuld_linux_runtime.py` | Linux runtime stats JSON reads, journald execution counting, restart counts, and journal permission hints. |
 | `skuld_linux_systemd.py` | Low-level systemd command construction and execution helpers. |
 | `skuld_linux_stats.py` | Linux host overview, unit usage, process/PID inspection, GPU parsing, and listening-port inspection. |
@@ -89,6 +90,7 @@ Internal modules:
 | `skuld_linux_view.py` | Linux service-table row assembly and state display mapping. |
 | `skuld_macos.py` | macOS parser, registry schema, command handlers, target resolution, stats, logs, and table state. |
 | `skuld_macos_launchd.py` | Low-level launchd command construction and execution helpers. |
+| `skuld_macos_presenters.py` | macOS line-oriented output formatting for selected detail views. |
 | `skuld_macos_processes.py` | macOS process tree, termination, host overview, CPU/memory, and port inspection helpers. |
 | `skuld_macos_runtime.py` | macOS event stats, runtime stats file updates, recent-run PID extraction, file-log paths, and tail helpers. |
 | `skuld_macos_schedules.py` | macOS schedule parsing, trigger formatting, and next-run display. |
@@ -270,7 +272,7 @@ or application-specific logs may not expose logs through Skuld.
 Minimum repository validation:
 
 ```bash
-python3 -m py_compile ./skuld ./skuld_entrypoint.py ./skuld_cli.py ./skuld_common.py ./skuld_linux_runtime.py ./skuld_linux_systemd.py ./skuld_linux_stats.py ./skuld_linux_timers.py ./skuld_linux_targets.py ./skuld_linux_view.py ./skuld_macos_launchd.py ./skuld_macos_processes.py ./skuld_macos_runtime.py ./skuld_macos_schedules.py ./skuld_macos_targets.py ./skuld_macos_view.py ./skuld_observability.py ./skuld_registry.py ./skuld_tables.py ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py
+python3 -m py_compile ./skuld ./skuld_entrypoint.py ./skuld_cli.py ./skuld_common.py ./skuld_linux_presenters.py ./skuld_linux_runtime.py ./skuld_linux_systemd.py ./skuld_linux_stats.py ./skuld_linux_timers.py ./skuld_linux_targets.py ./skuld_linux_view.py ./skuld_macos_launchd.py ./skuld_macos_presenters.py ./skuld_macos_processes.py ./skuld_macos_runtime.py ./skuld_macos_schedules.py ./skuld_macos_targets.py ./skuld_macos_view.py ./skuld_observability.py ./skuld_registry.py ./skuld_tables.py ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py
 python3 -m unittest discover -s tests
 ./skuld --help
 python3 scripts/check_project_gate.py
@@ -312,8 +314,8 @@ Run live smokes only with explicit operator intent because they mutate
 ## Known Weak Spots
 
 - `skuld_linux.py` and `skuld_macos.py` are still large backend files even after
-  Linux runtime/adapter/stats/timer/target/view and macOS
-  adapter/process/runtime/schedule/target/view extractions.
+  Linux presenter/runtime/adapter/stats/timer/target/view and macOS
+  adapter/presenter/process/runtime/schedule/target/view extractions.
 - Linux and macOS stats depend on host-specific service-manager permissions,
   journal retention, process visibility, and compatible log paths.
 - Unit tests prove behavior with faked backend commands; live smokes prove

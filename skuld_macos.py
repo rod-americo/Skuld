@@ -13,6 +13,7 @@ from typing import Dict, List, Optional, Tuple
 import skuld_common as common
 import skuld_cli
 import skuld_macos_launchd as launchd
+import skuld_macos_presenters as macos_presenters
 import skuld_macos_processes as processes
 import skuld_macos_runtime as runtime
 import skuld_macos_schedules as schedules
@@ -753,15 +754,15 @@ def status(args: argparse.Namespace) -> None:
     if not service:
         raise RuntimeError("Service target is required.")
     info_map = launchctl_service_info(service)
-    print(f"name: {service.display_name}")
-    print(f"target: {service.name}")
-    print(f"label: {launchd_label_for_service(service)}")
-    print(f"scope: {service.scope}")
-    print(f"domain: {domain_target(service.scope)}")
-    print(f"loaded: {'yes' if info_map else 'no'}")
-    print(f"pid: {info_map.get('PID', '-') if info_map else '-'}")
-    print(f"last_exit_status: {info_map.get('LastExitStatus', '-') if info_map else '-'}")
-    print(f"plist: {plist_path_for_service(service)}")
+    macos_presenters.print_lines(
+        macos_presenters.status_lines(
+            service,
+            label=launchd_label_for_service(service),
+            domain=domain_target(service.scope),
+            info_map=info_map,
+            plist_path=plist_path_for_service(service),
+        )
+    )
 
 
 def tail_file(path: Path, lines: int, follow: bool) -> None:
@@ -885,14 +886,7 @@ def stats(args: argparse.Namespace) -> None:
     if not service:
         raise RuntimeError("Service target is required.")
     item = update_runtime_stats(service)[service.name]
-    print(f"name: {service.display_name}")
-    print(f"target: {service.name}")
-    print(f"scope: {service.scope}")
-    print(f"window: all retained event entries")
-    print(f"executions: {item.get('executions', 0)}")
-    print(f"restarts: {item.get('restarts', 0)}")
-    print(f"last_run: {item.get('last_run', '-')}")
-    print(f"last_exit_status: {item.get('last_exit_status', '-')}")
+    macos_presenters.print_lines(macos_presenters.stats_lines(service, item))
 
 def doctor(_args: argparse.Namespace) -> None:
     services = load_registry()
@@ -967,24 +961,15 @@ def describe(args: argparse.Namespace) -> None:
         raise RuntimeError("Service target is required.")
     info_map = launchctl_service_info(service)
     stats_map = read_event_stats(service)
-    print(f"name: {service.display_name}")
-    print(f"target: {service.name}")
-    print(f"description: {service.description}")
-    print(f"exec: {service.exec_cmd}")
-    print(f"scope: {service.scope}")
-    print(f"user: {service.user or '-'}")
-    print(f"working_dir: {service.working_dir or '-'}")
-    print(f"restart: {service.restart}")
-    print(f"schedule: {service.schedule or '-'}")
-    print(f"timer_persistent: {service.timer_persistent}")
-    print(f"log_dir: {service.log_dir}")
-    print("---")
-    print(f"loaded: {'yes' if info_map else 'no'}")
-    print(f"pid: {info_map.get('PID', '-') if info_map else '-'}")
-    print(f"last_exit_status: {info_map.get('LastExitStatus', '-') if info_map else '-'}")
-    print(f"next_run: {schedules.compute_next_run(service.schedule)}")
-    print(f"last_run: {stats_map.get('last_run', '-')}")
-    print(f"plist: {plist_path_for_service(service)}")
+    macos_presenters.print_lines(
+        macos_presenters.describe_lines(
+            service,
+            info_map=info_map,
+            stats_map=stats_map,
+            next_run=schedules.compute_next_run(service.schedule),
+            plist_path=plist_path_for_service(service),
+        )
+    )
 
 
 def sync(args: argparse.Namespace) -> None:
