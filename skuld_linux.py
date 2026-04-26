@@ -4,7 +4,6 @@ import os
 import re
 import subprocess
 import sys
-from dataclasses import asdict
 from pathlib import Path
 from typing import Dict, List, Optional, Set
 
@@ -28,6 +27,7 @@ from skuld_linux_model import (
 import skuld_linux_runtime as linux_runtime
 import skuld_linux_stats as linux_stats
 import skuld_linux_systemd as systemd
+import skuld_linux_sync as linux_sync
 import skuld_linux_targets as linux_targets
 import skuld_linux_timers as timers
 import skuld_linux_view as linux_view
@@ -578,49 +578,16 @@ def schedule_for_display(svc: ManagedService) -> str:
 
 
 def sync_registry_from_systemd(target: Optional[ManagedService] = None) -> int:
-    services = load_registry(write_back=True)
-    changed = 0
-    target_key = managed_service_key(target.name, target.scope) if target else None
-    updated: List[ManagedService] = []
-
-    for svc in services:
-        if target_key and managed_service_key(svc.name, svc.scope) != target_key:
-            updated.append(svc)
-            continue
-
-        new_svc = ManagedService(**asdict(svc))
-        svc_unit = f"{svc.name}.service"
-        timer_unit = f"{svc.name}.timer"
-
-        if unit_exists(svc_unit, scope=svc.scope):
-            show_svc = systemctl_show(svc_unit, ["Description", "WorkingDirectory", "User", "Restart"], scope=svc.scope)
-            if not new_svc.description and show_svc.get("Description"):
-                new_svc.description = show_svc["Description"]
-            if not new_svc.working_dir and show_svc.get("WorkingDirectory"):
-                new_svc.working_dir = show_svc["WorkingDirectory"]
-            if not new_svc.user and show_svc.get("User"):
-                new_svc.user = show_svc["User"]
-            if (not new_svc.restart or new_svc.restart == "on-failure") and show_svc.get("Restart"):
-                new_svc.restart = show_svc["Restart"]
-
-        if unit_exists(timer_unit, scope=svc.scope):
-            if not new_svc.schedule:
-                new_svc.schedule = read_timer_schedule(svc.name, scope=svc.scope)
-            new_svc.timer_persistent = read_timer_persistent(
-                svc.name,
-                scope=svc.scope,
-                default=new_svc.timer_persistent,
-            )
-
-        if asdict(new_svc) != asdict(svc):
-            changed += 1
-            updated.append(new_svc)
-        else:
-            updated.append(svc)
-
-    if changed:
-        save_registry(updated)
-    return changed
+    return linux_sync.sync_registry_from_systemd(
+        target,
+        load_registry=load_registry,
+        save_registry=save_registry,
+        managed_service_key=managed_service_key,
+        unit_exists=unit_exists,
+        systemctl_show=systemctl_show,
+        read_timer_schedule=read_timer_schedule,
+        read_timer_persistent=read_timer_persistent,
+    )
 
 
 def systemctl_show(unit: str, props: List[str], scope: str = "system") -> Dict[str, str]:

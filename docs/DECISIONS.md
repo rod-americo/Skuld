@@ -710,6 +710,40 @@ host-local paths in tests and operation.
 - Moving macOS runtime path roots into the model module and breaking isolated
   state patching.
 
+## 2026-04-26 - Extract Registry Sync Backfill
+
+**Context**
+
+`sync` reads live service-manager metadata and may rewrite the registry. Keeping
+that backfill logic inside the backend files mixed persistence decisions with
+parser wiring and command dispatch.
+
+**Decision**
+
+Move Linux systemd metadata backfill into `skuld_linux_sync.py` and macOS
+launchd plist metadata backfill into `skuld_macos_sync.py`. Keep backend
+wrappers responsible for injecting registry, path, and service-manager
+callbacks.
+
+**Impact**
+
+- Sync behavior has focused unit tests for targeted updates and no-change
+  write avoidance.
+- Backends keep the public `sync_registry_from_*` functions for existing tests
+  and command wiring.
+- Remote Linux smoke payload and package metadata now include the sync modules.
+
+**Tradeoff**
+
+- The sync modules still depend on backend-specific service models.
+- `track` and catalog discovery remain backend-local and are the next larger
+  extraction target.
+
+**Alternatives rejected**
+
+- Treating sync as a generic registry update operation across both backends.
+- Moving runtime path ownership into sync modules.
+
 ## 2026-04-26 - Extract macOS Service Table Row Assembly
 
 **Context**

@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
 import argparse
 import os
-import plistlib
 import subprocess
 import sys
-from dataclasses import asdict
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -25,6 +23,7 @@ from skuld_macos_model import (
 import skuld_macos_processes as processes
 import skuld_macos_runtime as runtime
 import skuld_macos_schedules as schedules
+import skuld_macos_sync as macos_sync
 import skuld_macos_targets as macos_targets
 import skuld_macos_view as macos_view
 import skuld_tables as tables
@@ -557,32 +556,12 @@ def kickstart_service(service: ManagedService, kill_existing: bool = False) -> s
 
 
 def sync_registry_from_launchd(name: Optional[str] = None) -> int:
-    services = load_registry(write_back=True)
-    changed = 0
-    target_names = {name} if name else None
-    updated: List[ManagedService] = []
-    for svc in services:
-        if target_names and svc.name not in target_names:
-            updated.append(svc)
-            continue
-        new_svc = ManagedService(**asdict(svc))
-        path = plist_path_for_service(svc)
-        if path.exists():
-            with path.open("rb") as handle:
-                plist = plistlib.load(handle)
-            new_svc.working_dir = str(plist.get("WorkingDirectory", new_svc.working_dir))
-            new_svc.user = str(plist.get("UserName", new_svc.user))
-            stdout_path = str(plist.get("StandardOutPath", "")).strip()
-            if stdout_path:
-                new_svc.log_dir = str(Path(stdout_path).parent)
-        if asdict(new_svc) != asdict(svc):
-            changed += 1
-            updated.append(new_svc)
-        else:
-            updated.append(svc)
-    if changed:
-        save_registry(updated)
-    return changed
+    return macos_sync.sync_registry_from_launchd(
+        name,
+        load_registry=load_registry,
+        save_registry=save_registry,
+        plist_path_for_service=plist_path_for_service,
+    )
 
 
 def track(args: argparse.Namespace) -> None:

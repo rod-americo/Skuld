@@ -118,6 +118,12 @@ points at `skuld_entrypoint:main`.
 - `NRestarts` reads through `systemctl show`.
 - journal permission-hint detection for sudo fallback.
 
+`skuld_linux_sync.py` owns Linux registry backfill from live systemd metadata:
+
+- service description, working directory, user, and restart policy backfill.
+- timer schedule and persistent-flag backfill.
+- targeted sync for one tracked service.
+
 `skuld_linux_systemd.py` owns the low-level Linux service-manager adapter:
 
 - `system` and `user` scope normalization.
@@ -211,6 +217,12 @@ points at `skuld_entrypoint:main`.
   `StandardOutPath`/`StandardErrorPath`.
 - `tail` command invocation for file logs.
 
+`skuld_macos_sync.py` owns macOS registry backfill from launchd plist metadata:
+
+- working directory and user backfill.
+- log directory backfill from `StandardOutPath`.
+- targeted sync for one tracked launchd label.
+
 `skuld_macos_schedules.py` owns macOS schedule helpers:
 
 - schedule subset parsing for launchd plist metadata.
@@ -266,6 +278,8 @@ registration because their command options and operational adapters differ.
   restart-count helpers used by `skuld_linux.py`.
 - `skuld_linux_systemd.py` provides the Linux `systemd` adapter used by
   `skuld_linux.py`.
+- `skuld_linux_sync.py` provides Linux registry backfill used by
+  `skuld_linux.py`.
 - `skuld_linux_actions.py` provides Linux host-mutating lifecycle and exec
   orchestration used by `skuld_linux.py`.
 - `skuld_linux_model.py` provides Linux service models and registry
@@ -297,6 +311,8 @@ registration because their command options and operational adapters differ.
 - `skuld_macos_runtime.py` provides macOS event stats, runtime stats, log-path,
   and tail helpers used by `skuld_macos.py`.
 - `skuld_macos_schedules.py` provides macOS schedule display helpers used by
+  `skuld_macos.py`.
+- `skuld_macos_sync.py` provides macOS registry backfill used by
   `skuld_macos.py`.
 - `skuld_macos_targets.py` provides macOS target-resolution helpers used by
   `skuld_macos.py`.

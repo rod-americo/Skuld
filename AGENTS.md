@@ -27,7 +27,8 @@ Before significant changes, read these files in order:
    `skuld_linux_commands.py`,
    `skuld_linux_presenters.py`,
    `skuld_linux_runtime.py`,
-   `skuld_linux_systemd.py`, `skuld_linux_stats.py`,
+   `skuld_linux_systemd.py`, `skuld_linux_sync.py`,
+   `skuld_linux_stats.py`,
    `skuld_linux_timers.py`, `skuld_linux_targets.py`, `skuld_linux_view.py`,
    `skuld_macos_actions.py`, `skuld_macos_model.py`,
    `skuld_macos_commands.py`,
@@ -35,6 +36,7 @@ Before significant changes, read these files in order:
    `skuld_macos_presenters.py`,
    `skuld_macos_processes.py`,
    `skuld_macos_runtime.py`, `skuld_macos_schedules.py`,
+   `skuld_macos_sync.py`,
    `skuld_macos_targets.py`, `skuld_macos_view.py`,
    `skuld_observability.py`, `skuld_registry.py`, and `skuld_tables.py`
 
@@ -98,6 +100,8 @@ inside the existing files until a tested extraction is justified.
   - `skuld_linux_systemd.py` owns Linux `systemd` command construction,
     `systemctl`/`journalctl` scope handling, and low-level systemd command
     execution.
+  - `skuld_linux_sync.py` owns Linux registry backfill from live systemd
+    service and timer metadata.
   - `skuld_linux_stats.py` owns Linux host overview, unit usage, process/PID
     inspection, GPU memory parsing, and listening-port inspection.
   - `skuld_linux_timers.py` owns Linux systemd timer directive parsing,
@@ -117,6 +121,8 @@ inside the existing files until a tested extraction is justified.
     updates, recent-run PID extraction, file-log path resolution, and tailing.
   - `skuld_macos_schedules.py` owns macOS schedule parsing, display
     humanization, and next-run calculation.
+  - `skuld_macos_sync.py` owns macOS registry backfill from live launchd plist
+    metadata.
   - `skuld_macos_targets.py` owns macOS target-resolution rules for launchd
     labels, display names, IDs, discoverable catalog entries, and multi-target
     de-duplication.
@@ -197,7 +203,7 @@ files are large; avoid making them larger through unrelated refactors.
 Run this before finalizing repository-wide structural or operational changes:
 
 ```bash
-python3 -m py_compile ./skuld ./skuld_entrypoint.py ./skuld_cli.py ./skuld_common.py ./skuld_linux_actions.py ./skuld_linux_model.py ./skuld_linux_commands.py ./skuld_linux_presenters.py ./skuld_linux_runtime.py ./skuld_linux_systemd.py ./skuld_linux_stats.py ./skuld_linux_timers.py ./skuld_linux_targets.py ./skuld_linux_view.py ./skuld_macos_actions.py ./skuld_macos_model.py ./skuld_macos_commands.py ./skuld_macos_launchd.py ./skuld_macos_presenters.py ./skuld_macos_processes.py ./skuld_macos_runtime.py ./skuld_macos_schedules.py ./skuld_macos_targets.py ./skuld_macos_view.py ./skuld_observability.py ./skuld_registry.py ./skuld_tables.py ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py
+python3 -m py_compile ./skuld ./skuld_entrypoint.py ./skuld_cli.py ./skuld_common.py ./skuld_linux_actions.py ./skuld_linux_model.py ./skuld_linux_commands.py ./skuld_linux_presenters.py ./skuld_linux_runtime.py ./skuld_linux_systemd.py ./skuld_linux_sync.py ./skuld_linux_stats.py ./skuld_linux_timers.py ./skuld_linux_targets.py ./skuld_linux_view.py ./skuld_macos_actions.py ./skuld_macos_model.py ./skuld_macos_commands.py ./skuld_macos_launchd.py ./skuld_macos_presenters.py ./skuld_macos_processes.py ./skuld_macos_runtime.py ./skuld_macos_schedules.py ./skuld_macos_sync.py ./skuld_macos_targets.py ./skuld_macos_view.py ./skuld_observability.py ./skuld_registry.py ./skuld_tables.py ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py
 python3 -m unittest discover -s tests
 ./skuld --help
 python3 scripts/check_project_gate.py

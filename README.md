@@ -87,6 +87,7 @@ Internal modules:
 | `skuld_linux_presenters.py` | Linux line-oriented output formatting for selected detail views. |
 | `skuld_linux_runtime.py` | Linux runtime stats JSON reads, journald execution counting, restart counts, and journal permission hints. |
 | `skuld_linux_systemd.py` | Low-level systemd command construction and execution helpers. |
+| `skuld_linux_sync.py` | Linux registry backfill from live systemd service and timer metadata. |
 | `skuld_linux_stats.py` | Linux host overview, unit usage, process/PID inspection, GPU parsing, and listening-port inspection. |
 | `skuld_linux_timers.py` | Linux timer parsing and display formatting. |
 | `skuld_linux_targets.py` | Linux target-resolution rules for display names, IDs, scoped names, and multi-target de-duplication. |
@@ -100,6 +101,7 @@ Internal modules:
 | `skuld_macos_processes.py` | macOS process tree, termination, host overview, CPU/memory, and port inspection helpers. |
 | `skuld_macos_runtime.py` | macOS event stats, runtime stats file updates, recent-run PID extraction, file-log paths, and tail helpers. |
 | `skuld_macos_schedules.py` | macOS schedule parsing, trigger formatting, and next-run display. |
+| `skuld_macos_sync.py` | macOS registry backfill from live launchd plist metadata. |
 | `skuld_macos_targets.py` | macOS target-resolution rules for labels, display names, IDs, catalog entries, and multi-target de-duplication. |
 | `skuld_macos_view.py` | macOS service-table row assembly and state display mapping. |
 | `skuld_tables.py` | Shared service-table column policy, fitting, sorting, and host-panel helpers. |
@@ -278,7 +280,7 @@ or application-specific logs may not expose logs through Skuld.
 Minimum repository validation:
 
 ```bash
-python3 -m py_compile ./skuld ./skuld_entrypoint.py ./skuld_cli.py ./skuld_common.py ./skuld_linux_actions.py ./skuld_linux_model.py ./skuld_linux_commands.py ./skuld_linux_presenters.py ./skuld_linux_runtime.py ./skuld_linux_systemd.py ./skuld_linux_stats.py ./skuld_linux_timers.py ./skuld_linux_targets.py ./skuld_linux_view.py ./skuld_macos_actions.py ./skuld_macos_model.py ./skuld_macos_commands.py ./skuld_macos_launchd.py ./skuld_macos_presenters.py ./skuld_macos_processes.py ./skuld_macos_runtime.py ./skuld_macos_schedules.py ./skuld_macos_targets.py ./skuld_macos_view.py ./skuld_observability.py ./skuld_registry.py ./skuld_tables.py ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py
+python3 -m py_compile ./skuld ./skuld_entrypoint.py ./skuld_cli.py ./skuld_common.py ./skuld_linux_actions.py ./skuld_linux_model.py ./skuld_linux_commands.py ./skuld_linux_presenters.py ./skuld_linux_runtime.py ./skuld_linux_systemd.py ./skuld_linux_sync.py ./skuld_linux_stats.py ./skuld_linux_timers.py ./skuld_linux_targets.py ./skuld_linux_view.py ./skuld_macos_actions.py ./skuld_macos_model.py ./skuld_macos_commands.py ./skuld_macos_launchd.py ./skuld_macos_presenters.py ./skuld_macos_processes.py ./skuld_macos_runtime.py ./skuld_macos_schedules.py ./skuld_macos_sync.py ./skuld_macos_targets.py ./skuld_macos_view.py ./skuld_observability.py ./skuld_registry.py ./skuld_tables.py ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py
 python3 -m unittest discover -s tests
 ./skuld --help
 python3 scripts/check_project_gate.py

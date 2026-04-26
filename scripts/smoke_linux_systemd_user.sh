@@ -148,6 +148,7 @@ if [[ -n "$HOST" ]]; then
     skuld_linux_presenters.py \
     skuld_linux_runtime.py \
     skuld_linux_systemd.py \
+    skuld_linux_sync.py \
     skuld_linux_stats.py \
     skuld_linux_timers.py \
     skuld_linux_targets.py \
