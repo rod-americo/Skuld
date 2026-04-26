@@ -93,6 +93,12 @@ that module's `main()`.
 - User-scope environment discovery.
 - Low-level `systemctl show`, `cat`, `is-active`, and action execution.
 
+`skuld_linux_timers.py` owns Linux timer formatting:
+
+- systemd directive parsing.
+- systemd duration compaction and humanization.
+- `OnCalendar` summary formatting for compact service tables.
+
 ### 4.3 macOS Backend
 
 `skuld_macos.py` owns the macOS implementation:
@@ -147,6 +153,8 @@ registration because their command options and operational adapters differ.
   formatting, byte/duration formatting, sorting, clipping, table rendering, and
   responsive table fitting.
 - `skuld_linux_systemd.py` provides the Linux `systemd` adapter used by
+  `skuld_linux.py`.
+- `skuld_linux_timers.py` provides Linux timer display helpers used by
   `skuld_linux.py`.
 - `skuld_macos_launchd.py` provides the macOS `launchd` adapter used by
   `skuld_macos.py`.

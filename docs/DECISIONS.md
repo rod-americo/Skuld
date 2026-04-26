@@ -371,6 +371,35 @@ tests keep their local patch points.
 - Moving every Linux concern into a package in one step.
 - Changing handler call sites broadly before the adapter contract was tested.
 
+## 2026-04-25 - Extract Linux Timer Formatting
+
+**Context**
+
+The Linux backend contained a large block of mostly pure systemd timer parsing
+and display formatting. That code is important for operator readability but is
+not part of service-manager command execution.
+
+**Decision**
+
+Move systemd duration formatting, `OnCalendar` humanization, repeated directive
+parsing, and calendar summary merging into `skuld_linux_timers.py`.
+
+**Impact**
+
+- `skuld_linux.py` is smaller.
+- Timer display behavior has focused unit tests.
+- Service-manager adapter code remains separate from display formatting.
+
+**Tradeoff**
+
+- `timer_triggers_for_display()` still lives in `skuld_linux.py` because it
+  combines registry data with live systemd unit inspection.
+
+**Alternatives rejected**
+
+- Moving all Linux stats and table rendering in the same change.
+- Leaving pure formatting code embedded in the Linux backend.
+
 ## 2026-04-25 - Extract macOS Launchd Adapter
 
 **Context**

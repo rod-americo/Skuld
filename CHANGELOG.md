@@ -30,6 +30,8 @@ intent.
 - `skuld_cli.py` for shared backend main-loop behavior.
 - `skuld_linux_systemd.py` for Linux `systemd` command construction and
   low-level adapter behavior.
+- `skuld_linux_timers.py` for Linux systemd timer directive parsing and display
+  formatting.
 - `skuld_macos_launchd.py` for macOS `launchd` target formatting and
   low-level adapter behavior.
 - `skuld_observability.py` for redacted opt-in `SKULD_DEBUG` diagnostics.
@@ -58,6 +60,7 @@ intent.
 - Moved Linux `systemctl`/`journalctl` command construction and low-level
   systemd execution behind a dedicated adapter module while preserving CLI
   behavior.
+- Moved Linux timer duration/calendar formatting out of the main Linux backend.
 - Moved macOS `launchctl` target formatting, parsing, and low-level execution
   behind a dedicated adapter module while preserving CLI behavior.
 - macOS `logs` can now read externally tracked launchd jobs when their plist
