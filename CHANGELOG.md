@@ -97,6 +97,8 @@ intent.
 - Moved Linux and macOS registry-only `rename`/`untrack` helpers, `doctor`
   orchestration, logs command flow, and `status`/`stats`/`describe` detail
   command flow into `skuld_linux_commands.py` and `skuld_macos_commands.py`.
+- Moved Linux and macOS host-mutating `start`/`stop`/`restart`/`exec`
+  orchestration into `skuld_linux_actions.py` and `skuld_macos_actions.py`.
 - Changed macOS live smoke cleanup to boot out the disposable LaunchAgent by
   service target before falling back to the plist path.
 - Changed macOS launchd bootstrap to avoid persistent `enable` overrides after

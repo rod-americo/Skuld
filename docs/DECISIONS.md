@@ -632,6 +632,45 @@ modules.
 - Creating a single cross-platform command module while Linux and macOS service
   dataclasses still have different fields.
 
+## 2026-04-26 - Extract Host-Mutating Service Actions
+
+**Context**
+
+`start`, `stop`, `restart`, and `exec` mutate host service-manager state. They
+still lived inline in the backend files after read-only command flows had been
+extracted, which kept high-risk operational behavior mixed with parser and
+registry code.
+
+**Decision**
+
+Move Linux lifecycle and exec orchestration into `skuld_linux_actions.py`, and
+move macOS launchd lifecycle and exec orchestration into
+`skuld_macos_actions.py`. Keep target resolution, parser wiring, and backend
+adapter functions in the backend modules.
+
+**Impact**
+
+- Timer-versus-service routing on Linux has focused unit tests.
+- macOS bootstrap, bootout, process cleanup, kickstart, and failure behavior
+  have focused unit tests.
+- Backend command handlers for host-mutating actions now resolve targets and
+  inject backend callbacks instead of owning the action flow.
+
+**Tradeoff**
+
+- The action modules still use object-shaped services because backend-specific
+  dataclasses remain in the backend files.
+- Live behavior still requires explicit disposable smokes because unit tests
+  intentionally fake `systemctl` and `launchctl`.
+
+**Alternatives rejected**
+
+- Folding action behavior into `skuld_linux_commands.py` and
+  `skuld_macos_commands.py`, which would make those modules the next broad
+  buckets.
+- Creating a cross-platform action abstraction before Linux timers and macOS
+  launchd schedules have compatible semantics.
+
 ## 2026-04-26 - Extract macOS Service Table Row Assembly
 
 **Context**

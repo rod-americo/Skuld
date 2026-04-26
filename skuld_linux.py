@@ -10,6 +10,7 @@ from typing import Dict, List, Optional, Set
 
 import skuld_common as common
 import skuld_cli
+import skuld_linux_actions as linux_actions
 import skuld_linux_commands as linux_commands
 import skuld_linux_runtime as linux_runtime
 import skuld_linux_stats as linux_stats
@@ -914,56 +915,24 @@ def catalog(args: argparse.Namespace) -> None:
 
 def exec_now(args: argparse.Namespace) -> None:
     svc = resolve_managed_arg(args)
-    name = svc.name
     require_systemctl()
-    run_systemctl_action(svc.scope, ["start", f"{name}.service"])
-    ok(f"Execution started: {name}.service ({svc.display_name}, scope={svc.scope})")
-
-
-def managed_has_schedule(svc: ManagedService) -> bool:
-    return bool((svc.schedule or "").strip())
-
-
-def timer_unit_exists(name: str, scope: str = "system") -> bool:
-    return unit_exists(f"{name}.timer", scope=scope)
-
-
-def managed_uses_timer(svc: ManagedService) -> bool:
-    return managed_has_schedule(svc) and timer_unit_exists(svc.name, scope=svc.scope)
-
-
-def apply_action_for_managed(svc: ManagedService, action: str) -> None:
-    name = svc.name
-    service_unit = f"{name}.service"
-    timer_unit = f"{name}.timer"
-    uses_timer = managed_uses_timer(svc)
-
-    if uses_timer:
-        proc = run_systemctl_action(svc.scope, [action, timer_unit], check=False, capture=True)
-        if proc.returncode != 0:
-            details = (proc.stderr or proc.stdout or "").strip()
-            msg = f"Failed to {action} {timer_unit}."
-            if details:
-                msg = f"{msg} {details}"
-            raise RuntimeError(msg)
-        ok(f"{action} -> {timer_unit} ({svc.scope})")
-        return
-
-    proc = run_systemctl_action(svc.scope, [action, service_unit], check=False, capture=True)
-    if proc.returncode != 0:
-        details = (proc.stderr or proc.stdout or "").strip()
-        msg = f"Failed to {action} {service_unit}."
-        if details:
-            msg = f"{msg} {details}"
-        raise RuntimeError(msg)
-    ok(f"{action} -> {service_unit} ({svc.scope})")
+    linux_actions.execute_now(
+        svc,
+        run_systemctl_action=run_systemctl_action,
+        ok=ok,
+    )
 
 
 def start_stop(args: argparse.Namespace, action: str) -> None:
     services = resolve_managed_many_arg(args)
     require_systemctl()
-    for svc in services:
-        apply_action_for_managed(svc, action)
+    linux_actions.apply_lifecycle_action_to_services(
+        services,
+        action,
+        unit_exists=unit_exists,
+        run_systemctl_action=run_systemctl_action,
+        ok=ok,
+    )
 
 
 def restart(args: argparse.Namespace) -> None:

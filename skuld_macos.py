@@ -11,6 +11,7 @@ from typing import Dict, List, Optional, Tuple
 
 import skuld_common as common
 import skuld_cli
+import skuld_macos_actions as macos_actions
 import skuld_macos_commands as macos_commands
 import skuld_macos_launchd as launchd
 import skuld_macos_processes as processes
@@ -684,52 +685,18 @@ def track(args: argparse.Namespace) -> None:
         upsert_registry(service)
         ok(f"Tracked '{label}' as '{alias}'.")
 
-def managed_uses_schedule(service: ManagedService) -> bool:
-    return bool(service.schedule)
-
-
-def apply_action_for_managed(service: ManagedService, action: str) -> None:
-    if action == "start":
-        bootstrap_service(service)
-        if not managed_uses_schedule(service):
-            proc = kickstart_service(service, kill_existing=False)
-            if proc.returncode != 0:
-                details = (proc.stderr or proc.stdout or "").strip()
-                raise RuntimeError(f"Failed to start {service.name}. {details}".strip())
-        ok(f"start -> {service.display_name}")
-        return
-    if action == "stop":
-        pid = read_pid(service)
-        extra_pids = read_recent_run_root_pids(service)
-        bootout_service(service)
-        terminate_process_tree(pid)
-        for extra_pid in extra_pids:
-            if extra_pid != pid:
-                terminate_process_tree(extra_pid)
-        ok(f"stop -> {service.display_name}")
-        return
-    if action == "restart":
-        pid = read_pid(service)
-        extra_pids = read_recent_run_root_pids(service)
-        bootout_service(service)
-        terminate_process_tree(pid)
-        for extra_pid in extra_pids:
-            if extra_pid != pid:
-                terminate_process_tree(extra_pid)
-        bootstrap_service(service)
-        if not managed_uses_schedule(service):
-            proc = kickstart_service(service, kill_existing=True)
-            if proc.returncode != 0:
-                details = (proc.stderr or proc.stdout or "").strip()
-                raise RuntimeError(f"Failed to restart {service.name}. {details}".strip())
-        ok(f"restart -> {service.display_name}")
-        return
-    raise RuntimeError(f"Unsupported action: {action}")
-
-
 def start_stop(args: argparse.Namespace, action: str) -> None:
-    for service in resolve_managed_many_arg(args):
-        apply_action_for_managed(service, action)
+    macos_actions.apply_lifecycle_action_to_services(
+        resolve_managed_many_arg(args),
+        action,
+        bootstrap_service=bootstrap_service,
+        bootout_service=bootout_service,
+        kickstart_service=kickstart_service,
+        read_pid=read_pid,
+        read_recent_run_root_pids=read_recent_run_root_pids,
+        terminate_process_tree=terminate_process_tree,
+        ok=ok,
+    )
 
 
 def restart(args: argparse.Namespace) -> None:
@@ -740,12 +707,12 @@ def exec_now(args: argparse.Namespace) -> None:
     service = resolve_managed_arg(args)
     if not service:
         raise RuntimeError("Service target is required.")
-    bootstrap_service(service)
-    proc = kickstart_service(service, kill_existing=False)
-    if proc.returncode != 0:
-        details = (proc.stderr or proc.stdout or "").strip()
-        raise RuntimeError(f"Failed to execute {service.name}. {details}".strip())
-    ok(f"Execution started: {service.display_name}")
+    macos_actions.execute_now(
+        service,
+        bootstrap_service=bootstrap_service,
+        kickstart_service=kickstart_service,
+        ok=ok,
+    )
 
 
 def status(args: argparse.Namespace) -> None:

@@ -85,6 +85,13 @@ points at `skuld_entrypoint:main`.
 - Linux command handlers and parser wiring.
 - Backend coordination for host operations that have not been extracted yet.
 
+`skuld_linux_actions.py` owns Linux host-mutating service actions:
+
+- `exec` execution through direct service-unit start.
+- `start`, `stop`, and `restart` routing to timer units when a tracked service
+  has a schedule and a matching timer exists.
+- Failure-message construction for lifecycle command errors.
+
 `skuld_linux_presenters.py` owns Linux detail-view output formatting:
 
 - line construction for `stats`.
@@ -148,6 +155,13 @@ points at `skuld_entrypoint:main`.
 - macOS registry schema and validation rules.
 - macOS command handlers and parser wiring.
 - Backend coordination for host operations that have not been extracted yet.
+
+`skuld_macos_actions.py` owns macOS host-mutating launchd actions:
+
+- `start` bootstrap and immediate kickstart behavior for unscheduled jobs.
+- `stop` bootout and process-tree termination behavior.
+- `restart` bootout, process cleanup, bootstrap, and optional kickstart.
+- `exec` bootstrap plus immediate kickstart behavior.
 
 `skuld_macos_launchd.py` owns the low-level macOS service-manager adapter:
 
@@ -244,8 +258,10 @@ registration because their command options and operational adapters differ.
   restart-count helpers used by `skuld_linux.py`.
 - `skuld_linux_systemd.py` provides the Linux `systemd` adapter used by
   `skuld_linux.py`.
-- `skuld_linux_commands.py` provides Linux registry command helpers used by
-  `skuld_linux.py`.
+- `skuld_linux_actions.py` provides Linux host-mutating lifecycle and exec
+  orchestration used by `skuld_linux.py`.
+- `skuld_linux_commands.py` provides Linux registry and read-only command
+  orchestration used by `skuld_linux.py`.
 - `skuld_linux_presenters.py` provides Linux detail-view output formatting used
   by `skuld_linux.py`.
 - `skuld_linux_stats.py` provides Linux host overview, unit usage, process/PID,
@@ -258,8 +274,10 @@ registration because their command options and operational adapters differ.
   by `skuld_linux.py`.
 - `skuld_macos_launchd.py` provides the macOS `launchd` adapter used by
   `skuld_macos.py`.
-- `skuld_macos_commands.py` provides macOS registry command helpers used by
-  `skuld_macos.py`.
+- `skuld_macos_actions.py` provides macOS host-mutating lifecycle and exec
+  orchestration used by `skuld_macos.py`.
+- `skuld_macos_commands.py` provides macOS registry and read-only command
+  orchestration used by `skuld_macos.py`.
 - `skuld_macos_presenters.py` provides macOS detail-view output formatting used
   by `skuld_macos.py`.
 - `skuld_macos_processes.py` provides macOS process-tree, host overview,
