@@ -10,6 +10,7 @@ from typing import Dict, List, Optional, Set
 
 import skuld_common as common
 import skuld_cli
+import skuld_linux_commands as linux_commands
 import skuld_linux_runtime as linux_runtime
 import skuld_linux_presenters as linux_presenters
 import skuld_linux_stats as linux_stats
@@ -1128,33 +1129,20 @@ def track(args: argparse.Namespace) -> None:
 
 def rename(args: argparse.Namespace) -> None:
     svc = resolve_managed_arg(args)
-    new_name = (args.new_name or "").strip()
-    ensure_display_name_available(new_name, current_id=svc.id)
-    if svc.display_name == new_name:
-        info("No changes detected.")
-        return
-    upsert_registry(
-        ManagedService(
-            name=svc.name,
-            scope=svc.scope,
-            exec_cmd=svc.exec_cmd,
-            description=svc.description,
-            display_name=new_name,
-            schedule=svc.schedule,
-            working_dir=svc.working_dir,
-            user=svc.user,
-            restart=svc.restart,
-            timer_persistent=svc.timer_persistent,
-            id=svc.id,
-        )
+    linux_commands.rename_service(
+        svc,
+        args.new_name,
+        ensure_display_name_available=ensure_display_name_available,
+        service_factory=ManagedService,
+        upsert_registry=upsert_registry,
+        info=info,
+        ok=ok,
     )
-    ok(f"Renamed '{svc.display_name}' to '{new_name}'.")
 
 
 def untrack(args: argparse.Namespace) -> None:
     svc = resolve_managed_arg(args)
-    remove_registry(svc.name, svc.scope)
-    ok(f"Removed '{svc.display_name}' from the skuld registry.")
+    linux_commands.untrack_service(svc, remove_registry=remove_registry, ok=ok)
 
 
 def doctor(_args: argparse.Namespace) -> None:

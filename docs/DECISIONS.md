@@ -592,6 +592,39 @@ side effects in the backend modules.
 - Moving every command handler at once. That would mix presentation cleanup,
   host mutation paths, and registry writes in one high-risk change.
 
+## 2026-04-26 - Extract Registry Command Helpers
+
+**Context**
+
+`rename` and `untrack` are registry-only command paths, but their service
+object reconstruction and registry removal logic still lived inline in the
+backend files next to service-manager operations.
+
+**Decision**
+
+Move Linux and macOS registry-only command helpers into
+`skuld_linux_commands.py` and `skuld_macos_commands.py`. Keep argument parsing,
+target resolution, and user-visible command registration in the backend modules.
+
+**Impact**
+
+- Registry mutation behavior has focused unit tests.
+- The backend command handlers for `rename` and `untrack` are smaller.
+- The packaged console entrypoint and Linux remote smoke payload include the new
+  command modules.
+
+**Tradeoff**
+
+- Service-manager mutating commands such as start, stop, restart, exec, track,
+  sync, and doctor remain backend-local because they need narrower extraction
+  and live-smoke coverage.
+
+**Alternatives rejected**
+
+- Moving every command handler into command modules in one step.
+- Creating a single cross-platform command module while Linux and macOS service
+  dataclasses still have different fields.
+
 ## 2026-04-26 - Extract macOS Service Table Row Assembly
 
 **Context**

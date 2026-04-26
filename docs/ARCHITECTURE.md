@@ -90,6 +90,11 @@ points at `skuld_entrypoint:main`.
 - line construction for `stats`.
 - line construction for `describe`.
 
+`skuld_linux_commands.py` owns extracted Linux registry command helpers:
+
+- `rename` service object reconstruction and registry write orchestration.
+- `untrack` registry removal orchestration.
+
 `skuld_linux_runtime.py` owns Linux runtime and journald stats:
 
 - runtime stats JSON reads.
@@ -153,6 +158,11 @@ points at `skuld_entrypoint:main`.
 - line construction for `status`.
 - line construction for `stats`.
 - line construction for `describe`.
+
+`skuld_macos_commands.py` owns extracted macOS registry command helpers:
+
+- `rename` service object reconstruction and registry write orchestration.
+- `untrack` registry removal orchestration.
 
 `skuld_macos_processes.py` owns macOS process and host inspection:
 
@@ -226,6 +236,8 @@ registration because their command options and operational adapters differ.
   restart-count helpers used by `skuld_linux.py`.
 - `skuld_linux_systemd.py` provides the Linux `systemd` adapter used by
   `skuld_linux.py`.
+- `skuld_linux_commands.py` provides Linux registry command helpers used by
+  `skuld_linux.py`.
 - `skuld_linux_presenters.py` provides Linux detail-view output formatting used
   by `skuld_linux.py`.
 - `skuld_linux_stats.py` provides Linux host overview, unit usage, process/PID,
@@ -237,6 +249,8 @@ registration because their command options and operational adapters differ.
 - `skuld_linux_view.py` provides Linux service-table row assembly helpers used
   by `skuld_linux.py`.
 - `skuld_macos_launchd.py` provides the macOS `launchd` adapter used by
+  `skuld_macos.py`.
+- `skuld_macos_commands.py` provides macOS registry command helpers used by
   `skuld_macos.py`.
 - `skuld_macos_presenters.py` provides macOS detail-view output formatting used
   by `skuld_macos.py`.
@@ -359,9 +373,10 @@ Host-local configuration:
 ## 10. Hotspots And Technical Debt
 
 - The Linux and macOS files still contain large backend-specific command
-  handlers, though Linux presenter/runtime/service-manager/stats/timer/target/view
-  and macOS launchd/presenter/process/runtime/schedule/target/view responsibilities
-  plus shared table policy have been extracted.
+  handlers. Extracted responsibilities now include registry command helpers,
+  presenters, runtime helpers, service-manager adapters, stats helpers,
+  schedules/timers, target resolution, service-table row assembly, and shared
+  table policy.
 - There is still no formal registry migration framework; canonicalization is
   tied to explicit mutating commands.
 - Some CLI presentation, especially operational command output and doctor

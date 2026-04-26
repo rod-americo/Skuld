@@ -12,6 +12,7 @@ from typing import Dict, List, Optional, Tuple
 
 import skuld_common as common
 import skuld_cli
+import skuld_macos_commands as macos_commands
 import skuld_macos_launchd as launchd
 import skuld_macos_presenters as macos_presenters
 import skuld_macos_processes as processes
@@ -919,40 +920,22 @@ def rename(args: argparse.Namespace) -> None:
     service = resolve_managed_arg(args)
     if not service:
         raise RuntimeError("Service target is required.")
-    new_name = (args.new_name or "").strip()
-    ensure_display_name_available(new_name, current_name=service.name)
-    if service.display_name == new_name:
-        info("No changes detected.")
-        return
-    upsert_registry(
-        ManagedService(
-            name=service.name,
-            exec_cmd=service.exec_cmd,
-            description=service.description,
-            display_name=new_name,
-            launchd_label=service.launchd_label,
-            plist_path_hint=service.plist_path_hint,
-            managed_by_skuld=service.managed_by_skuld,
-            schedule=service.schedule,
-            working_dir=service.working_dir,
-            user=service.user,
-            restart=service.restart,
-            timer_persistent=service.timer_persistent,
-            id=service.id,
-            backend=service.backend,
-            scope=service.scope,
-            log_dir=service.log_dir,
-        )
+    macos_commands.rename_service(
+        service,
+        args.new_name,
+        ensure_display_name_available=ensure_display_name_available,
+        service_factory=ManagedService,
+        upsert_registry=upsert_registry,
+        info=info,
+        ok=ok,
     )
-    ok(f"Renamed '{service.display_name}' to '{new_name}'.")
 
 
 def untrack(args: argparse.Namespace) -> None:
     service = resolve_managed_arg(args)
     if not service:
         raise RuntimeError("Service target is required.")
-    remove_registry(service.name)
-    ok(f"Removed '{service.display_name}' from the skuld registry.")
+    macos_commands.untrack_service(service, remove_registry=remove_registry, ok=ok)
 
 
 def describe(args: argparse.Namespace) -> None:
