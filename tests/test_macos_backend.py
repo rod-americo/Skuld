@@ -103,6 +103,37 @@ class MacRegistryTest(unittest.TestCase):
 
 
 class MacCommandBehaviorTest(unittest.TestCase):
+    def test_untrack_removes_multiple_targets(self) -> None:
+        with IsolatedMacContext() as state:
+            ctx = state.context
+            handlers = MacOSCommandHandlers(ctx)
+            first = ManagedService(
+                "com.example.alpha",
+                "/bin/alpha",
+                "Alpha",
+                display_name="alpha",
+                id=1,
+            )
+            second = ManagedService(
+                "com.example.beta",
+                "/bin/beta",
+                "Beta",
+                display_name="beta",
+                id=2,
+            )
+            ctx.save_registry([first, second])
+
+            with redirect_stdout(io.StringIO()):
+                handlers.untrack(
+                    argparse.Namespace(
+                        targets=["1", "2"],
+                        name_flag=None,
+                        id_flag=None,
+                    )
+                )
+
+            self.assertEqual(ctx.load_registry(), [])
+
     def test_list_does_not_persist_registry_normalization(self) -> None:
         with IsolatedMacContext() as state:
             ctx = state.context

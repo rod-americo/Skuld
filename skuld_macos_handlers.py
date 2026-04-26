@@ -166,14 +166,12 @@ class MacOSCommandHandlers:
 
     def untrack(self, args: argparse.Namespace) -> None:
         ctx = self.context
-        service = ctx.resolve_managed_arg(args)
-        if not service:
-            raise RuntimeError("Service target is required.")
-        macos_commands.untrack_service(
-            service,
-            remove_registry=ctx.remove_registry,
-            ok=ctx.ok,
-        )
+        for service in ctx.resolve_managed_many_arg(args):
+            macos_commands.untrack_service(
+                service,
+                remove_registry=ctx.remove_registry,
+                ok=ctx.ok,
+            )
 
     def describe(self, args: argparse.Namespace) -> None:
         ctx = self.context

@@ -94,6 +94,13 @@ class LinuxParserTest(unittest.TestCase):
 
         self.assertEqual(calls, [("start", ["api", "worker"])])
 
+    def test_untrack_accepts_multiple_targets(self) -> None:
+        args = self.build_parser().parse_args(["untrack", "1", "2", "worker"])
+
+        self.assertEqual(args.targets, ["1", "2", "worker"])
+        self.assertIsNone(args.name_flag)
+        self.assertIsNone(args.id_flag)
+
     def test_sync_keeps_target_forms(self) -> None:
         args = self.build_parser().parse_args(["sync", "--id", "7"])
 

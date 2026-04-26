@@ -318,6 +318,7 @@ Examples:
 ./skuld track system:nginx --alias edge-proxy
 ./skuld track user:syncthing --alias sync-home
 ./skuld track 1 4 22
+./skuld untrack 1 2 3
 ```
 
 Use `./skuld catalog --scope user` when you want to inspect only `systemd --user`

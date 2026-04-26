@@ -165,12 +165,12 @@ class LinuxCommandHandlers:
 
     def untrack(self, args: argparse.Namespace) -> None:
         ctx = self.context
-        service = ctx.resolve_managed_arg(args)
-        linux_commands.untrack_service(
-            service,
-            remove_registry=ctx.remove_registry,
-            ok=ctx.ok,
-        )
+        for service in ctx.resolve_managed_many_arg(args):
+            linux_commands.untrack_service(
+                service,
+                remove_registry=ctx.remove_registry,
+                ok=ctx.ok,
+            )
 
     def doctor(self, _args: argparse.Namespace) -> None:
         ctx = self.context

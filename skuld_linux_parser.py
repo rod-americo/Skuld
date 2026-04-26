@@ -134,7 +134,7 @@ def build_parser(
         "untrack",
         help="Remove a service from the skuld registry without touching systemd",
     )
-    _add_name_target_args(untrack_parser)
+    _add_multi_target_args(untrack_parser)
     untrack_parser.set_defaults(func=untrack)
 
     exec_parser = subparsers.add_parser("exec", help="Execute a service immediately")
