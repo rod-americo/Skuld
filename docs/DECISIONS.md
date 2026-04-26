@@ -529,6 +529,74 @@ the view module does not import `skuld_linux.py`.
 - Moving Linux and macOS row assembly together in one change.
 - Letting `skuld_linux_view.py` import the backend module directly.
 
+## 2026-04-26 - Extract macOS Service Table Row Assembly
+
+**Context**
+
+The macOS backend still assembled service-table rows inline, mixing command
+handler flow with display-state mapping, event stats reads, PID lookup, usage
+lookup, schedule display, and port lookup.
+
+**Decision**
+
+Move macOS service-table row assembly and state display mapping into
+`skuld_macos_view.py`. Keep backend-specific operational reads as callbacks so
+the view module does not import `skuld_macos.py`.
+
+**Impact**
+
+- `skuld_macos.py` is smaller.
+- macOS row assembly behavior has focused unit tests.
+- The packaged console entrypoint includes the new view module.
+
+**Tradeoff**
+
+- The backend still owns when to render the table and how to handle empty
+  registry state.
+- `read_event_stats(service)` remains part of row assembly because the prior
+  backend loop called it while building the table.
+
+**Alternatives rejected**
+
+- Removing the event stats read as apparently unused. That could silently alter
+  runtime side effects.
+- Letting `skuld_macos_view.py` import the backend module directly.
+
+## 2026-04-26 - Boot Out macOS Smoke By Service Target
+
+**Context**
+
+`scripts/smoke_macos_launchd.sh` cleaned up the disposable LaunchAgent by plist
+path. Live validation showed that this unloads the job and removes files, but
+can leave `io.skuld.smoke.* => enabled` entries in `launchctl print-disabled`.
+
+**Decision**
+
+Clean up macOS smoke jobs with `launchctl bootout gui/<uid>/<label>` first,
+then fall back to `launchctl bootout gui/<uid> <plist>` if the service-target
+bootout is unavailable. Also avoid calling `launchctl enable` after a
+successful bootstrap; only enable and retry when the bootstrap error indicates
+the service is disabled.
+
+**Impact**
+
+- New macOS smoke runs avoid adding persistent launchd override entries.
+- The fallback keeps compatibility with hosts where path-based bootout is still
+  needed.
+- Disabled launchd jobs can still be re-enabled when the bootstrap failure
+  actually indicates disabled state.
+
+**Tradeoff**
+
+- Existing historical smoke override entries may remain in launchd's persistent
+  view because `launchctl remove` does not clear them after the jobs are already
+  unloaded and their plists are gone.
+
+**Alternatives rejected**
+
+- Editing launchd override storage directly. That is too invasive for a smoke
+  cleanup path.
+
 ## 2026-04-25 - Extract macOS Launchd Adapter
 
 **Context**

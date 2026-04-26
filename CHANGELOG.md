@@ -88,6 +88,12 @@ intent.
   helpers into `skuld_tables.py`.
 - Moved Linux service-table row assembly and state display mapping into
   `skuld_linux_view.py`.
+- Moved macOS service-table row assembly and state display mapping into
+  `skuld_macos_view.py`.
+- Changed macOS live smoke cleanup to boot out the disposable LaunchAgent by
+  service target before falling back to the plist path.
+- Changed macOS launchd bootstrap to avoid persistent `enable` overrides after
+  successful bootstraps while still retrying disabled-service failures.
 - Registry reads now normalize in memory by default. Existing registry files
   are rewritten only by explicit mutating commands or intentional
   `write_back=True` code paths.

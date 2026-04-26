@@ -20,6 +20,7 @@ class PackagingMetadataTest(unittest.TestCase):
         self.assertIn('"skuld_linux_view"', text)
         self.assertIn('"skuld_macos"', text)
         self.assertIn('"skuld_macos_runtime"', text)
+        self.assertIn('"skuld_macos_view"', text)
         self.assertIn('"skuld_tables"', text)
 
     def test_package_version_matches_backend_versions(self) -> None:

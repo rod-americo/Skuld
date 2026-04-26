@@ -69,9 +69,18 @@ def service_loaded(scope: str, label: str, *, sudo_password: Optional[str] = Non
     return proc.returncode == 0
 
 
-def bootstrap_service(scope: str, label: str, plist_path: Path, *, sudo_password: Optional[str] = None) -> subprocess.CompletedProcess:
+def is_disabled_bootstrap_error(text: str) -> bool:
+    return "disabled" in text.lower()
+
+
+def bootstrap_service(
+    scope: str,
+    label: str,
+    plist_path: Path,
+    *,
+    sudo_password: Optional[str] = None,
+) -> subprocess.CompletedProcess:
     if service_loaded(scope, label, sudo_password=sudo_password):
-        run_launchctl(scope, ["enable", service_target(scope, label)], sudo_password=sudo_password, check=False)
         return subprocess.CompletedProcess(args=["launchctl"], returncode=0, stdout="", stderr="")
     proc = run_launchctl(
         scope,
@@ -80,13 +89,36 @@ def bootstrap_service(scope: str, label: str, plist_path: Path, *, sudo_password
         check=False,
         capture=True,
     )
-    if proc.returncode == 0:
-        run_launchctl(scope, ["enable", service_target(scope, label)], sudo_password=sudo_password, check=False)
+    details = f"{proc.stdout or ''}\n{proc.stderr or ''}"
+    if proc.returncode != 0 and is_disabled_bootstrap_error(details):
+        run_launchctl(
+            scope,
+            ["enable", service_target(scope, label)],
+            sudo_password=sudo_password,
+            check=False,
+        )
+        return run_launchctl(
+            scope,
+            ["bootstrap", domain_target(scope), str(plist_path)],
+            sudo_password=sudo_password,
+            check=False,
+            capture=True,
+        )
     return proc
 
 
-def bootout_service(scope: str, label: str, *, sudo_password: Optional[str] = None) -> subprocess.CompletedProcess:
-    return run_launchctl(scope, ["bootout", service_target(scope, label)], sudo_password=sudo_password, check=False)
+def bootout_service(
+    scope: str,
+    label: str,
+    *,
+    sudo_password: Optional[str] = None,
+) -> subprocess.CompletedProcess:
+    return run_launchctl(
+        scope,
+        ["bootout", service_target(scope, label)],
+        sudo_password=sudo_password,
+        check=False,
+    )
 
 
 def kickstart_service(

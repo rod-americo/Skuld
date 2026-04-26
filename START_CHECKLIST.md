@@ -95,6 +95,7 @@ is not a greenfield scaffold checklist.
   extraction, file-log paths, and tail helpers into `skuld_macos_runtime.py`.
 - [x] Extract macOS schedule parsing and display formatting into
   `skuld_macos_schedules.py`.
+- [x] Extract macOS service-table row assembly into `skuld_macos_view.py`.
 - [x] Add installable package metadata and an importable CLI entrypoint.
 - [x] Add CI for syntax, unit tests, gate, doctor, shell checks, and packaging.
 - [ ] Continue backend splitting around command handlers, rendering, and

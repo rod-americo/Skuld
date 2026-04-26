@@ -16,6 +16,7 @@ import skuld_macos_launchd as launchd
 import skuld_macos_processes as processes
 import skuld_macos_runtime as runtime
 import skuld_macos_schedules as schedules
+import skuld_macos_view as macos_view
 import skuld_tables as tables
 from skuld_registry import RegistryStore
 
@@ -909,36 +910,18 @@ def _render_services_table(compact: bool, sort_by: str = "name") -> None:
     if not services:
         render_discoverable_services_hint()
         return
-    runtime_stats: Dict[str, Dict[str, object]] = {}
-    rows: List[Dict[str, object]] = []
     print()
     render_host_panel()
-    for service in services:
-        runtime_stats[service.name] = read_event_stats(service)
-        pid = read_pid(service)
-        usage = read_cpu_memory(pid)
-        loaded = service_loaded(service)
-        kind = "timer" if service.schedule else service.scope
-        if loaded and pid > 0:
-            service_state = colorize("active", "green")
-        elif loaded:
-            service_state = colorize("loaded", "yellow")
-        else:
-            service_state = colorize("inactive", "yellow")
-        timer_state = colorize("scheduled", "green") if service.schedule and loaded else (colorize("inactive", "yellow") if service.schedule else colorize("n/a", "gray"))
-        stats = runtime_stats[service.name]
-        rows.append(
-            {
-                "id": service.id,
-                "name": service.display_name,
-                "service": service_state,
-                "timer": timer_state,
-                "triggers": schedules.humanize_schedule_for_display(service.schedule, service.timer_persistent),
-                "cpu": usage["cpu"],
-                "memory": usage["memory"],
-                "ports": read_ports(pid),
-            }
-        )
+    rows = macos_view.build_service_rows(
+        services,
+        read_event_stats=read_event_stats,
+        read_pid=read_pid,
+        read_cpu_memory=read_cpu_memory,
+        service_loaded=service_loaded,
+        colorize=colorize,
+        humanize_schedule_for_display=schedules.humanize_schedule_for_display,
+        read_ports=read_ports,
+    )
     ordered_rows = tables.sort_service_rows(rows, sort_by)
     headers, fitted_rows = fit_service_table(ordered_rows)
     render_table(headers, fitted_rows)

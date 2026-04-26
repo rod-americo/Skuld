@@ -5,12 +5,15 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SKULD="$ROOT/skuld"
 LABEL="io.skuld.smoke.$(date +%s).$$"
 ALIAS="skuld-smoke-macos"
+DOMAIN="gui/$(id -u)"
 PLIST="$HOME/Library/LaunchAgents/$LABEL.plist"
 STATE_DIR="$(mktemp -d "${TMPDIR:-/tmp}/skuld-smoke-macos.XXXXXX")"
 LOG_FILE="$STATE_DIR/process.log"
 
 cleanup() {
-  launchctl bootout "gui/$(id -u)" "$PLIST" >/dev/null 2>&1 || true
+  launchctl bootout "$DOMAIN/$LABEL" >/dev/null 2>&1 \
+    || launchctl bootout "$DOMAIN" "$PLIST" >/dev/null 2>&1 \
+    || true
   rm -f "$PLIST"
   rm -rf "$STATE_DIR"
 }
@@ -39,7 +42,7 @@ cat >"$PLIST" <<EOF
 </plist>
 EOF
 
-launchctl bootstrap "gui/$(id -u)" "$PLIST"
+launchctl bootstrap "$DOMAIN" "$PLIST"
 sleep 1
 
 SKULD_HOME="$STATE_DIR/skuld-home" "$SKULD" track "$LABEL" --alias "$ALIAS"

@@ -41,7 +41,7 @@ class MacLaunchdAdapterTest(unittest.TestCase):
         )
         self.assertEqual(launchd.parse_kv('"PID" = 123;\nLastExitStatus = 0;\n'), {"PID": "123", "LastExitStatus": "0"})
 
-    def test_bootstrap_enables_existing_loaded_service(self) -> None:
+    def test_bootstrap_returns_success_for_existing_loaded_service(self) -> None:
         calls: list[list[str]] = []
 
         def fake_run(scope: str, args: list[str], **_kwargs):
@@ -54,7 +54,49 @@ class MacLaunchdAdapterTest(unittest.TestCase):
             proc = launchd.bootstrap_service("agent", "com.example.worker", Path("/tmp/worker.plist"))
 
         self.assertEqual(proc.returncode, 0)
-        self.assertEqual(calls, [["enable", "gui/%s/com.example.worker" % launchd.os.getuid()]])
+        self.assertEqual(calls, [])
+
+    def test_bootstrap_does_not_enable_after_success(self) -> None:
+        calls: list[list[str]] = []
+
+        def fake_run(scope: str, args: list[str], **_kwargs):
+            calls.append(args)
+            return completed(returncode=0)
+
+        with patch.object(launchd, "service_loaded", return_value=False), patch.object(
+            launchd, "run_launchctl", side_effect=fake_run
+        ):
+            proc = launchd.bootstrap_service("agent", "com.example.worker", Path("/tmp/worker.plist"))
+
+        self.assertEqual(proc.returncode, 0)
+        self.assertEqual(
+            calls,
+            [["bootstrap", "gui/%s" % launchd.os.getuid(), "/tmp/worker.plist"]],
+        )
+
+    def test_bootstrap_enables_and_retries_disabled_service(self) -> None:
+        calls: list[list[str]] = []
+
+        def fake_run(scope: str, args: list[str], **_kwargs):
+            calls.append(args)
+            if len(calls) == 1:
+                return completed(stderr="service is disabled", returncode=5)
+            return completed(returncode=0)
+
+        with patch.object(launchd, "service_loaded", return_value=False), patch.object(
+            launchd, "run_launchctl", side_effect=fake_run
+        ):
+            proc = launchd.bootstrap_service("agent", "com.example.worker", Path("/tmp/worker.plist"))
+
+        self.assertEqual(proc.returncode, 0)
+        self.assertEqual(
+            calls,
+            [
+                ["bootstrap", "gui/%s" % launchd.os.getuid(), "/tmp/worker.plist"],
+                ["enable", "gui/%s/com.example.worker" % launchd.os.getuid()],
+                ["bootstrap", "gui/%s" % launchd.os.getuid(), "/tmp/worker.plist"],
+            ],
+        )
 
 
 if __name__ == "__main__":
