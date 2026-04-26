@@ -6,7 +6,7 @@ import subprocess
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional, Set
+from typing import Dict, List, Optional
 
 import skuld_common as common
 import skuld_linux_catalog as linux_catalog
@@ -29,7 +29,6 @@ from skuld_linux_model import (
 )
 
 
-SYSTEMD_UNIT_STARTED_MESSAGE_ID = linux_runtime.SYSTEMD_UNIT_STARTED_MESSAGE_ID
 SORT_CHOICES = ("id", "name", "cpu", "memory")
 
 
