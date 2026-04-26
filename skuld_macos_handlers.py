@@ -98,6 +98,7 @@ class MacOSCommandHandlers:
         macos_view.render_services_table(
             compact=compact,
             sort_by=sort_by,
+            service_table_columns=ctx.service_table_columns,
             load_registry=ctx.load_registry,
             render_discoverable_services_hint=ctx.render_discoverable_services_hint,
             render_host_panel=ctx.render_host_panel,
@@ -107,6 +108,7 @@ class MacOSCommandHandlers:
             service_loaded=ctx.service_loaded,
             colorize=ctx.colorize,
             humanize_schedule_for_display=schedules.humanize_schedule_for_display,
+            compute_next_run=schedules.compute_next_run,
             read_ports=ctx.read_ports,
             sort_service_rows=tables.sort_service_rows,
             fit_service_table=ctx.fit_service_table,

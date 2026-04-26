@@ -178,9 +178,9 @@ inside the existing files until a tested extraction is justified.
   - `skuld_registry.py` owns generic registry load/save/upsert/remove mechanics.
   - `skuld_sudo.py` owns shared CLI orchestration for `sudo check`,
     `sudo auth`, `sudo forget`, and `sudo run`.
-  - `skuld_tables.py` owns shared service-table column policy, display ID
-    padding, fitting, column selection, sorting, and host-panel rendering
-    helpers.
+  - `skuld_tables.py` owns shared service-table column policy, column catalog,
+    display ID padding, fitting, column selection, sorting, and host-panel
+    rendering helpers.
 - Interface:
   - CLI arguments, help text, stdout/stderr output, table rendering
 
@@ -229,6 +229,8 @@ files are large; avoid making them larger through unrelated refactors.
   versioning, or release validation changes.
 - Update `docs/DECISIONS.md` when a change affects how the repository should
   evolve.
+- Update `docs/WISHLIST.md` when documenting future provider or integration
+  ideas that are not current behavior.
 - Do not document planned behavior as current behavior.
 
 ## Runtime and Secrets

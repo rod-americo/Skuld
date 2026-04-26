@@ -117,7 +117,7 @@ Internal modules:
 | `skuld_macos_sync.py` | macOS registry backfill from live launchd plist metadata. |
 | `skuld_macos_targets.py` | macOS target-resolution rules for labels, display names, IDs, catalog entries, and multi-target de-duplication. |
 | `skuld_macos_view.py` | macOS service-table flow, row assembly, and state display mapping. |
-| `skuld_tables.py` | Shared service-table column policy, fitting, sorting, and host-panel helpers. |
+| `skuld_tables.py` | Shared service-table column policy, column catalog, fitting, sorting, and host-panel helpers. |
 
 ## Quick Start
 
@@ -222,7 +222,7 @@ operation. They are not production credential management.
 ./skuld sudo run -- <command>
 ```
 
-`./skuld` and `./skuld list` show the same compact table:
+`./skuld` and `./skuld list` show the same default compact table:
 
 ```text
 id | name | service | timer | triggers | cpu | memory | ports
@@ -247,15 +247,22 @@ SKULD_COLUMNS=id,name,service,timer ./skuld
 ```
 
 Supported column keys are `id`, `name`, `service`, `timer`, `triggers`, `cpu`,
-`memory`, and `ports`. `skuld --columns`, `skuld list --columns`, and
+`memory`, `ports`, `target`, `scope`, `backend`, `pid`, `user`, `restart`,
+`runs`, `last`, and `next`. `skuld --columns`, `skuld list --columns`, and
 `skuld config columns` show the numbered catalog. `skuld config columns 1 2 3`
 saves the same selection as `skuld config columns id name service`. Use
 `default`, `auto`, or `all` to restore the automatic layout. Precedence is
-`--columns`, then
-`$SKULD_HOME/config.json`, then `SKULD_COLUMNS`, then the automatic default.
-The compact table pads displayed numeric IDs to the widest visible ID, so a
-table containing ID `12` renders `01`, `02`, and `12`; a table containing ID
-`100` renders `001`, `002`, and `100`.
+`--columns`, then `$SKULD_HOME/config.json`, then `SKULD_COLUMNS`, then the
+automatic default. The compact table pads displayed numeric IDs to the widest
+visible ID, so a table containing ID `12` renders `01`, `02`, and `12`; a
+table containing ID `100` renders `001`, `002`, and `100`.
+
+Optional operational views:
+
+```bash
+./skuld --columns id,name,scope,target,pid,runs,next
+./skuld --columns id,name,backend,user,restart,last
+```
 
 Supported sort examples:
 
@@ -385,6 +392,7 @@ Run live smokes only with explicit operator intent because they mutate
   behavior.
 - `docs/RELEASE.md`: release validation, wheel build check, and rollback.
 - `docs/DECISIONS.md`: architectural and operational decisions.
+- `docs/WISHLIST.md`: intentionally future, non-current feature ideas.
 - `CHANGELOG.md`: notable repository changes.
 
 ## Known Weak Spots
@@ -398,6 +406,19 @@ Run live smokes only with explicit operator intent because they mutate
   disposable host paths, not every service definition an operator may track.
 - Skuld has CI-backed non-mutating validation, but no automated live
   service-manager compatibility matrix and no published package channel yet.
+
+## Wishlist
+
+Future stack discovery should stay read-only until explicit contracts exist:
+
+- Docker containers as runtime inventory correlated with tracked services.
+- nginx virtual hosts and upstreams as route/exposure metadata.
+- Caddy sites and reverse proxies as route/exposure metadata.
+
+These providers should enrich `catalog`, `describe`, and optional table columns
+before Skuld attempts to operate containers or edit proxy configuration.
+
+See `docs/WISHLIST.md` for the feature framing.
 
 ## License
 

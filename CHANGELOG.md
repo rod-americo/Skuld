@@ -61,6 +61,10 @@ intent.
 - `skuld --columns`, `skuld list --columns`, and `skuld config columns` now
   show a numbered column catalog and accept catalog-style column IDs such as
   `1 2 3`.
+- Added optional service-table columns for target, scope, backend, PID, user,
+  restart policy, run counters, last run/trigger, and next run.
+- Documented Docker, nginx, and Caddy discovery as future read-only wishlist
+  providers.
 - Clarified that the current public CLI tracks and operates existing services
   but does not create or edit service definitions.
 - Expanded `.gitignore` for local runtime, logs, caches, and local config

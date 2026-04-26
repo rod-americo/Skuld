@@ -326,8 +326,9 @@ Invalid table columns:
 - Action: run `./skuld --columns` or `./skuld config columns` to see numbered
   column IDs. Use IDs such as `1 2 3`, names such as `id name service`, or a
   comma-separated subset of `id`, `name`, `service`, `timer`, `triggers`,
-  `cpu`, `memory`, and `ports`; use `default`, `auto`, or `all` to restore the
-  automatic layout.
+  `cpu`, `memory`, `ports`, `target`, `scope`, `backend`, `pid`, `user`,
+  `restart`, `runs`, `last`, and `next`; use `default`, `auto`, or `all` to
+  restore the automatic layout.
 
 Invalid user config:
 

@@ -153,6 +153,9 @@ is not a greenfield scaffold checklist.
   `$SKULD_HOME/config.json`.
 - [x] Add a numbered column catalog so `skuld config columns 1 2 3` works like
   `catalog` selection.
+- [x] Add optional runtime/metadata table columns without changing the default
+  compact layout.
+- [x] Document Docker, nginx, and Caddy discovery as wishlist features.
 - [x] Zero-pad displayed numeric service IDs to the widest visible ID.
 - [ ] Continue by hardening context boundaries if future changes show repeated
   wiring mistakes, not by moving behavior back into backend entrypoints.

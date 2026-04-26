@@ -19,7 +19,7 @@ class MacParserTest(unittest.TestCase):
 
         return macos_parser.build_parser(
             sort_choices=("id", "name", "cpu", "memory"),
-            column_choices=("id", "name", "service", "timer", "triggers", "cpu", "memory", "ports"),
+            column_choices=tables.SERVICE_TABLE_COLUMN_KEYS,
             version="9.9.9",
             list_services=_noop,
             catalog=_noop,

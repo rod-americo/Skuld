@@ -1,4 +1,4 @@
-from typing import Callable, Dict, List, Optional, Sequence, Tuple
+from typing import Callable, Dict, List, Optional, Sequence, Set, Tuple
 
 import skuld_common as common
 
@@ -12,20 +12,48 @@ SERVICE_TABLE_COLUMNS = (
     {"key": "cpu", "header": "cpu", "min_width": 3, "shrink": False},
     {"key": "memory", "header": "memory", "min_width": 6, "shrink": False},
     {"key": "ports", "header": "ports", "min_width": 5, "shrink": True},
+    {"key": "target", "header": "target", "min_width": 10, "shrink": True},
+    {"key": "scope", "header": "scope", "min_width": 5, "shrink": False},
+    {"key": "backend", "header": "backend", "min_width": 7, "shrink": False},
+    {"key": "pid", "header": "pid", "min_width": 3, "shrink": False},
+    {"key": "user", "header": "user", "min_width": 4, "shrink": True},
+    {"key": "restart", "header": "restart", "min_width": 7, "shrink": True},
+    {"key": "runs", "header": "runs", "min_width": 4, "shrink": False},
+    {"key": "last", "header": "last", "min_width": 4, "shrink": True},
+    {"key": "next", "header": "next", "min_width": 4, "shrink": True},
 )
 SERVICE_TABLE_COLUMN_KEYS = tuple(str(column["key"]) for column in SERVICE_TABLE_COLUMNS)
+DEFAULT_SERVICE_TABLE_COLUMN_KEYS = (
+    "id",
+    "name",
+    "service",
+    "timer",
+    "triggers",
+    "cpu",
+    "memory",
+    "ports",
+)
 SERVICE_TABLE_COLUMN_CATALOG_REQUEST = "__skuld_column_catalog__"
 SERVICE_TABLE_COLUMN_DESCRIPTIONS = {
     "id": "registry id",
     "name": "display name",
+    "target": "backend target",
+    "scope": "system/user/agent/daemon scope",
+    "backend": "service-manager backend",
     "service": "service state",
     "timer": "timer state",
     "triggers": "schedule summary",
+    "pid": "main process id",
+    "user": "configured service user",
+    "restart": "restart policy",
+    "runs": "restarts/executions",
+    "last": "last run or trigger",
+    "next": "next scheduled run",
     "cpu": "CPU usage",
     "memory": "memory usage",
     "ports": "listening ports",
 }
-SERVICE_TABLE_SHRINK_ORDER = ("triggers", "name", "ports")
+SERVICE_TABLE_SHRINK_ORDER = ("triggers", "target", "name", "last", "next", "restart", "user", "ports")
 SERVICE_TABLE_HIDE_ORDER = ("ports", "memory", "cpu", "triggers", "timer")
 
 
@@ -111,11 +139,21 @@ def resolve_service_table_columns(
 def select_service_table_columns(
     columns: Optional[Sequence[str]],
 ) -> Tuple[Tuple[Dict[str, object], ...], bool]:
-    if columns is None:
-        return SERVICE_TABLE_COLUMNS, True
-
     by_key = {str(column["key"]): column for column in SERVICE_TABLE_COLUMNS}
+    if columns is None:
+        return tuple(dict(by_key[key]) for key in DEFAULT_SERVICE_TABLE_COLUMN_KEYS), True
+
     return tuple(dict(by_key[key]) for key in columns), False
+
+
+def service_table_row_keys(
+    columns: Optional[Sequence[str]],
+    sort_by: str,
+) -> Set[str]:
+    selected = set(columns or DEFAULT_SERVICE_TABLE_COLUMN_KEYS)
+    if sort_by:
+        selected.add(sort_by)
+    return selected
 
 
 def service_table_column_catalog_lines(

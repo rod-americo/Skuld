@@ -131,6 +131,9 @@ The service registry remains a JSON array. Do not add user preferences to
   then `SKULD_COLUMNS`, then automatic layout.
 - Displayed numeric service IDs are zero-padded to the widest visible ID in the
   rendered service table.
+- Optional table columns may expose direct registry metadata (`target`, `scope`,
+  `backend`, `user`, `restart`) and best-effort runtime metadata (`pid`,
+  `runs`, `last`, `next`) without changing the registry schema.
 - macOS `--since`, `--timer`, `--output`, and `--plain` are compatibility flags
   on logs; some are ignored or rejected as documented by help text and runtime
   behavior.

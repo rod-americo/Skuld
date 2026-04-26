@@ -73,6 +73,10 @@ Render numeric service IDs with zero padding to the widest visible ID in the
 current service table. This changes display only; registry IDs remain positive
 integers.
 
+Keep the default compact layout stable, but allow optional columns for direct
+registry metadata and best-effort runtime metadata: `target`, `scope`,
+`backend`, `pid`, `user`, `restart`, `runs`, `last`, and `next`.
+
 **Impact**
 
 - Users can save column preferences without exporting `SKULD_COLUMNS`.
@@ -81,6 +85,8 @@ integers.
 - The registry contract remains focused on tracked services.
 - Long-running registries keep aligned ID output as they pass `9` and `99`
   entries.
+- Operators can build deeper local views without forcing every terminal into a
+  wider default table.
 
 **Tradeoff**
 
@@ -94,6 +100,40 @@ integers.
   preferences to the operational registry contract.
 - Creating a broader settings system before there are more real settings to
   justify it.
+
+## 2026-04-26 - Keep Stack Providers As Read-Only Wishlist
+
+**Context**
+
+Docker, nginx, and Caddy can explain runtime and route exposure that
+`systemd`/`launchd` cannot. Adding them directly as operational backends would
+blur Skuld's current safety boundary and create new mutation contracts before
+the read-only value is proven.
+
+**Decision**
+
+Document Docker, nginx, and Caddy discovery as wishlist providers. The desired
+first step is read-only correlation for `catalog`, `describe`, and optional
+table columns. Do not add container operation, proxy config editing, reloads,
+certificate handling, or route creation as current behavior.
+
+**Impact**
+
+- The future direction is visible without claiming support that does not exist.
+- Skuld can evolve toward better runtime visibility while preserving the
+  registry-first service-operation boundary.
+
+**Tradeoff**
+
+- Users still need native Docker/nginx/Caddy tools today.
+- Route/container correlation remains a future design problem rather than an
+  implied current contract.
+
+**Alternatives rejected**
+
+- Treating Docker as a service-manager backend immediately.
+- Editing nginx or Caddy configuration from Skuld before read-only discovery
+  has a tested contract.
 
 ## 2026-04-26 - Make Backend Entrypoints Thin Composition Roots
 

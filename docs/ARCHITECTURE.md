@@ -21,7 +21,8 @@ Includes:
 - Operating registered services through start, stop, restart, exec, status,
   logs, stats, describe, sync, rename, and untrack commands.
 - Rendering a compact operational table with service state, timer state,
-  triggers, CPU, memory, and ports when available.
+  triggers, CPU, memory, ports, and optional target/runtime metadata when
+  available.
 - Allowing the operator to choose visible service-table columns through
   numbered column IDs, canonical column names, a sibling user `config.json`, or
   `SKULD_COLUMNS`.
@@ -34,6 +35,7 @@ Does not include:
 - Remote host operation, deployment, provisioning, package management, DNS, or
   network routing.
 - Central metrics, tracing, alerting, or log aggregation.
+- Docker, nginx, or Caddy discovery as current behavior.
 - A published package channel or dedicated external test framework.
 
 ## 3. System Context
