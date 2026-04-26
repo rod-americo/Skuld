@@ -213,13 +213,7 @@ def resolve_managed_many_arg(args: argparse.Namespace) -> List[ManagedService]:
 
 
 def resolve_lines_arg(args: argparse.Namespace, default: int = 100) -> int:
-    lines_flag = getattr(args, "lines", None)
-    lines_pos = getattr(args, "lines_pos", None)
-    if lines_flag is not None:
-        return lines_flag
-    if lines_pos is not None:
-        return lines_pos
-    return default
+    return common.resolve_lines_arg(args, default=default)
 
 
 def run(

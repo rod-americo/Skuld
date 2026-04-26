@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import io
+import types
 import unittest
 from contextlib import redirect_stdout
 
@@ -22,6 +23,14 @@ class CommonHelperTest(unittest.TestCase):
         self.assertEqual(common.format_duration_human(65), "1m")
         self.assertEqual(common.format_duration_human(3660), "1h 01m")
         self.assertEqual(common.clip_text("abcdef", 5), "ab...")
+
+    def test_resolve_lines_arg_prefers_flag_then_positional_then_default(self) -> None:
+        self.assertEqual(common.resolve_lines_arg(types.SimpleNamespace(lines=25, lines_pos=10)), 25)
+        self.assertEqual(common.resolve_lines_arg(types.SimpleNamespace(lines=None, lines_pos=10)), 10)
+        self.assertEqual(
+            common.resolve_lines_arg(types.SimpleNamespace(lines=None, lines_pos=None), default=50),
+            50,
+        )
 
     def test_fit_table_shrinks_and_drops_columns_to_width(self) -> None:
         columns = (

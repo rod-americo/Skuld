@@ -1066,6 +1066,33 @@ table callbacks.
   fitting with backend-specific service state reads.
 - Removing backend wrappers and changing `list_services_compact()` callers.
 
+## 2026-04-26 - Share Log Line Argument Resolution
+
+**Context**
+
+Linux and macOS duplicated the same CLI rule for log line counts: prefer
+`--lines`, then positional `lines_pos`, then a default.
+
+**Decision**
+
+Move that rule into `skuld_common.resolve_lines_arg()` while keeping backend
+wrappers for existing call sites.
+
+**Impact**
+
+- The shared rule has a focused unit test.
+- Linux and macOS log commands resolve line counts through one implementation.
+
+**Tradeoff**
+
+- Backends still expose `resolve_lines_arg()` wrappers because existing command
+  code and tests patch backend-level helpers.
+
+**Alternatives rejected**
+
+- Leaving the duplication in place after other shared CLI helper behavior had
+  already moved to `skuld_common.py`.
+
 ## 2026-04-26 - Extract macOS Service Table Row Assembly
 
 **Context**

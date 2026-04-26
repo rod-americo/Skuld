@@ -65,6 +65,8 @@ is not a greenfield scaffold checklist.
 - [x] Extract shared table rendering and registry helpers after tests exist.
 - [x] Extract shared service-table column policy, fitting, sorting, and
   host-panel helpers into `skuld_tables.py`.
+- [x] Extract shared log line-count argument resolution into
+  `skuld_common.py`.
 - [x] Extract shared `sudo check` and `sudo run` command orchestration into
   `skuld_sudo.py`.
 - [x] Extract common backend main-loop behavior into `skuld_cli.py`.

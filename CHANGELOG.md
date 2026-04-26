@@ -120,6 +120,7 @@ intent.
   `skuld_linux_registry.py` and `skuld_macos_registry.py`.
 - Moved Linux and macOS service-table rendering flow into
   `skuld_linux_view.py` and `skuld_macos_view.py`.
+- Moved shared log line-count argument resolution into `skuld_common.py`.
 - Added module-inventory tests for package metadata, documented compile
   commands, and the Linux remote smoke payload.
 - Changed macOS live smoke cleanup to boot out the disposable LaunchAgent by

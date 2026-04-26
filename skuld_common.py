@@ -197,6 +197,16 @@ def resolve_sort_arg(args: Optional[object], choices: Sequence[str]) -> str:
     return sort_by if sort_by in choices else "name"
 
 
+def resolve_lines_arg(args: object, default: int = 100) -> int:
+    lines_flag = getattr(args, "lines", None)
+    lines_pos = getattr(args, "lines_pos", None)
+    if lines_flag is not None:
+        return lines_flag
+    if lines_pos is not None:
+        return lines_pos
+    return default
+
+
 def format_bytes(value: str) -> str:
     raw = (value or "").strip()
     if not raw or raw in ("[not set]", "n/a"):
