@@ -80,6 +80,8 @@ Table-column precedence is CLI `--columns`, then `$SKULD_HOME/config.json`,
 then `SKULD_COLUMNS`, then automatic layout. Persist a preference with:
 
 ```bash
+./skuld --columns
+./skuld list --columns
 ./skuld config columns
 ./skuld config columns 1 2 3
 ./skuld config columns id,name,service
@@ -88,8 +90,9 @@ then `SKULD_COLUMNS`, then automatic layout. Persist a preference with:
 ./skuld config columns default
 ```
 
-`skuld config columns` without arguments shows a numbered column catalog, like
-the service `catalog` flow used by `track`.
+`skuld --columns`, `skuld list --columns`, and `skuld config columns` without
+arguments show a numbered column catalog, like the service `catalog` flow used
+by `track`.
 
 `config.json` is a sibling user preference file. Do not mix it into
 `services.json`, which remains the service registry array.
@@ -320,10 +323,11 @@ Sudo password support:
 Invalid table columns:
 
 - Symptom: Skuld exits with `Unknown service table column`.
-- Action: run `./skuld config columns` to see numbered column IDs. Use IDs
-  such as `1 2 3`, names such as `id name service`, or a comma-separated subset
-  of `id`, `name`, `service`, `timer`, `triggers`, `cpu`, `memory`, and
-  `ports`; use `default`, `auto`, or `all` to restore the automatic layout.
+- Action: run `./skuld --columns` or `./skuld config columns` to see numbered
+  column IDs. Use IDs such as `1 2 3`, names such as `id name service`, or a
+  comma-separated subset of `id`, `name`, `service`, `timer`, `triggers`,
+  `cpu`, `memory`, and `ports`; use `default`, `auto`, or `all` to restore the
+  automatic layout.
 
 Invalid user config:
 

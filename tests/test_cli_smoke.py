@@ -52,6 +52,14 @@ class CliSmokeTest(unittest.TestCase):
         self.assertEqual(save_proc.returncode, 0, save_proc.stderr)
         self.assertIn("[ok] Saved table columns: id,name,service", save_proc.stdout)
 
+    def test_columns_flag_without_value_shows_catalog(self) -> None:
+        for args in (("--columns",), ("list", "--columns")):
+            with self.subTest(args=args):
+                proc = self.run_cli(*args)
+                self.assertEqual(proc.returncode, 0, proc.stderr)
+                self.assertIn("Available table columns:", proc.stdout)
+                self.assertIn("Use: skuld config columns <id ...>", proc.stdout)
+
     def test_neutral_subcommand_help_is_available(self) -> None:
         subcommands = (
             "list",

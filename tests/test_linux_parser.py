@@ -4,6 +4,7 @@ import unittest
 from typing import Optional
 
 import skuld_linux_parser as linux_parser
+import skuld_tables as tables
 
 
 def _noop(*_args: object, **_kwargs: object) -> None:
@@ -48,10 +49,20 @@ class LinuxParserTest(unittest.TestCase):
 
         self.assertEqual(args.columns, "id,name,service")
 
+    def test_top_level_columns_without_value_requests_catalog(self) -> None:
+        args = self.build_parser().parse_args(["--columns"])
+
+        self.assertEqual(args.columns, tables.SERVICE_TABLE_COLUMN_CATALOG_REQUEST)
+
     def test_list_columns_configures_table_after_subcommand(self) -> None:
         args = self.build_parser().parse_args(["list", "--columns", "name,cpu"])
 
         self.assertEqual(args.columns, "name,cpu")
+
+    def test_list_columns_without_value_requests_catalog(self) -> None:
+        args = self.build_parser().parse_args(["list", "--columns"])
+
+        self.assertEqual(args.columns, tables.SERVICE_TABLE_COLUMN_CATALOG_REQUEST)
 
     def test_top_level_columns_survive_list_subcommand_defaults(self) -> None:
         args = self.build_parser().parse_args(["--columns", "id,name", "list"])

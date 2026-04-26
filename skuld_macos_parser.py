@@ -1,6 +1,8 @@
 import argparse
 from typing import Callable, Optional, Sequence
 
+import skuld_tables as tables
+
 
 def _add_name_target_args(
     parser: argparse.ArgumentParser,
@@ -65,10 +67,12 @@ def build_parser(
     )
     parser.add_argument(
         "--columns",
+        nargs="?",
+        const=tables.SERVICE_TABLE_COLUMN_CATALOG_REQUEST,
         metavar="LIST",
         help=(
             "Comma-separated table columns "
-            f"({', '.join(column_choices)}); use default for automatic layout"
+            f"({', '.join(column_choices)}); omit LIST to show the catalog"
         ),
     )
     subparsers = parser.add_subparsers(dest="command", required=False)
@@ -82,11 +86,13 @@ def build_parser(
     )
     list_parser.add_argument(
         "--columns",
+        nargs="?",
+        const=tables.SERVICE_TABLE_COLUMN_CATALOG_REQUEST,
         metavar="LIST",
         default=argparse.SUPPRESS,
         help=(
             "Comma-separated table columns "
-            f"({', '.join(column_choices)}); use default for automatic layout"
+            f"({', '.join(column_choices)}); omit LIST to show the catalog"
         ),
     )
     list_parser.set_defaults(func=list_services)

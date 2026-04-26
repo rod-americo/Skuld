@@ -4,6 +4,8 @@ import argparse
 import sys
 from typing import Callable, Sequence
 
+import skuld_tables as tables
+
 
 POST_REFRESH_COMMANDS = {"track", "rename", "untrack", "exec", "start", "stop", "restart", "sync"}
 REGISTRY_FREE_COMMANDS = {"version", "sudo", "config"}
@@ -19,12 +21,16 @@ def run_backend_main(
     list_services_compact: Callable[[str], None],
     resolve_sort_arg: Callable[[argparse.Namespace], str],
     err: Callable[[str], None],
+    show_columns_catalog: Callable[[], None] = lambda: None,
 ) -> int:
     args = parser.parse_args(list(argv)[1:])
     configure_globals(args, parser)
 
     try:
         command = getattr(args, "command", None)
+        if getattr(args, "columns", None) == tables.SERVICE_TABLE_COLUMN_CATALOG_REQUEST:
+            show_columns_catalog()
+            return 0
         if command not in REGISTRY_FREE_COMMANDS:
             load_registry()
         if not command:
@@ -53,6 +59,7 @@ def run_current_process_backend(
     list_services_compact: Callable[[str], None],
     resolve_sort_arg: Callable[[argparse.Namespace], str],
     err: Callable[[str], None],
+    show_columns_catalog: Callable[[], None] = lambda: None,
 ) -> int:
     return run_backend_main(
         argv=sys.argv,
@@ -62,4 +69,5 @@ def run_current_process_backend(
         list_services_compact=list_services_compact,
         resolve_sort_arg=resolve_sort_arg,
         err=err,
+        show_columns_catalog=show_columns_catalog,
     )

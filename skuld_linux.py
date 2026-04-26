@@ -61,6 +61,7 @@ def main() -> int:
         list_services_compact=HANDLERS.list_services_compact,
         resolve_sort_arg=CONTEXT.resolve_sort_arg,
         err=CONTEXT.err,
+        show_columns_catalog=CONTEXT.show_columns_catalog,
     )
 
 

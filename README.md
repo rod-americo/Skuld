@@ -233,7 +233,9 @@ provided by environment fallback:
 
 ```bash
 ./skuld --columns id,name,service
+./skuld --columns
 ./skuld --columns 1,2,3
+./skuld list --columns
 ./skuld list --columns name,cpu,memory
 ./skuld config columns
 ./skuld config columns 1 2 3
@@ -245,10 +247,11 @@ SKULD_COLUMNS=id,name,service,timer ./skuld
 ```
 
 Supported column keys are `id`, `name`, `service`, `timer`, `triggers`, `cpu`,
-`memory`, and `ports`. `skuld config columns` shows a numbered catalog, and
-`skuld config columns 1 2 3` saves the same selection as
-`skuld config columns id name service`. Use `default`, `auto`, or `all` to
-restore the automatic layout. Precedence is `--columns`, then
+`memory`, and `ports`. `skuld --columns`, `skuld list --columns`, and
+`skuld config columns` show the numbered catalog. `skuld config columns 1 2 3`
+saves the same selection as `skuld config columns id name service`. Use
+`default`, `auto`, or `all` to restore the automatic layout. Precedence is
+`--columns`, then
 `$SKULD_HOME/config.json`, then `SKULD_COLUMNS`, then the automatic default.
 The compact table pads displayed numeric IDs to the widest visible ID, so a
 table containing ID `12` renders `01`, `02`, and `12`; a table containing ID

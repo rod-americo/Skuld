@@ -74,6 +74,9 @@ class MacOSBackendContext:
         try:
             command = getattr(args, "command", None)
             cli_columns = None if command == "config" else getattr(args, "columns", None)
+            if cli_columns == tables.SERVICE_TABLE_COLUMN_CATALOG_REQUEST:
+                self.service_table_columns = None
+                return
             config_value = None
             if command != "config":
                 config_value = skuld_config.load_columns_text(self.config_file)
@@ -313,13 +316,16 @@ class MacOSBackendContext:
         ):
             print(line)
 
+    def show_columns_catalog(self) -> None:
+        columns = tables.parse_service_table_columns(
+            skuld_config.load_columns_text(self.config_file)
+        )
+        for line in tables.service_table_column_catalog_lines(columns):
+            print(line)
+
     def config_columns(self, args: argparse.Namespace) -> None:
         if not args.columns:
-            columns = tables.parse_service_table_columns(
-                skuld_config.load_columns_text(self.config_file)
-            )
-            for line in tables.service_table_column_catalog_lines(columns):
-                print(line)
+            self.show_columns_catalog()
             return
         columns = tables.parse_service_table_column_tokens(args.columns)
         skuld_config.save_columns(self.config_file, columns)

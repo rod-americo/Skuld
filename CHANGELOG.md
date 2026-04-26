@@ -58,8 +58,9 @@ intent.
 - Sudo operations without `SKULD_SUDO_PASSWORD` now use `sudo -n`, requiring an
   active native sudo timestamp instead of prompting implicitly.
 - Compact service-table numeric IDs are zero-padded to the widest visible ID.
-- `skuld config columns` now shows a numbered column catalog and accepts
-  catalog-style column IDs such as `1 2 3`.
+- `skuld --columns`, `skuld list --columns`, and `skuld config columns` now
+  show a numbered column catalog and accept catalog-style column IDs such as
+  `1 2 3`.
 - Clarified that the current public CLI tracks and operates existing services
   but does not create or edit service definitions.
 - Expanded `.gitignore` for local runtime, logs, caches, and local config

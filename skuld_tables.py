@@ -14,6 +14,7 @@ SERVICE_TABLE_COLUMNS = (
     {"key": "ports", "header": "ports", "min_width": 5, "shrink": True},
 )
 SERVICE_TABLE_COLUMN_KEYS = tuple(str(column["key"]) for column in SERVICE_TABLE_COLUMNS)
+SERVICE_TABLE_COLUMN_CATALOG_REQUEST = "__skuld_column_catalog__"
 SERVICE_TABLE_COLUMN_DESCRIPTIONS = {
     "id": "registry id",
     "name": "display name",
