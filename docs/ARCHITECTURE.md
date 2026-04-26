@@ -365,6 +365,8 @@ the parser modules do not import backend state or host adapters.
   `SKULD_DEBUG`.
 - `skuld_registry.py` provides generic registry storage mechanics while leaving
   backend schemas and validation rules in each backend.
+- `skuld_sudo.py` provides shared CLI orchestration for `sudo check` and
+  `sudo run` while backend adapters keep service-manager-specific sudo usage.
 - `skuld_tables.py` provides shared service-table column policy, fitting,
   sorting, and host-panel helpers used by both backends.
 

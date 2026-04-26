@@ -890,6 +890,41 @@ tests can continue isolating runtime state by patching backend constants.
   log file parsing rather than label/path construction.
 - Removing backend constants and forcing all tests to patch the new module.
 
+## 2026-04-26 - Share Sudo Command Orchestration
+
+**Context**
+
+Linux and macOS duplicated the `sudo check` and `sudo run` CLI flows. The
+duplication was not service-manager-specific; it only checked whether sudo can
+run non-interactively, warned about `SKULD_SUDO_PASSWORD`, and executed one
+operator-provided command through the existing backend sudo wrapper.
+
+**Decision**
+
+Move the shared CLI orchestration into `skuld_sudo.py`. Keep backend wrappers
+for parser handler registration, password lookup, stdout messaging, and
+backend-specific `run_sudo` functions.
+
+**Impact**
+
+- The sudo command behavior has focused unit tests.
+- Linux and macOS backends no longer duplicate the same sudo command flow.
+- The Linux remote smoke payload includes the shared sudo module because the
+  Linux backend imports it.
+
+**Tradeoff**
+
+- Service-manager-specific sudo decisions remain in `skuld_linux_systemd.py`
+  and `skuld_macos_launchd.py`.
+- `SKULD_SUDO_PASSWORD` remains a short-lived local convenience, not production
+  credential management.
+
+**Alternatives rejected**
+
+- Moving all sudo behavior into `skuld_common.py`, which would mix subprocess
+  primitives with CLI command orchestration.
+- Removing backend wrappers and changing parser handler registration.
+
 ## 2026-04-26 - Extract macOS Service Table Row Assembly
 
 **Context**

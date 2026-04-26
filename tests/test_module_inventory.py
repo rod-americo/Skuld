@@ -51,6 +51,7 @@ class ModuleInventoryTest(unittest.TestCase):
             "skuld_common",
             "skuld_observability",
             "skuld_registry",
+            "skuld_sudo",
             "skuld_tables",
         }
         required = [

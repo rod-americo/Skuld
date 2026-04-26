@@ -111,6 +111,8 @@ intent.
   `skuld_linux_timers.py`.
 - Moved macOS launchd label, plist path, and runtime path derivation into
   `skuld_macos_paths.py`.
+- Moved shared `sudo check` and `sudo run` command orchestration into
+  `skuld_sudo.py`.
 - Added module-inventory tests for package metadata, documented compile
   commands, and the Linux remote smoke payload.
 - Changed macOS live smoke cleanup to boot out the disposable LaunchAgent by

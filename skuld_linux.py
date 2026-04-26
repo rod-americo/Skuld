@@ -33,6 +33,7 @@ import skuld_linux_sync as linux_sync
 import skuld_linux_targets as linux_targets
 import skuld_linux_timers as timers
 import skuld_linux_view as linux_view
+import skuld_sudo
 import skuld_tables as tables
 from skuld_registry import RegistryStore
 
@@ -301,34 +302,25 @@ def run_sudo(cmd: List[str], check: bool = True, capture: bool = False) -> subpr
 
 
 def warn_env_sudo_usage() -> None:
-    if get_sudo_password():
-        info("Warning: using SKULD_SUDO_PASSWORD from env/.env. Keep this for short-lived local use only.")
+    skuld_sudo.warn_env_sudo_usage(get_sudo_password=get_sudo_password, info=info)
 
 
 def sudo_check(_args: argparse.Namespace) -> None:
-    warn_env_sudo_usage()
-    password = get_sudo_password()
-    if password:
-        proc = run(["sudo", "-S", "-k", "-p", "", "true"], check=False, capture=True, input_text=password + "\n")
-    else:
-        proc = run(["sudo", "-n", "true"], check=False, capture=True)
-    if proc.returncode == 0:
-        ok("sudo is available.")
-        return
-    details = (proc.stderr or proc.stdout or "").strip()
-    raise RuntimeError(f"sudo is not available non-interactively. {details}".strip())
+    skuld_sudo.sudo_check(
+        get_sudo_password=get_sudo_password,
+        run=run,
+        info=info,
+        ok=ok,
+    )
 
 
 def sudo_run_command(args: argparse.Namespace) -> None:
-    command = list(args.command or [])
-    if command and command[0] == "--":
-        command = command[1:]
-    if not command:
-        raise RuntimeError("Use: skuld sudo run -- <command> [args...]")
-    warn_env_sudo_usage()
-    proc = run_sudo(command, check=False)
-    if proc.returncode != 0:
-        raise RuntimeError(f"sudo command failed with exit code {proc.returncode}.")
+    skuld_sudo.sudo_run_command(
+        args,
+        get_sudo_password=get_sudo_password,
+        run_sudo=run_sudo,
+        info=info,
+    )
 
 
 def journal_permission_hint(stderr_text: str) -> bool:

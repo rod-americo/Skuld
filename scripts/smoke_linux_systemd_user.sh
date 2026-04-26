@@ -158,6 +158,7 @@ if [[ -n "$HOST" ]]; then
     skuld_macos_launchd.py \
     skuld_observability.py \
     skuld_registry.py \
+    skuld_sudo.py \
     skuld_tables.py \
     scripts/smoke_process.sh |
     ssh "$HOST" "tar -xzf - -C '$REMOTE_DIR'"
