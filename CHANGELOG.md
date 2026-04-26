@@ -105,6 +105,8 @@ intent.
   `skuld_macos_sync.py`.
 - Moved Linux and macOS catalog discovery and `track` orchestration into
   `skuld_linux_catalog.py` and `skuld_macos_catalog.py`.
+- Added module-inventory tests for package metadata, documented compile
+  commands, and the Linux remote smoke payload.
 - Changed macOS live smoke cleanup to boot out the disposable LaunchAgent by
   service target before falling back to the plist path.
 - Changed macOS launchd bootstrap to avoid persistent `enable` overrides after
