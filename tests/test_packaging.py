@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import importlib
 import re
 import unittest
 
@@ -9,6 +10,12 @@ from tests.helpers import ROOT
 
 
 class PackagingMetadataTest(unittest.TestCase):
+    def console_script_target(self) -> str:
+        text = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
+        match = re.search(r'^skuld = "([^"]+)"$', text, re.MULTILINE)
+        self.assertIsNotNone(match)
+        return match.group(1)
+
     def test_pyproject_exposes_console_script(self) -> None:
         text = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
 
@@ -24,6 +31,13 @@ class PackagingMetadataTest(unittest.TestCase):
         self.assertIn('"skuld_macos_targets"', text)
         self.assertIn('"skuld_macos_view"', text)
         self.assertIn('"skuld_tables"', text)
+
+    def test_console_script_target_resolves_to_callable(self) -> None:
+        module_name, separator, function_name = self.console_script_target().partition(":")
+
+        self.assertEqual(separator, ":")
+        module = importlib.import_module(module_name)
+        self.assertTrue(callable(getattr(module, function_name)))
 
     def test_package_version_matches_backend_versions(self) -> None:
         text = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
