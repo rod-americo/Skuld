@@ -54,6 +54,11 @@ class MacosModelTest(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "'user' is only valid"):
             model.validate_registry_service(service, 1)
 
+    def test_suggest_display_name_uses_label_tokens(self) -> None:
+        self.assertEqual(model.suggest_display_name("application.com.example.worker.123"), "worker")
+        self.assertEqual(model.suggest_display_name("com.example.desktop"), "example-desktop")
+        self.assertEqual(model.suggest_display_name("single"), "single")
+
 
 if __name__ == "__main__":
     unittest.main()

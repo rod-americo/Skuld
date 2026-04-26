@@ -183,6 +183,7 @@ points at `skuld_entrypoint:main`.
 
 - `ManagedService` and `DiscoverableService` dataclasses.
 - macOS registry normalization and validation rules.
+- display-name suggestion rules for launchd labels.
 - launchd scope normalization and registry sorting helpers.
 
 `skuld_macos_paths.py` owns macOS path and label derivation:
@@ -341,8 +342,8 @@ the parser modules do not import backend state or host adapters.
   orchestration used by `skuld_macos.py`.
 - `skuld_macos_catalog.py` provides macOS launchd catalog and track
   orchestration used by `skuld_macos.py`.
-- `skuld_macos_model.py` provides macOS service models and registry
-  normalization used by `skuld_macos.py`.
+- `skuld_macos_model.py` provides macOS service models, registry
+  normalization, and display-name suggestions used by `skuld_macos.py`.
 - `skuld_macos_paths.py` provides macOS launchd label, plist path, and runtime
   path derivation used by `skuld_macos.py`.
 - `skuld_macos_parser.py` provides macOS parser wiring used by

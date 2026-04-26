@@ -43,6 +43,24 @@ def resolve_scope(value: str) -> str:
     return scope
 
 
+def suggest_display_name(label: str) -> str:
+    raw = (label or "").strip()
+    tokens = [part for part in raw.split(".") if part]
+    if tokens and tokens[0] == "application":
+        tokens = tokens[1:]
+    while tokens and tokens[-1].isdigit():
+        tokens.pop()
+    if len(tokens) >= 2 and tokens[-1].lower() in {"mac", "desktop", "agent", "daemon", "helper"}:
+        suggestion = "-".join(tokens[-2:])
+    elif tokens:
+        suggestion = tokens[-1]
+    else:
+        suggestion = raw
+    suggestion = suggestion.replace(" ", "-")
+    validate_name(suggestion)
+    return suggestion
+
+
 def normalize_service(
     item: Dict[str, object],
     *,

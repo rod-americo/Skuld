@@ -20,6 +20,7 @@ from skuld_macos_model import (
     managed_sort_key,
     normalize_service as normalize_model_service,
     resolve_scope,
+    suggest_display_name,
     validate_name,
     validate_registry_service,
 )
@@ -77,24 +78,6 @@ def ensure_display_name_available(display_name: str, current_name: Optional[str]
         validate_name=validate_name,
         load_registry=load_registry,
     )
-
-
-def suggest_display_name(label: str) -> str:
-    raw = (label or "").strip()
-    tokens = [part for part in raw.split(".") if part]
-    if tokens and tokens[0] == "application":
-        tokens = tokens[1:]
-    while tokens and tokens[-1].isdigit():
-        tokens.pop()
-    if len(tokens) >= 2 and tokens[-1].lower() in {"mac", "desktop", "agent", "daemon", "helper"}:
-        suggestion = "-".join(tokens[-2:])
-    elif tokens:
-        suggestion = tokens[-1]
-    else:
-        suggestion = raw
-    suggestion = suggestion.replace(" ", "-")
-    validate_name(suggestion)
-    return suggestion
 
 
 def prompt_display_name(target: str, suggested: str) -> str:

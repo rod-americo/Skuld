@@ -142,7 +142,7 @@ inside the existing files until a tested extraction is justified.
   - `skuld_macos_catalog.py` owns macOS launchd catalog discovery, catalog
     rendering, and `track` orchestration.
   - `skuld_macos_model.py` owns macOS service dataclasses, registry
-    normalization, and validation helpers.
+    normalization, display-name suggestions, and validation helpers.
   - `skuld_macos_paths.py` owns macOS launchd label, plist path, and runtime
     path derivation.
   - `skuld_macos_parser.py` owns macOS CLI parser construction, subcommand

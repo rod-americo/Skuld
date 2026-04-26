@@ -961,6 +961,39 @@ available to the backend by importing them from the model.
 - Creating one cross-platform naming helper before Linux systemd units and
   macOS launchd labels share enough semantics.
 
+## 2026-04-26 - Keep macOS Display-Name Suggestions In The Model
+
+**Context**
+
+The macOS backend still owned display-name suggestion rules for launchd labels.
+That logic is pure label normalization and validation; it does not require
+launchctl, filesystem access, or registry state.
+
+**Decision**
+
+Move `suggest_display_name()` into `skuld_macos_model.py` and import the same
+public name into the backend.
+
+**Impact**
+
+- macOS display-name suggestion behavior has focused model tests.
+- The backend no longer owns launchd-label token heuristics.
+- Existing `track` wiring still calls `suggest_display_name` through the
+  backend namespace.
+
+**Tradeoff**
+
+- Interactive prompting remains in the backend because it depends on stdin.
+- Linux and macOS suggestion rules remain separate because systemd unit names
+  and launchd labels differ.
+
+**Alternatives rejected**
+
+- Combining Linux and macOS naming rules into one helper before their behavior
+  is actually common.
+- Moving suggestions into catalog tracking, which would mix metadata capture
+  with naming policy.
+
 ## 2026-04-26 - Extract macOS Service Table Row Assembly
 
 **Context**

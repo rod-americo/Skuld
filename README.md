@@ -98,7 +98,7 @@ Internal modules:
 | `skuld_macos.py` | macOS registry schema, command wrappers, backend callback wiring, stats, logs, and table state. |
 | `skuld_macos_actions.py` | macOS host-mutating launchd action orchestration for start, stop, restart, and exec. |
 | `skuld_macos_catalog.py` | macOS launchd catalog discovery, rendering, and track orchestration. |
-| `skuld_macos_model.py` | macOS service dataclasses, registry normalization, and validation helpers. |
+| `skuld_macos_model.py` | macOS service dataclasses, registry normalization, display-name suggestions, and validation helpers. |
 | `skuld_macos_paths.py` | macOS launchd labels, plist paths, and runtime path derivation. |
 | `skuld_macos_parser.py` | macOS CLI parser construction and subcommand handler registration. |
 | `skuld_macos_commands.py` | macOS registry and read-only command orchestration. |
