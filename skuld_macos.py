@@ -12,6 +12,7 @@ import skuld_macos_actions as macos_actions
 import skuld_macos_catalog as macos_catalog
 import skuld_macos_commands as macos_commands
 import skuld_macos_launchd as launchd
+import skuld_macos_paths as macos_paths
 import skuld_macos_parser as macos_parser
 from skuld_macos_model import (
     DiscoverableService,
@@ -245,53 +246,43 @@ def fit_service_table(rows: List[Dict[str, object]], max_width: Optional[int] = 
 
 
 def current_user_home() -> Path:
-    return Path.home()
+    return macos_paths.current_user_home()
 
 
 def service_label(name: str) -> str:
-    return f"io.skuld.{name}"
+    return macos_paths.service_label(name)
 
 
 def launchd_label_for_service(service: ManagedService) -> str:
-    return service.launchd_label or service_label(service.name)
+    return macos_paths.launchd_label_for_service(service)
 
 
 def plist_path_for_service(service: ManagedService) -> Path:
-    if service.plist_path_hint:
-        return Path(service.plist_path_hint)
-    if service.scope == "agent":
-        return current_user_home() / "Library/LaunchAgents" / f"{service_label(service.name)}.plist"
-    return Path("/Library/LaunchDaemons") / f"{service_label(service.name)}.plist"
+    return macos_paths.plist_path_for_service(service, user_home=current_user_home())
 
 
 def jobs_root_for_scope(scope: str) -> Path:
-    if scope == "agent":
-        return SKULD_HOME / "jobs"
-    return Path("/Library/Application Support/skuld/jobs")
+    return macos_paths.jobs_root_for_scope(scope, skuld_home=SKULD_HOME)
 
 
 def logs_root_for_scope(scope: str) -> Path:
-    if scope == "agent":
-        return SKULD_HOME / "logs"
-    return Path("/Library/Application Support/skuld/logs")
+    return macos_paths.logs_root_for_scope(scope, skuld_home=SKULD_HOME)
 
 
 def events_root_for_scope(scope: str) -> Path:
-    if scope == "agent":
-        return SKULD_HOME / "events"
-    return Path("/Library/Application Support/skuld/events")
+    return macos_paths.events_root_for_scope(scope, skuld_home=SKULD_HOME)
 
 
 def log_dir_for_service(name: str, scope: str) -> Path:
-    return logs_root_for_scope(scope) / name
+    return macos_paths.log_dir_for_service(name, scope, skuld_home=SKULD_HOME)
 
 
 def event_file_for_service(name: str, scope: str) -> Path:
-    return events_root_for_scope(scope) / f"{name}.jsonl"
+    return macos_paths.event_file_for_service(name, scope, skuld_home=SKULD_HOME)
 
 
 def wrapper_script_for_service(name: str, scope: str) -> Path:
-    return jobs_root_for_scope(scope) / f"{name}.sh"
+    return macos_paths.wrapper_script_for_service(name, scope, skuld_home=SKULD_HOME)
 
 
 def normalize_service(item: Dict[str, object]) -> ManagedService:

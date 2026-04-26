@@ -51,6 +51,7 @@ py-modules = [
   "skuld_macos_actions",
   "skuld_macos_catalog",
   "skuld_macos_model",
+  "skuld_macos_paths",
   "skuld_macos_parser",
   "skuld_macos_commands",
   "skuld_macos_launchd",

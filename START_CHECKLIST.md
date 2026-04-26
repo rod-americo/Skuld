@@ -117,6 +117,8 @@ is not a greenfield scaffold checklist.
   `skuld_macos_actions.py`.
 - [x] Extract macOS service dataclasses and registry normalization into
   `skuld_macos_model.py`.
+- [x] Extract macOS launchd label, plist path, and runtime path derivation into
+  `skuld_macos_paths.py`.
 - [x] Extract macOS parser construction into `skuld_macos_parser.py`.
 - [x] Extract macOS registry sync backfill into `skuld_macos_sync.py`.
 - [x] Extract macOS launchd catalog and track orchestration into

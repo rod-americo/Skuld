@@ -856,6 +856,40 @@ unit-existence, schedule, and text-clipping callbacks.
 - Removing backend wrappers and breaking tests that patch existing function
   names directly.
 
+## 2026-04-26 - Move macOS Path Derivation Into Path Module
+
+**Context**
+
+The macOS backend still owned launchd label formatting, plist path resolution,
+and Skuld runtime path derivation for jobs, logs, events, and wrapper scripts.
+Those rules are core operational paths but do not require host command access.
+
+**Decision**
+
+Move macOS label and path derivation into `skuld_macos_paths.py`. Keep backend
+wrappers that inject the current `SKULD_HOME` and current user home so existing
+tests can continue isolating runtime state by patching backend constants.
+
+**Impact**
+
+- macOS path rules have focused unit tests.
+- Backend code no longer owns pure path construction.
+- Package metadata, CI compile lists, and documented validation commands
+  include the new module.
+
+**Tradeoff**
+
+- Backend wrappers remain because they are the compatibility surface used by
+  existing tests and callback injection.
+- Daemon paths still point under `/Library/Application Support/skuld`; the
+  module documents current behavior, not a new configuration system.
+
+**Alternatives rejected**
+
+- Moving path rules into `skuld_macos_runtime.py`, which already owns event and
+  log file parsing rather than label/path construction.
+- Removing backend constants and forcing all tests to patch the new module.
+
 ## 2026-04-26 - Extract macOS Service Table Row Assembly
 
 **Context**

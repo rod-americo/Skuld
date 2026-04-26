@@ -184,6 +184,12 @@ points at `skuld_entrypoint:main`.
 - macOS registry normalization and validation rules.
 - launchd scope normalization and registry sorting helpers.
 
+`skuld_macos_paths.py` owns macOS path and label derivation:
+
+- launchd labels for Skuld-managed jobs.
+- agent and daemon plist paths.
+- runtime jobs, logs, events, and wrapper-script paths.
+
 `skuld_macos_parser.py` owns macOS CLI parser wiring:
 
 - top-level flags and macOS-specific subcommand options.
@@ -335,6 +341,8 @@ the parser modules do not import backend state or host adapters.
   orchestration used by `skuld_macos.py`.
 - `skuld_macos_model.py` provides macOS service models and registry
   normalization used by `skuld_macos.py`.
+- `skuld_macos_paths.py` provides macOS launchd label, plist path, and runtime
+  path derivation used by `skuld_macos.py`.
 - `skuld_macos_parser.py` provides macOS parser wiring used by
   `skuld_macos.py`.
 - `skuld_macos_commands.py` provides macOS registry and read-only command
