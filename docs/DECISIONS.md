@@ -592,28 +592,31 @@ side effects in the backend modules.
 - Moving every command handler at once. That would mix presentation cleanup,
   host mutation paths, and registry writes in one high-risk change.
 
-## 2026-04-26 - Extract Registry Command Helpers
+## 2026-04-26 - Extract Registry And Detail Command Helpers
 
 **Context**
 
 `rename` and `untrack` are registry-only command paths, `doctor` is a read-only
-operational check, and `logs` is a read-only operational output flow. Their
-object reconstruction, registry removal, diagnostic orchestration, and log
-command flow still lived inline in the backend files next to service-manager
-operations.
+operational check, `logs` is a read-only operational output flow, and
+`status`/`stats`/`describe` are detail-view flows over service-manager and
+runtime reads. Their object reconstruction, registry removal, diagnostic
+orchestration, log command flow, and detail command orchestration still lived
+inline in the backend files next to service-manager operations.
 
 **Decision**
 
-Move Linux and macOS registry-only command helpers plus `doctor` and `logs`
-orchestration into `skuld_linux_commands.py` and `skuld_macos_commands.py`.
-Keep argument parsing, target resolution, and user-visible command registration
-in the backend modules.
+Move Linux and macOS registry-only command helpers plus `doctor`, `logs`,
+`status`, `stats`, and `describe` orchestration into
+`skuld_linux_commands.py` and `skuld_macos_commands.py`. Keep argument parsing,
+target resolution, and user-visible command registration in the backend
+modules.
 
 **Impact**
 
 - Registry mutation behavior has focused unit tests.
-- The backend command handlers for `rename`, `untrack`, `doctor`, and `logs`
-  are smaller.
+- Detail command orchestration has focused unit tests on both backends.
+- The backend command handlers for `rename`, `untrack`, `doctor`, `logs`,
+  `status`, `stats`, and `describe` are smaller.
 - The packaged console entrypoint and Linux remote smoke payload include the new
   command modules.
 

@@ -13,7 +13,6 @@ import skuld_common as common
 import skuld_cli
 import skuld_macos_commands as macos_commands
 import skuld_macos_launchd as launchd
-import skuld_macos_presenters as macos_presenters
 import skuld_macos_processes as processes
 import skuld_macos_runtime as runtime
 import skuld_macos_schedules as schedules
@@ -753,15 +752,12 @@ def status(args: argparse.Namespace) -> None:
     service = resolve_managed_arg(args)
     if not service:
         raise RuntimeError("Service target is required.")
-    info_map = launchctl_service_info(service)
-    macos_presenters.print_lines(
-        macos_presenters.status_lines(
-            service,
-            label=launchd_label_for_service(service),
-            domain=domain_target(service.scope),
-            info_map=info_map,
-            plist_path=plist_path_for_service(service),
-        )
+    macos_commands.show_status(
+        service,
+        launchd_label_for_service=launchd_label_for_service,
+        domain_target=domain_target,
+        launchctl_service_info=launchctl_service_info,
+        plist_path_for_service=plist_path_for_service,
     )
 
 
@@ -853,8 +849,7 @@ def stats(args: argparse.Namespace) -> None:
     service = resolve_managed_arg(args)
     if not service:
         raise RuntimeError("Service target is required.")
-    item = update_runtime_stats(service)[service.name]
-    macos_presenters.print_lines(macos_presenters.stats_lines(service, item))
+    macos_commands.show_stats(service, update_runtime_stats=update_runtime_stats)
 
 def doctor(_args: argparse.Namespace) -> None:
     services = load_registry()
@@ -896,16 +891,12 @@ def describe(args: argparse.Namespace) -> None:
     service = resolve_managed_arg(args)
     if not service:
         raise RuntimeError("Service target is required.")
-    info_map = launchctl_service_info(service)
-    stats_map = read_event_stats(service)
-    macos_presenters.print_lines(
-        macos_presenters.describe_lines(
-            service,
-            info_map=info_map,
-            stats_map=stats_map,
-            next_run=schedules.compute_next_run(service.schedule),
-            plist_path=plist_path_for_service(service),
-        )
+    macos_commands.describe_service(
+        service,
+        launchctl_service_info=launchctl_service_info,
+        read_event_stats=read_event_stats,
+        compute_next_run=schedules.compute_next_run,
+        plist_path_for_service=plist_path_for_service,
     )
 
 

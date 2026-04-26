@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import types
 import unittest
+from unittest.mock import patch
 
 import skuld_linux_commands as commands
 
@@ -134,6 +135,80 @@ class LinuxCommandsTest(unittest.TestCase):
         self.assertEqual(errors, [])
         self.assertEqual(calls[0][0][:3], ["journalctl", "-u", "api.service"])
         self.assertIn("--since", calls[0][0])
+
+    def test_show_status_runs_service_and_timer_status(self) -> None:
+        calls = []
+        output = []
+
+        commands.show_status(
+            service(),
+            format_scoped_name=lambda name, scope: f"{scope}:{name}",
+            systemd_scope_env=lambda scope: {"XDG_RUNTIME_DIR": "/run/user/1"},
+            systemctl_command=lambda scope, args: ["systemctl", "--user", *args],
+            run=lambda cmd, **kwargs: calls.append((cmd, kwargs)),
+            emit=output.append,
+        )
+
+        self.assertEqual(output, ["[skuld] api -> user:api"])
+        self.assertEqual(
+            calls[0][0],
+            ["systemctl", "--user", "status", "api.service", "--no-pager"],
+        )
+        self.assertEqual(
+            calls[1][0],
+            ["systemctl", "--user", "status", "api.timer", "--no-pager"],
+        )
+
+    def test_show_stats_formats_runtime_counts(self) -> None:
+        output = []
+
+        with patch("skuld_linux_presenters.print_lines", side_effect=output.extend):
+            commands.show_stats(
+                service(),
+                since="1 hour ago",
+                boot=False,
+                sync_registry_from_systemd=lambda service: 0,
+                count_unit_starts=lambda unit, **kwargs: 4,
+                read_restart_count=lambda name, **kwargs: "2",
+                format_scoped_name=lambda name, scope: f"{scope}:{name}",
+            )
+
+        self.assertIn("window: since 1 hour ago", output)
+        self.assertIn("executions: 4", output)
+        self.assertIn("restarts: 2", output)
+
+    def test_describe_service_formats_systemd_show_maps(self) -> None:
+        output = []
+
+        def systemctl_show(unit: str, props, **kwargs):
+            if unit == "api.service":
+                return {
+                    "ActiveState": "active",
+                    "SubState": "running",
+                    "MainPID": "123",
+                    "FragmentPath": "/etc/systemd/user/api.service",
+                }
+            return {
+                "ActiveState": "active",
+                "SubState": "waiting",
+                "NextElapseUSecRealtime": "Mon 2026-04-27 09:00:00",
+                "LastTriggerUSec": "Sun 2026-04-26 09:00:00",
+            }
+
+        with patch("skuld_linux_presenters.print_lines", side_effect=output.extend):
+            commands.describe_service(
+                service(),
+                require_managed=lambda name, **kwargs: service(),
+                unit_exists=lambda unit, **kwargs: unit == "api.timer",
+                systemctl_show=systemctl_show,
+                format_scoped_name=lambda name, scope: f"{scope}:{name}",
+            )
+
+        self.assertIn("target: user:api", output)
+        self.assertIn("service_active: active", output)
+        self.assertIn("main_pid: 123", output)
+        self.assertIn("timer_active: active", output)
+        self.assertIn("next_run: Mon 2026-04-27 09:00:00", output)
 
 
 if __name__ == "__main__":

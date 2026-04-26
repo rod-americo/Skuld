@@ -1,6 +1,8 @@
 import sys
 from typing import Callable, List
 
+import skuld_linux_presenters as presenters
+
 
 def rename_service(
     service: object,
@@ -163,3 +165,98 @@ def show_logs(
         emit(stdout)
     if stderr:
         emit_err(stderr)
+
+
+def show_status(
+    service: object,
+    *,
+    format_scoped_name: Callable[[str, str], str],
+    systemd_scope_env: Callable[[str], object],
+    systemctl_command: Callable[[str, List[str]], List[str]],
+    run: Callable[..., object],
+    emit: Callable[[str], None] = print,
+) -> None:
+    emit(f"[skuld] {service.display_name} -> {format_scoped_name(service.name, service.scope)}")
+    scope_env = systemd_scope_env(service.scope)
+    run(
+        systemctl_command(
+            service.scope,
+            ["status", f"{service.name}.service", "--no-pager"],
+        ),
+        check=False,
+        env=scope_env,
+    )
+    run(
+        systemctl_command(
+            service.scope,
+            ["status", f"{service.name}.timer", "--no-pager"],
+        ),
+        check=False,
+        env=scope_env,
+    )
+
+
+def show_stats(
+    service: object,
+    *,
+    since: str,
+    boot: bool,
+    sync_registry_from_systemd: Callable[[object], int],
+    count_unit_starts: Callable[..., int],
+    read_restart_count: Callable[..., str],
+    format_scoped_name: Callable[[str, str], str],
+) -> None:
+    sync_registry_from_systemd(service)
+    service_unit = f"{service.name}.service"
+    executions = count_unit_starts(
+        service_unit,
+        scope=service.scope,
+        since=since,
+        boot=boot,
+    )
+    restarts = read_restart_count(service.name, scope=service.scope)
+    presenters.print_lines(
+        presenters.stats_lines(
+            service,
+            target=format_scoped_name(service.name, service.scope),
+            service_unit=service_unit,
+            window=presenters.stats_window(boot=boot, since=since),
+            executions=executions,
+            restarts=restarts,
+        )
+    )
+
+
+def describe_service(
+    target: object,
+    *,
+    require_managed: Callable[..., object],
+    unit_exists: Callable[..., bool],
+    systemctl_show: Callable[..., dict],
+    format_scoped_name: Callable[[str, str], str],
+) -> None:
+    service = require_managed(target.name, scope=target.scope)
+    service_unit = f"{service.name}.service"
+    timer_unit = f"{service.name}.timer"
+    show_service = systemctl_show(
+        service_unit,
+        ["Id", "Description", "ActiveState", "SubState", "FragmentPath", "MainPID"],
+        scope=service.scope,
+    )
+    show_timer = (
+        systemctl_show(
+            timer_unit,
+            ["Id", "ActiveState", "SubState", "NextElapseUSecRealtime", "LastTriggerUSec"],
+            scope=service.scope,
+        )
+        if unit_exists(timer_unit, scope=service.scope)
+        else {}
+    )
+    presenters.print_lines(
+        presenters.describe_lines(
+            service,
+            target=format_scoped_name(service.name, service.scope),
+            show_service=show_service,
+            show_timer=show_timer,
+        )
+    )

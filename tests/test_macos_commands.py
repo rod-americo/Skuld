@@ -3,6 +3,7 @@ from __future__ import annotations
 import types
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 import skuld_macos_commands as commands
 
@@ -146,6 +147,70 @@ class MacosCommandsTest(unittest.TestCase):
             ],
         )
         self.assertEqual(tailed, [(Path("/tmp"), 25, False)])
+
+    def test_show_status_formats_launchd_info(self) -> None:
+        output = []
+
+        with patch("skuld_macos_presenters.print_lines", side_effect=output.extend):
+            commands.show_status(
+                service(),
+                launchd_label_for_service=lambda service: service.launchd_label,
+                domain_target=lambda scope: f"gui/501/{scope}",
+                launchctl_service_info=lambda service: {
+                    "PID": "123",
+                    "LastExitStatus": "0",
+                },
+                plist_path_for_service=lambda service: Path("/tmp/worker.plist"),
+            )
+
+        self.assertIn("target: com.example.worker", output)
+        self.assertIn("domain: gui/501/agent", output)
+        self.assertIn("loaded: yes", output)
+        self.assertIn("pid: 123", output)
+
+    def test_show_stats_formats_runtime_stats(self) -> None:
+        output = []
+
+        with patch("skuld_macos_presenters.print_lines", side_effect=output.extend):
+            commands.show_stats(
+                service(),
+                update_runtime_stats=lambda service: {
+                    service.name: {
+                        "executions": 3,
+                        "restarts": 1,
+                        "last_run": "2026-04-26T10:00:00Z",
+                        "last_exit_status": "0",
+                    }
+                },
+            )
+
+        self.assertIn("window: all retained event entries", output)
+        self.assertIn("executions: 3", output)
+        self.assertIn("restarts: 1", output)
+        self.assertIn("last_exit_status: 0", output)
+
+    def test_describe_service_formats_launchd_info_and_stats(self) -> None:
+        output = []
+
+        with patch("skuld_macos_presenters.print_lines", side_effect=output.extend):
+            commands.describe_service(
+                service(),
+                launchctl_service_info=lambda service: {
+                    "PID": "123",
+                    "LastExitStatus": "0",
+                },
+                read_event_stats=lambda service: {
+                    "last_run": "2026-04-26T10:00:00Z",
+                },
+                compute_next_run=lambda schedule: "2026-04-27 09:00:00",
+                plist_path_for_service=lambda service: Path("/tmp/worker.plist"),
+            )
+
+        self.assertIn("target: com.example.worker", output)
+        self.assertIn("loaded: yes", output)
+        self.assertIn("pid: 123", output)
+        self.assertIn("next_run: 2026-04-27 09:00:00", output)
+        self.assertIn("last_run: 2026-04-26T10:00:00Z", output)
 
 
 if __name__ == "__main__":

@@ -95,8 +95,8 @@ intent.
 - Moved selected Linux and macOS detail-view line formatting into
   `skuld_linux_presenters.py` and `skuld_macos_presenters.py`.
 - Moved Linux and macOS registry-only `rename`/`untrack` helpers, `doctor`
-  orchestration, and logs command flow into
-  `skuld_linux_commands.py` and `skuld_macos_commands.py`.
+  orchestration, logs command flow, and `status`/`stats`/`describe` detail
+  command flow into `skuld_linux_commands.py` and `skuld_macos_commands.py`.
 - Changed macOS live smoke cleanup to boot out the disposable LaunchAgent by
   service target before falling back to the plist path.
 - Changed macOS launchd bootstrap to avoid persistent `enable` overrides after

@@ -12,7 +12,6 @@ import skuld_common as common
 import skuld_cli
 import skuld_linux_commands as linux_commands
 import skuld_linux_runtime as linux_runtime
-import skuld_linux_presenters as linux_presenters
 import skuld_linux_stats as linux_stats
 import skuld_linux_systemd as systemd
 import skuld_linux_targets as linux_targets
@@ -973,12 +972,14 @@ def restart(args: argparse.Namespace) -> None:
 
 def status(args: argparse.Namespace) -> None:
     svc = resolve_managed_arg(args)
-    name = svc.name
     require_systemctl()
-    print(f"[skuld] {svc.display_name} -> {format_scoped_name(name, svc.scope)}")
-    scope_env = systemd_scope_env(svc.scope)
-    run(systemctl_command(svc.scope, ["status", f"{name}.service", "--no-pager"]), check=False, env=scope_env)
-    run(systemctl_command(svc.scope, ["status", f"{name}.timer", "--no-pager"]), check=False, env=scope_env)
+    linux_commands.show_status(
+        svc,
+        format_scoped_name=format_scoped_name,
+        systemd_scope_env=systemd_scope_env,
+        systemctl_command=systemctl_command,
+        run=run,
+    )
 
 
 def logs(args: argparse.Namespace) -> None:
@@ -1025,21 +1026,15 @@ def read_restart_count(name: str, scope: str = "system") -> str:
 
 def stats(args: argparse.Namespace) -> None:
     svc = resolve_managed_arg(args)
-    name = svc.name
     require_systemctl()
-    sync_registry_from_systemd(svc)
-    service_unit = f"{name}.service"
-    executions = count_unit_starts(service_unit, scope=svc.scope, since=args.since, boot=args.boot)
-    restarts = read_restart_count(name, scope=svc.scope)
-    linux_presenters.print_lines(
-        linux_presenters.stats_lines(
-            svc,
-            target=format_scoped_name(name, svc.scope),
-            service_unit=service_unit,
-            window=linux_presenters.stats_window(boot=args.boot, since=args.since),
-            executions=executions,
-            restarts=restarts,
-        )
+    linux_commands.show_stats(
+        svc,
+        since=args.since,
+        boot=args.boot,
+        sync_registry_from_systemd=sync_registry_from_systemd,
+        count_unit_starts=count_unit_starts,
+        read_restart_count=read_restart_count,
+        format_scoped_name=format_scoped_name,
     )
 
 
@@ -1142,30 +1137,13 @@ def doctor(_args: argparse.Namespace) -> None:
 
 def describe(args: argparse.Namespace) -> None:
     target = resolve_managed_arg(args)
-    name = target.name
     require_systemctl()
-    svc = require_managed(name, scope=target.scope)
-    service_unit = f"{name}.service"
-    timer_unit = f"{name}.timer"
-
-    show_service = systemctl_show(
-        service_unit,
-        ["Id", "Description", "ActiveState", "SubState", "FragmentPath", "MainPID"],
-        scope=svc.scope,
-    )
-    show_timer = systemctl_show(
-        timer_unit,
-        ["Id", "ActiveState", "SubState", "NextElapseUSecRealtime", "LastTriggerUSec"],
-        scope=svc.scope,
-    ) if unit_exists(timer_unit, scope=svc.scope) else {}
-
-    linux_presenters.print_lines(
-        linux_presenters.describe_lines(
-            svc,
-            target=format_scoped_name(svc.name, svc.scope),
-            show_service=show_service,
-            show_timer=show_timer,
-        )
+    linux_commands.describe_service(
+        target,
+        require_managed=require_managed,
+        unit_exists=unit_exists,
+        systemctl_show=systemctl_show,
+        format_scoped_name=format_scoped_name,
     )
 
 

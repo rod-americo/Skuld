@@ -2,6 +2,8 @@ import threading
 from pathlib import Path
 from typing import Callable, List
 
+import skuld_macos_presenters as presenters
+
 
 def rename_service(
     service: object,
@@ -156,3 +158,51 @@ def show_logs(
             emit("")
         emit(f"==> {stderr_path}")
         tail_file(stderr_path, lines, False)
+
+
+def show_status(
+    service: object,
+    *,
+    launchd_label_for_service: Callable[[object], str],
+    domain_target: Callable[[str], str],
+    launchctl_service_info: Callable[[object], dict],
+    plist_path_for_service: Callable[[object], Path],
+) -> None:
+    info_map = launchctl_service_info(service)
+    presenters.print_lines(
+        presenters.status_lines(
+            service,
+            label=launchd_label_for_service(service),
+            domain=domain_target(service.scope),
+            info_map=info_map,
+            plist_path=plist_path_for_service(service),
+        )
+    )
+
+
+def show_stats(
+    service: object,
+    *,
+    update_runtime_stats: Callable[[object], dict],
+) -> None:
+    item = update_runtime_stats(service)[service.name]
+    presenters.print_lines(presenters.stats_lines(service, item))
+
+
+def describe_service(
+    service: object,
+    *,
+    launchctl_service_info: Callable[[object], dict],
+    read_event_stats: Callable[[object], dict],
+    compute_next_run: Callable[[str], str],
+    plist_path_for_service: Callable[[object], Path],
+) -> None:
+    presenters.print_lines(
+        presenters.describe_lines(
+            service,
+            info_map=launchctl_service_info(service),
+            stats_map=read_event_stats(service),
+            next_run=compute_next_run(service.schedule),
+            plist_path=plist_path_for_service(service),
+        )
+    )

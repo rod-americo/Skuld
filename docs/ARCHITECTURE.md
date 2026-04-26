@@ -90,12 +90,14 @@ points at `skuld_entrypoint:main`.
 - line construction for `stats`.
 - line construction for `describe`.
 
-`skuld_linux_commands.py` owns extracted Linux registry command helpers:
+`skuld_linux_commands.py` owns extracted Linux command orchestration:
 
 - `rename` service object reconstruction and registry write orchestration.
 - `untrack` registry removal orchestration.
 - `doctor` diagnostic orchestration over injected systemd callbacks.
 - `logs` journal command flow over injected systemd/journal callbacks.
+- `status`, `stats`, and `describe` detail command orchestration over injected
+  systemd and runtime callbacks.
 
 `skuld_linux_runtime.py` owns Linux runtime and journald stats:
 
@@ -145,7 +147,7 @@ points at `skuld_entrypoint:main`.
 - `ManagedService` and `DiscoverableService` dataclasses.
 - macOS registry schema and validation rules.
 - macOS command handlers and parser wiring.
-- CLI coordination for logs and event stats.
+- Backend coordination for host operations that have not been extracted yet.
 
 `skuld_macos_launchd.py` owns the low-level macOS service-manager adapter:
 
@@ -161,12 +163,14 @@ points at `skuld_entrypoint:main`.
 - line construction for `stats`.
 - line construction for `describe`.
 
-`skuld_macos_commands.py` owns extracted macOS registry command helpers:
+`skuld_macos_commands.py` owns extracted macOS command orchestration:
 
 - `rename` service object reconstruction and registry write orchestration.
 - `untrack` registry removal orchestration.
 - `doctor` diagnostic orchestration over injected launchd callbacks.
 - `logs` file-tail command flow over injected runtime callbacks.
+- `status`, `stats`, and `describe` detail command orchestration over injected
+  launchd, schedule, and runtime callbacks.
 
 `skuld_macos_processes.py` owns macOS process and host inspection:
 
