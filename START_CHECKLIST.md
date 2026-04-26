@@ -100,6 +100,8 @@ is not a greenfield scaffold checklist.
   `skuld_linux_model.py`.
 - [x] Move Linux service-name normalization and display-name suggestions into
   `skuld_linux_model.py`.
+- [x] Extract Linux registry storage wiring and lookup helpers into
+  `skuld_linux_registry.py`.
 - [x] Extract Linux parser construction into `skuld_linux_parser.py`.
 - [x] Extract Linux registry sync backfill into `skuld_linux_sync.py`.
 - [x] Extract Linux systemd catalog and track orchestration into
@@ -122,6 +124,8 @@ is not a greenfield scaffold checklist.
 - [x] Extract macOS service dataclasses and registry normalization into
   `skuld_macos_model.py`.
 - [x] Move macOS display-name suggestions into `skuld_macos_model.py`.
+- [x] Extract macOS registry storage wiring, runtime stats file initialization,
+  and lookup helpers into `skuld_macos_registry.py`.
 - [x] Extract macOS launchd label, plist path, and runtime path derivation into
   `skuld_macos_paths.py`.
 - [x] Extract macOS parser construction into `skuld_macos_parser.py`.

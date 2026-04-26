@@ -994,6 +994,43 @@ public name into the backend.
 - Moving suggestions into catalog tracking, which would mix metadata capture
   with naming policy.
 
+## 2026-04-26 - Move Backend Registry Wiring Into Registry Modules
+
+**Context**
+
+Both backend files still constructed `RegistryStore` directly and owned registry
+lookup helpers. macOS also initialized the runtime stats JSON from the backend.
+That kept persistence wiring mixed into files that already coordinate parser,
+command, adapter, and table callbacks.
+
+**Decision**
+
+Move Linux registry storage and lookup helpers into `skuld_linux_registry.py`.
+Move macOS registry storage, runtime stats file initialization, and lookup
+helpers into `skuld_macos_registry.py`. Keep backend wrappers so existing tests
+and callback injection continue to patch backend-level functions.
+
+**Impact**
+
+- Registry wiring now has focused backend-specific unit tests.
+- Backend files no longer construct `RegistryStore` directly.
+- Package metadata, CI compile lists, documented validation commands, and the
+  Linux remote smoke payload include the new registry modules.
+
+**Tradeoff**
+
+- Backend wrappers remain to preserve compatibility and host-local constants
+  such as `SKULD_HOME`, `REGISTRY_FILE`, and `RUNTIME_STATS_FILE`.
+- macOS registry normalization still receives a callback for path derivation,
+  because runtime paths are intentionally patchable through backend wrappers.
+
+**Alternatives rejected**
+
+- Moving backend-specific registry behavior into the generic
+  `skuld_registry.py`, which would erase real Linux/macOS schema differences.
+- Removing backend wrappers and requiring callers to patch the new modules
+  directly.
+
 ## 2026-04-26 - Extract macOS Service Table Row Assembly
 
 **Context**

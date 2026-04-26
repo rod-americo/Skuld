@@ -12,22 +12,16 @@ import skuld_linux_actions as linux_actions
 import skuld_linux_catalog as linux_catalog
 import skuld_linux_commands as linux_commands
 import skuld_linux_parser as linux_parser
+import skuld_linux_registry as linux_registry
 from skuld_linux_model import (
     DiscoverableService,
     ManagedService,
-    VALID_SCOPES,
     format_scoped_name,
     managed_service_key,
     managed_sort_key,
-    normalize_service_name,
-    normalize_registry_item,
-    normalize_scope,
     normalize_target_token,
-    scope_sort_value,
-    split_scope_token,
     suggest_display_name,
     validate_name,
-    validate_registry_service,
 )
 import skuld_linux_runtime as linux_runtime
 import skuld_linux_stats as linux_stats
@@ -38,7 +32,6 @@ import skuld_linux_timers as timers
 import skuld_linux_view as linux_view
 import skuld_sudo
 import skuld_tables as tables
-from skuld_registry import RegistryStore
 
 VERSION = "0.3.0"
 SKULD_HOME = Path(os.environ.get("SKULD_HOME", Path.home() / ".local/share/skuld"))
@@ -54,9 +47,7 @@ DISCOVERABLE_SCOPE_CHOICES = ("all", "system", "user")
 
 
 def ensure_storage() -> None:
-    SKULD_HOME.mkdir(parents=True, exist_ok=True)
-    if not REGISTRY_FILE.exists():
-        REGISTRY_FILE.write_text("[]", encoding="utf-8")
+    linux_registry.ensure_storage(SKULD_HOME, REGISTRY_FILE)
 
 
 def load_dotenv(path: Path) -> Dict[str, str]:
@@ -73,73 +64,58 @@ def get_sudo_password() -> Optional[str]:
     )
 
 
-def registry_store() -> RegistryStore[ManagedService]:
-    return RegistryStore(
-        home=SKULD_HOME,
-        registry_file=REGISTRY_FILE,
-        normalize_item=normalize_registry_item,
-        validate_service=validate_registry_service,
-        sort_key=managed_sort_key,
-        service_key=lambda service: managed_service_key(service.name, service.scope),
-        required_fields=("name", "exec_cmd", "description"),
+def load_registry(*, write_back: bool = False) -> List[ManagedService]:
+    return linux_registry.load_registry(
+        SKULD_HOME,
+        REGISTRY_FILE,
+        write_back=write_back,
     )
 
 
-def load_registry(*, write_back: bool = False) -> List[ManagedService]:
-    return registry_store().load(write_back=write_back)
-
-
 def save_registry(services: List[ManagedService]) -> None:
-    registry_store().save(services)
+    linux_registry.save_registry(SKULD_HOME, REGISTRY_FILE, services)
 
 
 def upsert_registry(service: ManagedService) -> None:
-    registry_store().upsert(service)
+    linux_registry.upsert_registry(SKULD_HOME, REGISTRY_FILE, service)
 
 
 def remove_registry(name: str, scope: str) -> None:
-    registry_store().remove(managed_service_key(name, scope))
+    linux_registry.remove_registry(SKULD_HOME, REGISTRY_FILE, name, scope)
 
 
 def find_managed_by_name(name: str) -> List[ManagedService]:
-    return [svc for svc in load_registry() if svc.name == name]
+    return linux_registry.find_managed_by_name(name, load_registry=load_registry)
 
 
 def get_managed(name: str, scope: Optional[str] = None) -> Optional[ManagedService]:
-    matches = find_managed_by_name(name)
-    if scope is not None:
-        normalized_scope = normalize_scope(scope)
-        for svc in matches:
-            if svc.scope == normalized_scope:
-                return svc
-        return None
-    if len(matches) == 1:
-        return matches[0]
-    return None
+    return linux_registry.get_managed(
+        name,
+        scope=scope,
+        load_registry=load_registry,
+    )
 
 
 def get_managed_by_display_name(display_name: str) -> Optional[ManagedService]:
-    for svc in load_registry():
-        if svc.display_name == display_name:
-            return svc
-    return None
+    return linux_registry.get_managed_by_display_name(
+        display_name,
+        load_registry=load_registry,
+    )
 
 
 def get_managed_by_id(service_id: int) -> Optional[ManagedService]:
-    for svc in load_registry():
-        if svc.id == service_id:
-            return svc
-    return None
+    return linux_registry.get_managed_by_id(
+        service_id,
+        load_registry=load_registry,
+    )
 
 
 def require_managed(name: str, scope: Optional[str] = None) -> ManagedService:
-    svc = get_managed(name, scope=scope)
-    if not svc:
-        raise RuntimeError(
-            f"'{name}' is not in the skuld registry. "
-            "Only services tracked by skuld can be monitored."
-        )
-    return svc
+    return linux_registry.require_managed(
+        name,
+        scope=scope,
+        get_managed=get_managed,
+    )
 
 
 def err(msg: str) -> None:

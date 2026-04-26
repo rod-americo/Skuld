@@ -145,6 +145,7 @@ if [[ -n "$HOST" ]]; then
     skuld_linux_actions.py \
     skuld_linux_catalog.py \
     skuld_linux_model.py \
+    skuld_linux_registry.py \
     skuld_linux_parser.py \
     skuld_linux_commands.py \
     skuld_linux_presenters.py \

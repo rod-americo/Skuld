@@ -90,6 +90,12 @@ points at `skuld_entrypoint:main`.
 - service-name normalization and display-name suggestion rules.
 - scope normalization, scoped-name formatting, and registry identity helpers.
 
+`skuld_linux_registry.py` owns Linux registry access:
+
+- Linux `RegistryStore` construction.
+- registry storage initialization.
+- save, upsert, remove, and lookup helpers.
+
 `skuld_linux_parser.py` owns Linux CLI parser wiring:
 
 - top-level flags and Linux-specific subcommand options.
@@ -185,6 +191,12 @@ points at `skuld_entrypoint:main`.
 - macOS registry normalization and validation rules.
 - display-name suggestion rules for launchd labels.
 - launchd scope normalization and registry sorting helpers.
+
+`skuld_macos_registry.py` owns macOS registry access:
+
+- macOS `RegistryStore` construction.
+- registry and runtime stats file initialization.
+- save, upsert, remove, and lookup helpers.
 
 `skuld_macos_paths.py` owns macOS path and label derivation:
 
@@ -322,6 +334,8 @@ the parser modules do not import backend state or host adapters.
 - `skuld_linux_model.py` provides Linux service models, registry
   normalization, name normalization, and identifier helpers used by
   `skuld_linux.py`.
+- `skuld_linux_registry.py` provides Linux registry storage and lookup helpers
+  used by `skuld_linux.py`.
 - `skuld_linux_parser.py` provides Linux parser wiring used by
   `skuld_linux.py`.
 - `skuld_linux_commands.py` provides Linux registry and read-only command
@@ -344,6 +358,8 @@ the parser modules do not import backend state or host adapters.
   orchestration used by `skuld_macos.py`.
 - `skuld_macos_model.py` provides macOS service models, registry
   normalization, and display-name suggestions used by `skuld_macos.py`.
+- `skuld_macos_registry.py` provides macOS registry storage, runtime stats file
+  initialization, and lookup helpers used by `skuld_macos.py`.
 - `skuld_macos_paths.py` provides macOS launchd label, plist path, and runtime
   path derivation used by `skuld_macos.py`.
 - `skuld_macos_parser.py` provides macOS parser wiring used by

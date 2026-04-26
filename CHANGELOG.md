@@ -116,6 +116,8 @@ intent.
 - Moved Linux service-name normalization and display-name suggestions into
   `skuld_linux_model.py`.
 - Moved macOS display-name suggestions into `skuld_macos_model.py`.
+- Moved Linux and macOS registry storage wiring and lookup helpers into
+  `skuld_linux_registry.py` and `skuld_macos_registry.py`.
 - Added module-inventory tests for package metadata, documented compile
   commands, and the Linux remote smoke payload.
 - Changed macOS live smoke cleanup to boot out the disposable LaunchAgent by

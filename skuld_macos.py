@@ -14,15 +14,14 @@ import skuld_macos_commands as macos_commands
 import skuld_macos_launchd as launchd
 import skuld_macos_paths as macos_paths
 import skuld_macos_parser as macos_parser
+import skuld_macos_registry as macos_registry
 from skuld_macos_model import (
     DiscoverableService,
     ManagedService,
-    managed_sort_key,
     normalize_service as normalize_model_service,
     resolve_scope,
     suggest_display_name,
     validate_name,
-    validate_registry_service,
 )
 import skuld_macos_processes as processes
 import skuld_macos_runtime as runtime
@@ -32,7 +31,6 @@ import skuld_macos_targets as macos_targets
 import skuld_macos_view as macos_view
 import skuld_sudo
 import skuld_tables as tables
-from skuld_registry import RegistryStore
 
 VERSION = "0.3.0"
 DEFAULT_ENV_FILE = Path(".env")
@@ -46,11 +44,7 @@ SORT_CHOICES = ("id", "name", "cpu", "memory")
 
 
 def ensure_storage() -> None:
-    SKULD_HOME.mkdir(parents=True, exist_ok=True)
-    if not REGISTRY_FILE.exists():
-        REGISTRY_FILE.write_text("[]", encoding="utf-8")
-    if not RUNTIME_STATS_FILE.exists():
-        RUNTIME_STATS_FILE.write_text('{"services": {}}\n', encoding="utf-8")
+    macos_registry.ensure_storage(SKULD_HOME, REGISTRY_FILE, RUNTIME_STATS_FILE)
 
 
 def load_dotenv(path: Path) -> Dict[str, str]:
@@ -268,57 +262,62 @@ def normalize_service(item: Dict[str, object]) -> ManagedService:
     )
 
 
-def registry_store() -> RegistryStore[ManagedService]:
-    return RegistryStore(
-        home=SKULD_HOME,
-        registry_file=REGISTRY_FILE,
+def load_registry(*, write_back: bool = False) -> List[ManagedService]:
+    return macos_registry.load_registry(
+        SKULD_HOME,
+        REGISTRY_FILE,
+        RUNTIME_STATS_FILE,
         normalize_item=normalize_service,
-        validate_service=validate_registry_service,
-        sort_key=managed_sort_key,
-        service_key=lambda service: service.name,
-        required_fields=("name", "exec_cmd", "description"),
+        write_back=write_back,
     )
 
 
-def load_registry(*, write_back: bool = False) -> List[ManagedService]:
-    ensure_storage()
-    return registry_store().load(write_back=write_back)
-
-
 def save_registry(services: List[ManagedService]) -> None:
-    ensure_storage()
-    registry_store().save(services)
+    macos_registry.save_registry(
+        SKULD_HOME,
+        REGISTRY_FILE,
+        RUNTIME_STATS_FILE,
+        services,
+        normalize_item=normalize_service,
+    )
 
 
 def upsert_registry(service: ManagedService) -> None:
-    ensure_storage()
-    registry_store().upsert(service)
+    macos_registry.upsert_registry(
+        SKULD_HOME,
+        REGISTRY_FILE,
+        RUNTIME_STATS_FILE,
+        service,
+        normalize_item=normalize_service,
+    )
 
 
 def remove_registry(name: str) -> None:
-    ensure_storage()
-    registry_store().remove(name)
+    macos_registry.remove_registry(
+        SKULD_HOME,
+        REGISTRY_FILE,
+        RUNTIME_STATS_FILE,
+        name,
+        normalize_item=normalize_service,
+    )
 
 
 def get_managed(name: str) -> Optional[ManagedService]:
-    for svc in load_registry():
-        if svc.name == name:
-            return svc
-    return None
+    return macos_registry.get_managed(name, load_registry=load_registry)
 
 
 def get_managed_by_display_name(display_name: str) -> Optional[ManagedService]:
-    for svc in load_registry():
-        if svc.display_name == display_name:
-            return svc
-    return None
+    return macos_registry.get_managed_by_display_name(
+        display_name,
+        load_registry=load_registry,
+    )
 
 
 def get_managed_by_id(service_id: int) -> Optional[ManagedService]:
-    for svc in load_registry():
-        if svc.id == service_id:
-            return svc
-    return None
+    return macos_registry.get_managed_by_id(
+        service_id,
+        load_registry=load_registry,
+    )
 
 
 def resolve_managed_from_token(token: str) -> Optional[ManagedService]:
