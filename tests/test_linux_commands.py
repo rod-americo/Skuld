@@ -6,6 +6,10 @@ import unittest
 import skuld_linux_commands as commands
 
 
+def completed(stdout: str = "", stderr: str = "", returncode: int = 0):
+    return types.SimpleNamespace(stdout=stdout, stderr=stderr, returncode=returncode)
+
+
 def service():
     return types.SimpleNamespace(
         id=1,
@@ -103,6 +107,33 @@ class LinuxCommandsTest(unittest.TestCase):
             output,
         )
         self.assertEqual(errors, ["doctor: found 1 issue(s)."])
+
+    def test_show_logs_emits_journal_output(self) -> None:
+        calls = []
+        output = []
+        errors = []
+
+        commands.show_logs(
+            service(),
+            timer=False,
+            since="1 hour ago",
+            follow=False,
+            plain=True,
+            output="short",
+            lines=20,
+            journalctl_command=lambda scope, args: ["journalctl", *args],
+            systemd_scope_env=lambda scope: {"XDG_RUNTIME_DIR": "/run/user/1"},
+            run=lambda cmd, **kwargs: calls.append((cmd, kwargs)) or completed(stdout="log line\n"),
+            run_sudo=lambda cmd, **kwargs: completed(),
+            journal_permission_hint=lambda stderr: False,
+            emit=output.append,
+            emit_err=errors.append,
+        )
+
+        self.assertEqual(output, ["log line"])
+        self.assertEqual(errors, [])
+        self.assertEqual(calls[0][0][:3], ["journalctl", "-u", "api.service"])
+        self.assertIn("--since", calls[0][0])
 
 
 if __name__ == "__main__":

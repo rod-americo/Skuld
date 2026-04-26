@@ -5,7 +5,6 @@ import plistlib
 import re
 import subprocess
 import sys
-import threading
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -782,49 +781,17 @@ def logs(args: argparse.Namespace) -> None:
     service = resolve_managed_arg(args)
     if not service:
         raise RuntimeError("Service target is required.")
-    if args.since:
-        raise RuntimeError("--since is not supported on macOS yet. Logs are read from files.")
-    if args.timer:
-        info("--timer has no effect on macOS. launchd uses a single plist/job.")
     lines = resolve_lines_arg(args, default=100)
-    stdout_path, stderr_path = log_paths_for_service(service)
-    if not stdout_path and not stderr_path:
-        raise RuntimeError(
-            "Logs are only available on macOS when the registry entry has a "
-            "compatible log_dir or the launchd plist declares StandardOutPath/StandardErrorPath."
-        )
-    stdout_exists = bool(stdout_path and stdout_path.exists())
-    stderr_exists = bool(stderr_path and stderr_path.exists())
-    if not stdout_exists and not stderr_exists:
-        print("No logs found.")
-        return
-    if args.follow:
-        workers: List[threading.Thread] = []
-        if stdout_exists and stdout_path:
-            print(f"==> {stdout_path}")
-            workers.append(threading.Thread(target=tail_file, args=(stdout_path, lines, True), daemon=True))
-        if stderr_exists and stderr_path:
-            if stdout_exists:
-                print()
-            print(f"==> {stderr_path}")
-            workers.append(threading.Thread(target=tail_file, args=(stderr_path, lines, True), daemon=True))
-        for worker in workers:
-            worker.start()
-        try:
-            for worker in workers:
-                worker.join()
-        except KeyboardInterrupt:
-            return
-        return
-
-    if stdout_exists and stdout_path:
-        print(f"==> {stdout_path}")
-        tail_file(stdout_path, lines, False)
-    if stderr_exists and stderr_path:
-        if stdout_exists:
-            print()
-        print(f"==> {stderr_path}")
-        tail_file(stderr_path, lines, False)
+    macos_commands.show_logs(
+        service,
+        since=args.since,
+        timer=args.timer,
+        follow=args.follow,
+        lines=lines,
+        log_paths_for_service=log_paths_for_service,
+        tail_file=tail_file,
+        info=info,
+    )
 
 
 def read_cpu_memory(pid: int) -> Dict[str, str]:

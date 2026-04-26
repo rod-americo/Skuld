@@ -1,3 +1,4 @@
+import sys
 from typing import Callable, List
 
 
@@ -103,3 +104,62 @@ def doctor_services(
     else:
         err(f"doctor: found {issues} issue(s).")
     return issues
+
+
+def show_logs(
+    service: object,
+    *,
+    timer: bool,
+    since: str,
+    follow: bool,
+    plain: bool,
+    output: str,
+    lines: int,
+    journalctl_command: Callable[[str, List[str]], List[str]],
+    systemd_scope_env: Callable[[str], object],
+    run: Callable[..., object],
+    run_sudo: Callable[..., object],
+    journal_permission_hint: Callable[[str], bool],
+    emit: Callable[[str], None] = print,
+    emit_err: Callable[[str], None] = lambda message: print(message, file=sys.stderr),
+) -> None:
+    unit = f"{service.name}.timer" if timer else f"{service.name}.service"
+    scope_env = systemd_scope_env(service.scope)
+    command = journalctl_command(service.scope, ["-u", unit, "-n", str(lines)])
+    output_mode = "cat" if plain else output
+    command.extend(["-o", output_mode])
+    if since:
+        command.extend(["--since", since])
+    if follow:
+        command.append("-f")
+        probe_command = [item for item in command if item != "-f"] + [
+            "-n",
+            "1",
+            "--no-pager",
+        ]
+        probe = run(probe_command, check=False, capture=True, env=scope_env)
+        probe_error = (probe.stderr or "").lower()
+        needs_sudo = service.scope == "system" and (
+            "not seeing messages from other users and the system" in probe_error
+            or "permission denied" in probe_error
+        )
+        if needs_sudo:
+            run_sudo(command, check=False)
+        else:
+            run(command, check=False, env=scope_env)
+        return
+
+    command.append("--no-pager")
+    proc = run(command, check=False, capture=True, env=scope_env)
+    stderr = (proc.stderr or "").strip()
+    stdout = (proc.stdout or "").strip()
+
+    if service.scope == "system" and journal_permission_hint(stderr):
+        proc = run_sudo(command, check=False, capture=True)
+        stderr = (proc.stderr or "").strip()
+        stdout = (proc.stdout or "").strip()
+
+    if stdout:
+        emit(stdout)
+    if stderr:
+        emit_err(stderr)

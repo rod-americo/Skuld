@@ -983,47 +983,22 @@ def status(args: argparse.Namespace) -> None:
 
 def logs(args: argparse.Namespace) -> None:
     svc = resolve_managed_arg(args)
-    name = svc.name
     lines = resolve_lines_arg(args, default=100)
     require_systemctl()
-    unit = f"{name}.timer" if args.timer else f"{name}.service"
-    scope_env = systemd_scope_env(svc.scope)
-    cmd = journalctl_command(svc.scope, ["-u", unit, "-n", str(lines)])
-    output_mode = "cat" if args.plain else args.output
-    cmd.extend(["-o", output_mode])
-    if args.since:
-        cmd.extend(["--since", args.since])
-    if args.follow:
-        cmd.append("-f")
-        # For streaming mode, avoid capture so output is shown in real time.
-        probe_cmd = [c for c in cmd if c != "-f"] + ["-n", "1", "--no-pager"]
-        probe = run(probe_cmd, check=False, capture=True, env=scope_env)
-        probe_err = (probe.stderr or "").lower()
-        needs_sudo = svc.scope == "system" and (
-            "not seeing messages from other users and the system" in probe_err
-            or "permission denied" in probe_err
-        )
-        if needs_sudo:
-            run_sudo(cmd, check=False)
-        else:
-            run(cmd, check=False, env=scope_env)
-        return
-    else:
-        cmd.append("--no-pager")
-    proc = run(cmd, check=False, capture=True, env=scope_env)
-    stderr = (proc.stderr or "").strip()
-    stdout = (proc.stdout or "").strip()
-
-    permission_hint = svc.scope == "system" and journal_permission_hint(stderr)
-    if permission_hint:
-        proc = run_sudo(cmd, check=False, capture=True)
-        stderr = (proc.stderr or "").strip()
-        stdout = (proc.stdout or "").strip()
-
-    if stdout:
-        print(stdout)
-    if stderr:
-        print(stderr, file=sys.stderr)
+    linux_commands.show_logs(
+        svc,
+        timer=args.timer,
+        since=args.since,
+        follow=args.follow,
+        plain=args.plain,
+        output=args.output,
+        lines=lines,
+        journalctl_command=journalctl_command,
+        systemd_scope_env=systemd_scope_env,
+        run=run,
+        run_sudo=run_sudo,
+        journal_permission_hint=journal_permission_hint,
+    )
 
 
 def count_unit_starts(unit: str, scope: str = "system", since: Optional[str] = None, boot: bool = False) -> int:

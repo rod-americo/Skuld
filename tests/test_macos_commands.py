@@ -109,6 +109,44 @@ class MacosCommandsTest(unittest.TestCase):
         self.assertIn("[worker|com.example.worker] loaded=no", output)
         self.assertEqual(errors, ["doctor: found 2 issue(s)."])
 
+    def test_show_logs_rejects_missing_log_paths(self) -> None:
+        with self.assertRaisesRegex(RuntimeError, "Logs are only available"):
+            commands.show_logs(
+                service(),
+                since="",
+                timer=False,
+                follow=False,
+                lines=100,
+                log_paths_for_service=lambda service: (None, None),
+                tail_file=lambda path, lines, follow: None,
+                info=lambda message: None,
+            )
+
+    def test_show_logs_tails_existing_stdout_path(self) -> None:
+        output = []
+        tailed = []
+
+        commands.show_logs(
+            service(),
+            since="",
+            timer=True,
+            follow=False,
+            lines=25,
+            log_paths_for_service=lambda service: (Path("/tmp"), None),
+            tail_file=lambda path, lines, follow: tailed.append((path, lines, follow)),
+            info=output.append,
+            emit=output.append,
+        )
+
+        self.assertEqual(
+            output,
+            [
+                "--timer has no effect on macOS. launchd uses a single plist/job.",
+                "==> /tmp",
+            ],
+        )
+        self.assertEqual(tailed, [(Path("/tmp"), 25, False)])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,3 +1,4 @@
+import threading
 from pathlib import Path
 from typing import Callable, List
 
@@ -85,3 +86,73 @@ def doctor_services(
     else:
         err(f"doctor: found {issues} issue(s).")
     return issues
+
+
+def show_logs(
+    service: object,
+    *,
+    since: str,
+    timer: bool,
+    follow: bool,
+    lines: int,
+    log_paths_for_service: Callable[[object], tuple[object, object]],
+    tail_file: Callable[[Path, int, bool], None],
+    info: Callable[[str], None],
+    emit: Callable[[str], None] = print,
+) -> None:
+    if since:
+        raise RuntimeError("--since is not supported on macOS yet. Logs are read from files.")
+    if timer:
+        info("--timer has no effect on macOS. launchd uses a single plist/job.")
+    stdout_path, stderr_path = log_paths_for_service(service)
+    if not stdout_path and not stderr_path:
+        raise RuntimeError(
+            "Logs are only available on macOS when the registry entry has a "
+            "compatible log_dir or the launchd plist declares "
+            "StandardOutPath/StandardErrorPath."
+        )
+    stdout_exists = bool(stdout_path and stdout_path.exists())
+    stderr_exists = bool(stderr_path and stderr_path.exists())
+    if not stdout_exists and not stderr_exists:
+        emit("No logs found.")
+        return
+
+    if follow:
+        workers: List[threading.Thread] = []
+        if stdout_exists and stdout_path:
+            emit(f"==> {stdout_path}")
+            workers.append(
+                threading.Thread(
+                    target=tail_file,
+                    args=(stdout_path, lines, True),
+                    daemon=True,
+                )
+            )
+        if stderr_exists and stderr_path:
+            if stdout_exists:
+                emit("")
+            emit(f"==> {stderr_path}")
+            workers.append(
+                threading.Thread(
+                    target=tail_file,
+                    args=(stderr_path, lines, True),
+                    daemon=True,
+                )
+            )
+        for worker in workers:
+            worker.start()
+        try:
+            for worker in workers:
+                worker.join()
+        except KeyboardInterrupt:
+            return
+        return
+
+    if stdout_exists and stdout_path:
+        emit(f"==> {stdout_path}")
+        tail_file(stdout_path, lines, False)
+    if stderr_exists and stderr_path:
+        if stdout_exists:
+            emit("")
+        emit(f"==> {stderr_path}")
+        tail_file(stderr_path, lines, False)

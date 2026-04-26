@@ -95,6 +95,7 @@ points at `skuld_entrypoint:main`.
 - `rename` service object reconstruction and registry write orchestration.
 - `untrack` registry removal orchestration.
 - `doctor` diagnostic orchestration over injected systemd callbacks.
+- `logs` journal command flow over injected systemd/journal callbacks.
 
 `skuld_linux_runtime.py` owns Linux runtime and journald stats:
 
@@ -165,6 +166,7 @@ points at `skuld_entrypoint:main`.
 - `rename` service object reconstruction and registry write orchestration.
 - `untrack` registry removal orchestration.
 - `doctor` diagnostic orchestration over injected launchd callbacks.
+- `logs` file-tail command flow over injected runtime callbacks.
 
 `skuld_macos_processes.py` owns macOS process and host inspection:
 
