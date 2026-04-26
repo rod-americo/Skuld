@@ -6,7 +6,7 @@ from typing import Callable, Sequence
 
 
 POST_REFRESH_COMMANDS = {"track", "rename", "untrack", "exec", "start", "stop", "restart", "sync"}
-REGISTRY_FREE_COMMANDS = {"version", "sudo"}
+REGISTRY_FREE_COMMANDS = {"version", "sudo", "config"}
 QUICK_HELP = "Quick help: skuld track <id ...> | skuld <id|name> exec/start/stop/restart/status/logs/stats/describe/rename/untrack"
 
 

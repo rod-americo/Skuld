@@ -141,6 +141,7 @@ if [[ -n "$HOST" ]]; then
     skuld_entrypoint.py \
     skuld_cli.py \
     skuld_common.py \
+    skuld_config.py \
     skuld_linux.py \
     skuld_linux_actions.py \
     skuld_linux_catalog.py \

@@ -38,6 +38,8 @@ class MacParserTest(unittest.TestCase):
             sudo_auth=_noop,
             sudo_forget=_noop,
             sudo_run_command=_noop,
+            config_show=_noop,
+            config_columns=_noop,
         )
 
     def test_top_level_columns_configures_default_table(self) -> None:
@@ -89,6 +91,14 @@ class MacParserTest(unittest.TestCase):
             with self.subTest(command=command):
                 args = self.build_parser().parse_args(["sudo", command])
                 self.assertIs(args.func, _noop)
+
+    def test_config_commands_are_registered(self) -> None:
+        show_args = self.build_parser().parse_args(["config", "show"])
+        columns_args = self.build_parser().parse_args(["config", "columns", "id,name"])
+
+        self.assertIs(show_args.func, _noop)
+        self.assertEqual(columns_args.columns, "id,name")
+        self.assertIs(columns_args.func, _noop)
 
 
 if __name__ == "__main__":

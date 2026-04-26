@@ -23,6 +23,7 @@ Before significant changes, read these files in order:
 7. The touched entrypoint/backend file: `skuld_entrypoint.py`, `skuld_linux.py`,
    `skuld_macos.py`, or `./skuld`
 8. Shared helpers when relevant: `skuld_cli.py`, `skuld_common.py`,
+   `skuld_config.py`,
    `skuld_linux_actions.py`, `skuld_linux_catalog.py`,
    `skuld_linux_context.py`, `skuld_linux_handlers.py`,
    `skuld_linux_model.py`,
@@ -171,12 +172,15 @@ inside the existing files until a tested extraction is justified.
     state display mapping.
   - `skuld_common.py` owns IO-agnostic CLI helpers, formatting, table fitting,
     subprocess wrappers, and sudo env lookup.
+  - `skuld_config.py` owns user preference config reads and writes for
+    non-registry CLI settings.
   - `skuld_observability.py` owns opt-in redacted debug output.
   - `skuld_registry.py` owns generic registry load/save/upsert/remove mechanics.
   - `skuld_sudo.py` owns shared CLI orchestration for `sudo check`,
     `sudo auth`, `sudo forget`, and `sudo run`.
-  - `skuld_tables.py` owns shared service-table column policy, fitting,
-    column selection, sorting, and host-panel rendering helpers.
+  - `skuld_tables.py` owns shared service-table column policy, display ID
+    padding, fitting, column selection, sorting, and host-panel rendering
+    helpers.
 - Interface:
   - CLI arguments, help text, stdout/stderr output, table rendering
 
@@ -230,7 +234,8 @@ files are large; avoid making them larger through unrelated refactors.
 ## Runtime and Secrets
 
 - Do not version `.env`, runtime state, generated logs, pycache, service
-  registries, local stats files, dumps, or local config overrides.
+  registries, user config files, local stats files, dumps, or local config
+  overrides.
 - Warn users when `.env` or `SKULD_SUDO_PASSWORD` sudo support is involved.
 - Prefer `skuld sudo auth` and the native sudo timestamp over storing a sudo
   password.
@@ -242,7 +247,7 @@ files are large; avoid making them larger through unrelated refactors.
 Run this before finalizing repository-wide structural or operational changes:
 
 ```bash
-python3 -m py_compile ./skuld ./skuld_entrypoint.py ./skuld_cli.py ./skuld_common.py ./skuld_linux_actions.py ./skuld_linux_catalog.py ./skuld_linux_context.py ./skuld_linux_handlers.py ./skuld_linux_model.py ./skuld_linux_registry.py ./skuld_linux_parser.py ./skuld_linux_commands.py ./skuld_linux_presenters.py ./skuld_linux_runtime.py ./skuld_linux_systemd.py ./skuld_linux_sync.py ./skuld_linux_stats.py ./skuld_linux_timers.py ./skuld_linux_targets.py ./skuld_linux_view.py ./skuld_macos_actions.py ./skuld_macos_catalog.py ./skuld_macos_context.py ./skuld_macos_handlers.py ./skuld_macos_model.py ./skuld_macos_registry.py ./skuld_macos_paths.py ./skuld_macos_parser.py ./skuld_macos_commands.py ./skuld_macos_launchd.py ./skuld_macos_presenters.py ./skuld_macos_processes.py ./skuld_macos_runtime.py ./skuld_macos_schedules.py ./skuld_macos_sync.py ./skuld_macos_targets.py ./skuld_macos_view.py ./skuld_observability.py ./skuld_registry.py ./skuld_sudo.py ./skuld_tables.py ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py
+python3 -m py_compile ./skuld ./skuld_entrypoint.py ./skuld_cli.py ./skuld_common.py ./skuld_config.py ./skuld_linux_actions.py ./skuld_linux_catalog.py ./skuld_linux_context.py ./skuld_linux_handlers.py ./skuld_linux_model.py ./skuld_linux_registry.py ./skuld_linux_parser.py ./skuld_linux_commands.py ./skuld_linux_presenters.py ./skuld_linux_runtime.py ./skuld_linux_systemd.py ./skuld_linux_sync.py ./skuld_linux_stats.py ./skuld_linux_timers.py ./skuld_linux_targets.py ./skuld_linux_view.py ./skuld_macos_actions.py ./skuld_macos_catalog.py ./skuld_macos_context.py ./skuld_macos_handlers.py ./skuld_macos_model.py ./skuld_macos_registry.py ./skuld_macos_paths.py ./skuld_macos_parser.py ./skuld_macos_commands.py ./skuld_macos_launchd.py ./skuld_macos_presenters.py ./skuld_macos_processes.py ./skuld_macos_runtime.py ./skuld_macos_schedules.py ./skuld_macos_sync.py ./skuld_macos_targets.py ./skuld_macos_view.py ./skuld_observability.py ./skuld_registry.py ./skuld_sudo.py ./skuld_tables.py ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py
 python3 -m unittest discover -s tests
 ./skuld --help
 python3 scripts/check_project_gate.py

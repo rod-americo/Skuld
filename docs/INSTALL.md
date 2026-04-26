@@ -36,8 +36,13 @@ Default registry paths remain:
 - Linux: `~/.local/share/skuld/services.json`
 - macOS: `~/Library/Application Support/skuld/services.json`
 
-Back up the registry file before uninstalling or replacing a host if tracked
-service aliases matter.
+Saved user preferences live beside the registry:
+
+- Linux: `~/.local/share/skuld/config.json`
+- macOS: `~/Library/Application Support/skuld/config.json`
+
+Back up the registry file and optional config file before uninstalling or
+replacing a host if tracked service aliases or column preferences matter.
 
 ## Uninstall
 

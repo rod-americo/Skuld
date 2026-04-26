@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 import skuld_common as common
+import skuld_config
 import skuld_macos_catalog as macos_catalog
 import skuld_macos_launchd as launchd
 import skuld_macos_paths as macos_paths
@@ -43,6 +44,7 @@ def default_skuld_home() -> Path:
 class MacOSBackendContext:
     skuld_home: Path = field(default_factory=default_skuld_home)
     registry_file: Optional[Path] = None
+    config_file: Optional[Path] = None
     runtime_stats_file: Optional[Path] = None
     default_env_file: Path = Path(".env")
     use_env_sudo: bool = True
@@ -54,6 +56,8 @@ class MacOSBackendContext:
     def __post_init__(self) -> None:
         if self.registry_file is None:
             self.registry_file = self.skuld_home / "services.json"
+        if self.config_file is None:
+            self.config_file = self.skuld_home / "config.json"
         if self.runtime_stats_file is None:
             self.runtime_stats_file = self.skuld_home / "runtime_stats.json"
 
@@ -68,11 +72,15 @@ class MacOSBackendContext:
         if self.force_table_ascii and self.force_table_unicode:
             parser.error("choose only one of --ascii or --unicode")
         try:
+            config_value = None
+            if getattr(args, "command", None) != "config":
+                config_value = skuld_config.load_columns_text(self.config_file)
             self.service_table_columns = tables.resolve_service_table_columns(
                 getattr(args, "columns", None),
+                config_value=config_value,
                 env_value=os.environ.get("SKULD_COLUMNS"),
             )
-        except ValueError as exc:
+        except (RuntimeError, ValueError) as exc:
             parser.error(str(exc))
 
     def ensure_storage(self) -> None:
@@ -292,6 +300,26 @@ class MacOSBackendContext:
             run_sudo=self.run_sudo,
             info=self.info,
         )
+
+    def config_show(self, _args: argparse.Namespace) -> None:
+        columns = tables.parse_service_table_columns(
+            skuld_config.load_columns_text(self.config_file)
+        )
+        for line in skuld_config.config_lines(
+            self.config_file,
+            columns,
+        ):
+            print(line)
+
+    def config_columns(self, args: argparse.Namespace) -> None:
+        columns = tables.parse_service_table_columns(args.columns)
+        skuld_config.save_columns(self.config_file, columns)
+        if columns is None:
+            self.service_table_columns = None
+            self.ok("Saved default table column layout.")
+            return
+        self.service_table_columns = columns
+        self.ok(f"Saved table columns: {','.join(columns)}")
 
     def render_table(self, headers: List[str], rows: List[List[str]]) -> None:
         common.render_table(headers, rows, unicode_box=self.supports_unicode_output())

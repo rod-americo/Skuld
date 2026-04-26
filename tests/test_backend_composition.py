@@ -3,10 +3,12 @@ from __future__ import annotations
 import ast
 import argparse
 import os
+import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+import skuld_config
 import skuld_linux
 import skuld_macos
 from skuld_linux_context import LinuxBackendContext
@@ -52,34 +54,57 @@ class BackendCompositionTest(unittest.TestCase):
         self.assertIsInstance(skuld_macos.HANDLERS, MacOSCommandHandlers)
 
     def test_contexts_resolve_table_columns_from_cli_or_env(self) -> None:
-        parser = argparse.ArgumentParser()
-        args = argparse.Namespace(
-            no_env_sudo=False,
-            ascii=False,
-            unicode=False,
-            columns="name,cpu",
-        )
-        linux_context = LinuxBackendContext()
-        macos_context = MacOSBackendContext()
+        with tempfile.TemporaryDirectory() as tempdir:
+            root = Path(tempdir)
+            parser = argparse.ArgumentParser()
+            args = argparse.Namespace(
+                no_env_sudo=False,
+                ascii=False,
+                unicode=False,
+                columns="name,cpu",
+                command="list",
+            )
+            linux_context = LinuxBackendContext(skuld_home=root / "linux")
+            macos_context = MacOSBackendContext(skuld_home=root / "macos")
 
-        linux_context.configure_cli_globals(args, parser)
-        macos_context.configure_cli_globals(args, parser)
+            skuld_config.save_columns(linux_context.config_file, ("id", "service"))
+            skuld_config.save_columns(macos_context.config_file, ("id", "service"))
 
-        self.assertEqual(linux_context.service_table_columns, ("name", "cpu"))
-        self.assertEqual(macos_context.service_table_columns, ("name", "cpu"))
+            linux_context.configure_cli_globals(args, parser)
+            macos_context.configure_cli_globals(args, parser)
 
-        env_args = argparse.Namespace(
-            no_env_sudo=False,
-            ascii=False,
-            unicode=False,
-            columns=None,
-        )
-        with patch.dict(os.environ, {"SKULD_COLUMNS": "id,service"}):
-            linux_context.configure_cli_globals(env_args, parser)
-            macos_context.configure_cli_globals(env_args, parser)
+            self.assertEqual(linux_context.service_table_columns, ("name", "cpu"))
+            self.assertEqual(macos_context.service_table_columns, ("name", "cpu"))
 
-        self.assertEqual(linux_context.service_table_columns, ("id", "service"))
-        self.assertEqual(macos_context.service_table_columns, ("id", "service"))
+            config_args = argparse.Namespace(
+                no_env_sudo=False,
+                ascii=False,
+                unicode=False,
+                columns=None,
+                command="list",
+            )
+            with patch.dict(os.environ, {"SKULD_COLUMNS": "name,memory"}):
+                linux_context.configure_cli_globals(config_args, parser)
+                macos_context.configure_cli_globals(config_args, parser)
+
+            self.assertEqual(linux_context.service_table_columns, ("id", "service"))
+            self.assertEqual(macos_context.service_table_columns, ("id", "service"))
+
+            env_args = argparse.Namespace(
+                no_env_sudo=False,
+                ascii=False,
+                unicode=False,
+                columns=None,
+                command="list",
+            )
+            linux_context.config_file.unlink()
+            macos_context.config_file.unlink()
+            with patch.dict(os.environ, {"SKULD_COLUMNS": "id,service"}):
+                linux_context.configure_cli_globals(env_args, parser)
+                macos_context.configure_cli_globals(env_args, parser)
+
+            self.assertEqual(linux_context.service_table_columns, ("id", "service"))
+            self.assertEqual(macos_context.service_table_columns, ("id", "service"))
 
 
 if __name__ == "__main__":

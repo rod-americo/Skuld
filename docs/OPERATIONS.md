@@ -63,16 +63,30 @@ Runtime configuration:
 | `SKULD_HOME` | no | Linux and macOS | Override registry/runtime home. |
 | `SKULD_ENV_FILE` | no | Linux and macOS | Override env file lookup for sudo password support. |
 | `SKULD_SUDO_PASSWORD` | no | Linux and macOS | Non-interactive sudo password for short-lived local use. |
-| `SKULD_COLUMNS` | no | Linux and macOS | Default comma-separated columns for `skuld` and `skuld list`. |
+| `SKULD_COLUMNS` | no | Linux and macOS | Fallback comma-separated columns for `skuld` and `skuld list`. |
 | `SKULD_RUNTIME_STATS_FILE` | no | Linux | Override journal stats JSON path. |
 | `SKULD_DEBUG` | no | Linux and macOS | Emit redacted debug diagnostics to stderr. |
 
 Default runtime state:
 
 - Linux registry: `~/.local/share/skuld/services.json`
+- Linux user config: `~/.local/share/skuld/config.json`
 - Linux stats: `/var/lib/skuld/journal_stats.json`
 - macOS registry: `~/Library/Application Support/skuld/services.json`
+- macOS user config: `~/Library/Application Support/skuld/config.json`
 - macOS stats: `~/Library/Application Support/skuld/runtime_stats.json`
+
+Table-column precedence is CLI `--columns`, then `$SKULD_HOME/config.json`,
+then `SKULD_COLUMNS`, then automatic layout. Persist a preference with:
+
+```bash
+./skuld config columns id,name,service
+./skuld config show
+./skuld config columns default
+```
+
+`config.json` is a sibling user preference file. Do not mix it into
+`services.json`, which remains the service registry array.
 
 Never commit real registry files, logs, stats, `.env`, or local config
 overrides.
@@ -80,7 +94,7 @@ overrides.
 ## 5. Minimum Validation
 
 ```bash
-python3 -m py_compile ./skuld ./skuld_entrypoint.py ./skuld_cli.py ./skuld_common.py ./skuld_linux_actions.py ./skuld_linux_catalog.py ./skuld_linux_context.py ./skuld_linux_handlers.py ./skuld_linux_model.py ./skuld_linux_registry.py ./skuld_linux_parser.py ./skuld_linux_commands.py ./skuld_linux_presenters.py ./skuld_linux_runtime.py ./skuld_linux_systemd.py ./skuld_linux_sync.py ./skuld_linux_stats.py ./skuld_linux_timers.py ./skuld_linux_targets.py ./skuld_linux_view.py ./skuld_macos_actions.py ./skuld_macos_catalog.py ./skuld_macos_context.py ./skuld_macos_handlers.py ./skuld_macos_model.py ./skuld_macos_registry.py ./skuld_macos_paths.py ./skuld_macos_parser.py ./skuld_macos_commands.py ./skuld_macos_launchd.py ./skuld_macos_presenters.py ./skuld_macos_processes.py ./skuld_macos_runtime.py ./skuld_macos_schedules.py ./skuld_macos_sync.py ./skuld_macos_targets.py ./skuld_macos_view.py ./skuld_observability.py ./skuld_registry.py ./skuld_sudo.py ./skuld_tables.py ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py
+python3 -m py_compile ./skuld ./skuld_entrypoint.py ./skuld_cli.py ./skuld_common.py ./skuld_config.py ./skuld_linux_actions.py ./skuld_linux_catalog.py ./skuld_linux_context.py ./skuld_linux_handlers.py ./skuld_linux_model.py ./skuld_linux_registry.py ./skuld_linux_parser.py ./skuld_linux_commands.py ./skuld_linux_presenters.py ./skuld_linux_runtime.py ./skuld_linux_systemd.py ./skuld_linux_sync.py ./skuld_linux_stats.py ./skuld_linux_timers.py ./skuld_linux_targets.py ./skuld_linux_view.py ./skuld_macos_actions.py ./skuld_macos_catalog.py ./skuld_macos_context.py ./skuld_macos_handlers.py ./skuld_macos_model.py ./skuld_macos_registry.py ./skuld_macos_paths.py ./skuld_macos_parser.py ./skuld_macos_commands.py ./skuld_macos_launchd.py ./skuld_macos_presenters.py ./skuld_macos_processes.py ./skuld_macos_runtime.py ./skuld_macos_schedules.py ./skuld_macos_sync.py ./skuld_macos_targets.py ./skuld_macos_view.py ./skuld_observability.py ./skuld_registry.py ./skuld_sudo.py ./skuld_tables.py ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py
 python3 -m unittest discover -s tests
 ./skuld --help
 python3 scripts/check_project_gate.py
@@ -116,6 +130,7 @@ Non-mutating smoke:
 ./skuld version
 ./skuld list --help
 ./skuld sudo --help
+./skuld config --help
 ```
 
 Linux live smoke can create a disposable `systemd --user` service locally or
@@ -302,6 +317,13 @@ Invalid table columns:
 - Action: use a comma-separated subset of `id`, `name`, `service`, `timer`,
   `triggers`, `cpu`, `memory`, and `ports`; use `default`, `auto`, or `all` to
   restore the automatic layout.
+
+Invalid user config:
+
+- Symptom: Skuld exits with `Invalid Skuld config` or `Invalid Skuld config
+  JSON`.
+- Action: inspect `$SKULD_HOME/config.json` and either fix the JSON object or
+  reset table columns with `./skuld config columns default`.
 
 Runtime stats timer preview or removal:
 

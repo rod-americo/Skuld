@@ -61,6 +61,28 @@ class ServiceTableTest(unittest.TestCase):
         self.assertEqual(headers, ["name", "id"])
         self.assertEqual(fitted, [["api", "1"]])
 
+    def test_zero_pads_service_ids_to_visible_width(self) -> None:
+        rows = [
+            {"id": 1, "name": "api"},
+            {"id": 12, "name": "worker"},
+        ]
+
+        headers, fitted = tables.fit_service_table(rows, columns=("id", "name"))
+
+        self.assertEqual(headers, ["id", "name"])
+        self.assertEqual([row[0] for row in fitted], ["01", "12"])
+
+    def test_zero_pads_service_ids_to_three_digits_when_needed(self) -> None:
+        rows = [
+            {"id": 1, "name": "api"},
+            {"id": 12, "name": "worker"},
+            {"id": 100, "name": "batch"},
+        ]
+
+        _headers, fitted = tables.fit_service_table(rows, columns=("id", "name"))
+
+        self.assertEqual([row[0] for row in fitted], ["001", "012", "100"])
+
     def test_parses_service_table_columns_from_cli_or_env(self) -> None:
         self.assertEqual(
             tables.resolve_service_table_columns("name,cpu,name", env_value="id"),
@@ -69,6 +91,14 @@ class ServiceTableTest(unittest.TestCase):
         self.assertEqual(
             tables.resolve_service_table_columns(None, env_value="id,service"),
             ("id", "service"),
+        )
+        self.assertEqual(
+            tables.resolve_service_table_columns(
+                None,
+                config_value="name,memory",
+                env_value="id,service",
+            ),
+            ("name", "memory"),
         )
         self.assertIsNone(tables.resolve_service_table_columns("default", env_value="id"))
 

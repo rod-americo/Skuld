@@ -49,6 +49,7 @@ class ModuleInventoryTest(unittest.TestCase):
             "skuld_entrypoint",
             "skuld_cli",
             "skuld_common",
+            "skuld_config",
             "skuld_observability",
             "skuld_registry",
             "skuld_sudo",

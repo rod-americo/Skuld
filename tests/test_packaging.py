@@ -22,6 +22,7 @@ class PackagingMetadataTest(unittest.TestCase):
         self.assertIn('[project.scripts]', text)
         self.assertIn('skuld = "skuld_entrypoint:main"', text)
         self.assertIn('"skuld_entrypoint"', text)
+        self.assertIn('"skuld_config"', text)
         self.assertIn('"skuld_linux"', text)
         self.assertIn('"skuld_linux_commands"', text)
         self.assertIn('"skuld_linux_presenters"', text)

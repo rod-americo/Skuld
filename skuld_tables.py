@@ -61,10 +61,13 @@ def parse_service_table_columns(value: Optional[str]) -> Optional[Tuple[str, ...
 def resolve_service_table_columns(
     cli_value: Optional[str],
     *,
+    config_value: Optional[str] = None,
     env_value: Optional[str],
 ) -> Optional[Tuple[str, ...]]:
     if cli_value is not None:
         return parse_service_table_columns(cli_value)
+    if config_value is not None:
+        return parse_service_table_columns(config_value)
     return parse_service_table_columns(env_value)
 
 
@@ -84,6 +87,7 @@ def fit_service_table(
     columns: Optional[Sequence[str]] = None,
 ) -> Tuple[List[str], List[List[str]]]:
     service_columns, allow_auto_hide = select_service_table_columns(columns)
+    rows = format_service_table_ids(rows)
     return common.fit_table(
         rows,
         service_columns=service_columns,
@@ -95,6 +99,20 @@ def fit_service_table(
 
 def sort_service_rows(rows: List[Dict[str, object]], sort_by: str) -> List[Dict[str, object]]:
     return sorted(rows, key=lambda row: common.service_sort_key(sort_by, row))
+
+
+def format_service_table_ids(rows: List[Dict[str, object]]) -> List[Dict[str, object]]:
+    if not rows:
+        return rows
+    width = max(len(str(row.get("id", ""))) for row in rows)
+    width = max(width, 1)
+    result: List[Dict[str, object]] = []
+    for row in rows:
+        item = dict(row)
+        raw_id = str(item.get("id", ""))
+        item["id"] = raw_id.zfill(width) if raw_id.isdigit() else raw_id
+        result.append(item)
+    return result
 
 
 def render_host_panel(

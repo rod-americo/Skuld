@@ -18,6 +18,11 @@ def parser_with_commands() -> argparse.ArgumentParser:
     sudo_check = sudo_subparsers.add_parser("check")
     sudo_check.set_defaults(func=lambda _args: None)
 
+    config = subparsers.add_parser("config")
+    config_subparsers = config.add_subparsers(dest="config_command", required=True)
+    config_show = config_subparsers.add_parser("show")
+    config_show.set_defaults(func=lambda _args: None)
+
     list_parser = subparsers.add_parser("list")
     list_parser.set_defaults(func=lambda _args: None)
     return parser
@@ -34,6 +39,27 @@ class CliRunnerTest(unittest.TestCase):
 
         result = skuld_cli.run_backend_main(
             argv=["skuld", "sudo", "check"],
+            parser=parser_with_commands(),
+            configure_globals=lambda _args, _parser: None,
+            load_registry=load_registry,
+            list_services_compact=lambda _sort: None,
+            resolve_sort_arg=lambda _args: "name",
+            err=lambda _message: None,
+        )
+
+        self.assertEqual(result, 0)
+        self.assertFalse(loaded)
+
+    def test_config_helpers_do_not_require_registry_load(self) -> None:
+        loaded = False
+
+        def load_registry():
+            nonlocal loaded
+            loaded = True
+            raise AssertionError("config helpers should not load the registry")
+
+        result = skuld_cli.run_backend_main(
+            argv=["skuld", "config", "show"],
             parser=parser_with_commands(),
             configure_globals=lambda _args, _parser: None,
             load_registry=load_registry,

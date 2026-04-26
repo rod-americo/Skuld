@@ -60,6 +60,7 @@ class CliSmokeTest(unittest.TestCase):
             "sync",
             "version",
             "sudo",
+            "config",
         )
         for subcommand in subcommands:
             with self.subTest(subcommand=subcommand):

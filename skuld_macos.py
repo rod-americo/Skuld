@@ -39,6 +39,8 @@ def build_parser() -> argparse.ArgumentParser:
         sudo_auth=CONTEXT.sudo_auth,
         sudo_forget=CONTEXT.sudo_forget,
         sudo_run_command=CONTEXT.sudo_run_command,
+        config_show=CONTEXT.config_show,
+        config_columns=CONTEXT.config_columns,
     )
 
 

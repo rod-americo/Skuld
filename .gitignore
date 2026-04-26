@@ -10,7 +10,9 @@ dist/
 runtime/
 config/*.local.*
 services.json
+config.json
 runtime_stats.json
 journal_stats.json
 .local/share/skuld/services.json
+.local/share/skuld/config.json
 .DS_Store

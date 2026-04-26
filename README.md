@@ -78,6 +78,7 @@ Internal modules:
 | --- | --- |
 | `skuld_cli.py` | Shared backend main loop, command dispatch, and post-mutation table refresh. |
 | `skuld_common.py` | Formatting, table rendering, subprocess helpers, env lookup, and sudo helpers. |
+| `skuld_config.py` | User preference config loading and saving for non-registry CLI settings. |
 | `skuld_registry.py` | Generic registry load/save/upsert/remove mechanics. |
 | `skuld_observability.py` | Opt-in redacted debug output through `SKULD_DEBUG`. |
 | `skuld_sudo.py` | Shared CLI orchestration for `sudo check`, `sudo auth`, `sudo forget`, and `sudo run`. |
@@ -165,14 +166,16 @@ See `docs/INSTALL.md` for install and uninstall details.
 ## Configuration
 
 Most workflows need no repository-local configuration. Runtime state lives
-outside the worktree by default.
+outside the worktree by default. Skuld keeps service tracking data in
+`services.json` and user preferences in the sibling `config.json`; the
+preferences file is not part of the service registry contract.
 
 | Name | Required | Purpose |
 | --- | --- | --- |
 | `SKULD_HOME` | no | Override the registry/runtime home directory. |
 | `SKULD_ENV_FILE` | no | Override the `.env` path used for sudo password lookup. |
 | `SKULD_SUDO_PASSWORD` | no | Allow non-interactive sudo for short-lived local use. |
-| `SKULD_COLUMNS` | no | Default comma-separated service-table columns for `skuld` and `skuld list`. |
+| `SKULD_COLUMNS` | no | Fallback comma-separated service-table columns for `skuld` and `skuld list`. |
 | `SKULD_RUNTIME_STATS_FILE` | Linux only | Override the Linux journal stats JSON path. |
 | `SKULD_DEBUG` | no | Emit redacted debug lines to stderr. |
 
@@ -209,6 +212,8 @@ operation. They are not production credential management.
 ./skuld doctor
 ./skuld sync
 ./skuld version
+./skuld config show
+./skuld config columns id,name,service
 ./skuld sudo check
 ./skuld sudo auth
 ./skuld sudo forget
@@ -221,17 +226,25 @@ operation. They are not production credential management.
 id | name | service | timer | triggers | cpu | memory | ports
 ```
 
-Column selection can be set per invocation or by environment:
+Column selection can be set per invocation, saved as a user preference, or
+provided by environment fallback:
 
 ```bash
 ./skuld --columns id,name,service
 ./skuld list --columns name,cpu,memory
+./skuld config columns id,name,service
+./skuld config show
+./skuld config columns default
 SKULD_COLUMNS=id,name,service,timer ./skuld
 ```
 
 Supported column keys are `id`, `name`, `service`, `timer`, `triggers`, `cpu`,
 `memory`, and `ports`. Use `default`, `auto`, or `all` to restore the automatic
-layout.
+layout. Precedence is `--columns`, then `$SKULD_HOME/config.json`, then
+`SKULD_COLUMNS`, then the automatic default. The compact table pads displayed
+numeric IDs to the widest visible ID, so a table containing ID `12` renders
+`01`, `02`, and `12`; a table containing ID `100` renders `001`, `002`, and
+`100`.
 
 Supported sort examples:
 
@@ -255,6 +268,13 @@ Default registry paths:
 | --- | --- |
 | Linux | `~/.local/share/skuld/services.json` |
 | macOS | `~/Library/Application Support/skuld/services.json` |
+
+Default user preference paths:
+
+| Platform | Path |
+| --- | --- |
+| Linux | `~/.local/share/skuld/config.json` |
+| macOS | `~/Library/Application Support/skuld/config.json` |
 
 The registry is a JSON array. Read-only commands normalize entries in memory
 without rewriting the file. Mutating commands such as `track`, `rename`,
@@ -317,7 +337,7 @@ or application-specific logs may not expose logs through Skuld.
 Minimum repository validation:
 
 ```bash
-python3 -m py_compile ./skuld ./skuld_entrypoint.py ./skuld_cli.py ./skuld_common.py ./skuld_linux_actions.py ./skuld_linux_catalog.py ./skuld_linux_context.py ./skuld_linux_handlers.py ./skuld_linux_model.py ./skuld_linux_registry.py ./skuld_linux_parser.py ./skuld_linux_commands.py ./skuld_linux_presenters.py ./skuld_linux_runtime.py ./skuld_linux_systemd.py ./skuld_linux_sync.py ./skuld_linux_stats.py ./skuld_linux_timers.py ./skuld_linux_targets.py ./skuld_linux_view.py ./skuld_macos_actions.py ./skuld_macos_catalog.py ./skuld_macos_context.py ./skuld_macos_handlers.py ./skuld_macos_model.py ./skuld_macos_registry.py ./skuld_macos_paths.py ./skuld_macos_parser.py ./skuld_macos_commands.py ./skuld_macos_launchd.py ./skuld_macos_presenters.py ./skuld_macos_processes.py ./skuld_macos_runtime.py ./skuld_macos_schedules.py ./skuld_macos_sync.py ./skuld_macos_targets.py ./skuld_macos_view.py ./skuld_observability.py ./skuld_registry.py ./skuld_sudo.py ./skuld_tables.py ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py
+python3 -m py_compile ./skuld ./skuld_entrypoint.py ./skuld_cli.py ./skuld_common.py ./skuld_config.py ./skuld_linux_actions.py ./skuld_linux_catalog.py ./skuld_linux_context.py ./skuld_linux_handlers.py ./skuld_linux_model.py ./skuld_linux_registry.py ./skuld_linux_parser.py ./skuld_linux_commands.py ./skuld_linux_presenters.py ./skuld_linux_runtime.py ./skuld_linux_systemd.py ./skuld_linux_sync.py ./skuld_linux_stats.py ./skuld_linux_timers.py ./skuld_linux_targets.py ./skuld_linux_view.py ./skuld_macos_actions.py ./skuld_macos_catalog.py ./skuld_macos_context.py ./skuld_macos_handlers.py ./skuld_macos_model.py ./skuld_macos_registry.py ./skuld_macos_paths.py ./skuld_macos_parser.py ./skuld_macos_commands.py ./skuld_macos_launchd.py ./skuld_macos_presenters.py ./skuld_macos_processes.py ./skuld_macos_runtime.py ./skuld_macos_schedules.py ./skuld_macos_sync.py ./skuld_macos_targets.py ./skuld_macos_view.py ./skuld_observability.py ./skuld_registry.py ./skuld_sudo.py ./skuld_tables.py ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py
 python3 -m unittest discover -s tests
 ./skuld --help
 python3 scripts/check_project_gate.py

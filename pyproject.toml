@@ -33,6 +33,7 @@ py-modules = [
   "skuld_entrypoint",
   "skuld_cli",
   "skuld_common",
+  "skuld_config",
   "skuld_linux",
   "skuld_linux_actions",
   "skuld_linux_catalog",

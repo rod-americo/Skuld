@@ -149,6 +149,9 @@ is not a greenfield scaffold checklist.
   sudo calls, and `skuld sudo forget`.
 - [x] Add configurable service-table columns through `--columns` and
   `SKULD_COLUMNS`.
+- [x] Persist service-table column preferences in sibling
+  `$SKULD_HOME/config.json`.
+- [x] Zero-pad displayed numeric service IDs to the widest visible ID.
 - [ ] Continue by hardening context boundaries if future changes show repeated
   wiring mistakes, not by moving behavior back into backend entrypoints.
 

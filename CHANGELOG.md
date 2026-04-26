@@ -13,6 +13,8 @@ intent.
   authentication without storing a sudo password.
 - `--columns` and `SKULD_COLUMNS` for configuring visible service-table
   columns.
+- `skuld config show` and `skuld config columns ...` for persisted user table
+  column preferences in `$SKULD_HOME/config.json`.
 - Structural recovery baseline from the project starter, adapted to Skuld's
   existing architecture.
 - `PROJECT_GATE.md` with repository purpose, boundaries, and maintenance cost.
@@ -55,6 +57,7 @@ intent.
   documentation rules, and architecture guardrails.
 - Sudo operations without `SKULD_SUDO_PASSWORD` now use `sudo -n`, requiring an
   active native sudo timestamp instead of prompting implicitly.
+- Compact service-table numeric IDs are zero-padded to the widest visible ID.
 - Clarified that the current public CLI tracks and operates existing services
   but does not create or edit service definitions.
 - Expanded `.gitignore` for local runtime, logs, caches, and local config

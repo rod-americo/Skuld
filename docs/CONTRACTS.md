@@ -11,12 +11,13 @@ invariants, and external integration assumptions.
 | --- | --- | --- | --- | --- |
 | CLI command | Operator | argv parsed by `argparse` | yes | Commands are parsed by backend parser modules and routed through backend handlers. |
 | Registry file | Skuld runtime path | JSON array | yes for operations | Created as `[]` if missing. Invalid JSON fails explicitly. |
+| User config file | Skuld runtime path | JSON object | no | Sibling `config.json` stores CLI preferences such as saved table columns. |
 | Service catalog | `systemd` or `launchd` | command output | yes for discovery | Linux uses `systemctl list-unit-files`; macOS uses `launchctl list`. |
 | Service state | `systemd` or `launchd` | command output | yes for operation views | Used by list, status, doctor, describe, and sync. |
 | Logs | `journalctl` or files | text stream | command-specific | Linux supports journal filters; macOS reads compatible log files or launchd plist log paths. |
 | Sudo timestamp | native `sudo` cache | host-local state | no | Refreshed with `skuld sudo auth`; used through `sudo -n`. |
 | Sudo credential | env or `.env` | string | no | Compatibility path only; `SKULD_SUDO_PASSWORD` is sensitive and should be short-lived. |
-| Table columns | CLI or env | comma-separated keys | no | `--columns` or `SKULD_COLUMNS`; default keeps automatic layout. |
+| Table columns | CLI, config, or env | comma-separated keys | no | `--columns`, `$SKULD_HOME/config.json`, or `SKULD_COLUMNS`; default keeps automatic layout. |
 | Debug switch | env | boolean-like string | no | `SKULD_DEBUG` enables redacted stderr diagnostics. |
 | Runtime stats | stats JSON or event files | JSON | no | Used to show execution/restart counters when present. |
 
@@ -26,6 +27,7 @@ invariants, and external integration assumptions.
 | --- | --- | --- | --- |
 | CLI output | stdout/stderr | text tables or key-value lines | Best-effort readable output; not a stable machine API. |
 | Registry update | Skuld registry path | canonical JSON array | Written by mutating commands with pretty JSON, stable ordering, trailing newline, and normalized IDs. |
+| User config update | Skuld config path | JSON object | Written by `skuld config columns ...`; not part of the service registry schema. |
 | Backend action | `systemctl` or `launchctl` | service-manager operation | Only targets that resolve from the registry should be operated. |
 | Log output | stdout/stderr | text stream | Mirrors backend/file log availability and permissions. |
 | Debug output | stderr | redacted text lines | Opt-in only; not a stable machine API. |
@@ -83,6 +85,17 @@ invariants, and external integration assumptions.
 | `scope` | yes | `agent` or `daemon`. |
 | `log_dir` | no | Relevant only for compatible Skuld-managed entries. |
 
+### User `config.json`
+
+The config file is a JSON object stored next to `services.json`.
+
+| Field | Required | Notes |
+| --- | --- | --- |
+| `columns` | no | List of supported service-table column keys. `skuld config columns default`, `auto`, or `all` removes this preference. |
+
+The service registry remains a JSON array. Do not add user preferences to
+`services.json`.
+
 ## 6. Events Or Pipeline Steps
 
 | Step | Input | Output | Expected Failures |
@@ -112,6 +125,10 @@ invariants, and external integration assumptions.
   timestamp non-interactively through `sudo -n`.
 - Explicit table-column selection must preserve requested column order and must
   reject unknown column names.
+- Table-column precedence is CLI `--columns`, then `$SKULD_HOME/config.json`,
+  then `SKULD_COLUMNS`, then automatic layout.
+- Displayed numeric service IDs are zero-padded to the widest visible ID in the
+  rendered service table.
 - macOS `--since`, `--timer`, `--output`, and `--plain` are compatibility flags
   on logs; some are ignored or rejected as documented by help text and runtime
   behavior.
@@ -145,3 +162,6 @@ restart procedures, or new validation.
   explicit mutating commands still persist canonical JSON.
 - 2026-04-26: Added native sudo timestamp commands and configurable
   service-table columns; no registry schema change was made.
+- 2026-04-26: Added sibling user `config.json` for persisted table-column
+  preferences and display-only service ID padding; no registry schema change
+  was made.

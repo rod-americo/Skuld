@@ -43,6 +43,8 @@ def build_parser(
     sudo_auth: Callable[..., None],
     sudo_forget: Callable[..., None],
     sudo_run_command: Callable[..., None],
+    config_show: Callable[..., None],
+    config_columns: Callable[..., None],
 ) -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="skuld",
@@ -205,5 +207,28 @@ def build_parser(
     sudo_run_parser = sudo_subparsers.add_parser("run", help="Run one command through sudo")
     sudo_run_parser.add_argument("command", nargs=argparse.REMAINDER)
     sudo_run_parser.set_defaults(func=sudo_run_command)
+
+    config_parser = subparsers.add_parser("config", help="Show or update user config")
+    config_subparsers = config_parser.add_subparsers(dest="config_command", required=True)
+
+    config_show_parser = config_subparsers.add_parser(
+        "show",
+        help="Show persisted user config",
+    )
+    config_show_parser.set_defaults(func=config_show)
+
+    config_columns_parser = config_subparsers.add_parser(
+        "columns",
+        help="Persist service-table columns",
+    )
+    config_columns_parser.add_argument(
+        "columns",
+        metavar="LIST",
+        help=(
+            "Comma-separated table columns "
+            f"({', '.join(column_choices)}); use default to clear the saved layout"
+        ),
+    )
+    config_columns_parser.set_defaults(func=config_columns)
 
     return parser
