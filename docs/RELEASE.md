@@ -3,6 +3,10 @@
 Skuld releases must prove the checkout CLI and the packaged console command
 before publishing or tagging.
 
+The CI workflow runs the non-mutating validation matrix on Ubuntu and macOS.
+Release candidates should still be validated locally with the commands below
+before tagging.
+
 ## Preflight
 
 Run the full non-mutating validation:

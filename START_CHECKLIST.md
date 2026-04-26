@@ -42,6 +42,7 @@ is not a greenfield scaffold checklist.
 - [x] A behavior-focused `unittest` suite exists under `tests/`.
 - [x] `pyproject.toml` exposes an installable console command without removing
   direct checkout execution through `./skuld`.
+- [x] GitHub Actions runs non-mutating validation on Ubuntu and macOS.
 
 ## 3. What Is Intentionally Not Done Yet
 
@@ -87,6 +88,7 @@ is not a greenfield scaffold checklist.
 - [x] Extract macOS schedule parsing and display formatting into
   `skuld_macos_schedules.py`.
 - [x] Add installable package metadata and an importable CLI entrypoint.
+- [x] Add CI for syntax, unit tests, gate, doctor, shell checks, and packaging.
 - [ ] Continue backend splitting around command handlers, rendering, and macOS
   log/event-stat responsibilities where tests justify it.
 

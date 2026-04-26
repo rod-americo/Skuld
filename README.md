@@ -38,6 +38,7 @@ definition files remain owned by `systemd` or `launchd`.
 | Registry | Versioned JSON contract, normalized in memory on reads and written by explicit mutating commands. |
 | Tests | `unittest` suite with faked `systemd`, `journalctl`, and `launchd` interactions. |
 | Live validation | Disposable macOS and Linux smoke scripts, including remote Linux over SSH. |
+| CI | Non-mutating Ubuntu/macOS matrix for syntax, tests, docs, doctor, shell checks, and packaging. |
 | Operations | Single-host local operation is documented. |
 | Packaging | `pyproject.toml` exposes an installable console command; direct checkout use remains supported. |
 | Remote/fleet use | Out of scope except for the Linux smoke helper's SSH mode. |
@@ -309,8 +310,8 @@ Run live smokes only with explicit operator intent because they mutate
   journal retention, process visibility, and compatible log paths.
 - Unit tests prove behavior with faked backend commands; live smokes prove
   disposable host paths, not every service definition an operator may track.
-- Skuld has no CI-backed OS compatibility matrix and no published package
-  channel yet.
+- Skuld has CI-backed non-mutating validation, but no automated live
+  service-manager compatibility matrix and no published package channel yet.
 
 ## License
 

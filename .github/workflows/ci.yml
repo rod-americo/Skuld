@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  validate:
+    name: ${{ matrix.os }} / Python ${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+        python-version:
+          - "3.9"
+          - "3.12"
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Compile Python files
+        run: |
+          python3 -m py_compile ./skuld ./skuld_entrypoint.py ./skuld_cli.py ./skuld_common.py ./skuld_linux_systemd.py ./skuld_linux_stats.py ./skuld_linux_timers.py ./skuld_macos_launchd.py ./skuld_macos_processes.py ./skuld_macos_schedules.py ./skuld_observability.py ./skuld_registry.py ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py
+
+      - name: Run unit tests
+        run: |
+          python3 -m unittest discover -s tests
+
+      - name: Validate docs and governance
+        run: |
+          python3 scripts/check_project_gate.py
+          python3 scripts/project_doctor.py
+          python3 scripts/project_doctor.py --strict
+          python3 scripts/project_doctor.py --audit-config
+
+      - name: Check shell scripts
+        run: |
+          bash -n .githooks/pre-commit scripts/install_git_hooks.sh scripts/install_runtime_stats_timer.sh scripts/smoke_macos_launchd.sh scripts/smoke_linux_systemd_user.sh scripts/run_live_smokes.sh
+
+      - name: Check checkout CLI
+        run: |
+          ./skuld --help
+          ./skuld version
+
+      - name: Build wheel
+        run: |
+          python3 -m pip wheel . --no-deps -w /tmp/skuld-wheelhouse
+
+      - name: Check packaged console command
+        run: |
+          python3 -m venv /tmp/skuld-ci-venv
+          /tmp/skuld-ci-venv/bin/python -m pip install /tmp/skuld-wheelhouse/skuld_service_cli-*.whl
+          /tmp/skuld-ci-venv/bin/skuld --help
+          /tmp/skuld-ci-venv/bin/skuld version

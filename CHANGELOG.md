@@ -77,6 +77,9 @@ intent.
 - Added `pyproject.toml`, `skuld_entrypoint.py`, and install/release docs so
   the CLI can be installed as a standard Python console command while `./skuld`
   remains supported for direct checkout use.
+- Added GitHub Actions CI for non-mutating Ubuntu/macOS validation, including
+  syntax, unit tests, gate/doctor checks, shell syntax, and package install
+  verification.
 - Registry reads now normalize in memory by default. Existing registry files
   are rewritten only by explicit mutating commands or intentional
   `write_back=True` code paths.

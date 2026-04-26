@@ -560,6 +560,37 @@ around the same entrypoint.
 - Moving the whole repository into `src/skuld/` during the packaging change.
 - Removing `./skuld` before existing checkout workflows have migrated.
 
+## 2026-04-26 - Add Non-Mutating CI Matrix
+
+**Context**
+
+Local validation and live smokes existed, but routine validation was not
+enforced by CI. Running live service-manager smokes automatically would mutate
+host state and require environment-specific permissions.
+
+**Decision**
+
+Add GitHub Actions CI for Ubuntu and macOS across Python 3.9 and 3.12. The
+workflow runs syntax checks, unit tests, gate/doctor validation, shell syntax,
+checkout CLI checks, wheel build, and packaged console command checks.
+
+**Impact**
+
+- Pull requests and pushes can prove the non-mutating validation baseline.
+- Package metadata is continuously exercised on Linux and macOS runners.
+- Live smokes remain explicit manual operations.
+
+**Tradeoff**
+
+- CI does not prove real `systemctl --user` or `launchctl` mutation paths.
+- OS-version and distro compatibility beyond hosted runners remains a manual
+  validation concern.
+
+**Alternatives rejected**
+
+- Running live smoke scripts automatically in CI.
+- Keeping packaging validation as a release-only manual step.
+
 ## 2026-04-25 - Support macOS External Logs Only When Plist Paths Exist
 
 **Context**

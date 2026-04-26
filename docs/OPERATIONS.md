@@ -16,6 +16,9 @@ as it exists today.
 | CI or non-service shell | Syntax and docs validation | Python only | Live backend checks may be unavailable. |
 
 There is no documented production fleet mode.
+GitHub Actions runs non-mutating validation on Ubuntu and macOS across the
+supported CI Python matrix. Live smoke scripts remain explicit manual
+operations because they create disposable service-manager state.
 
 ## 3. How To Run
 
