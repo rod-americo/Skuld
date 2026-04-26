@@ -136,10 +136,18 @@ is not a greenfield scaffold checklist.
 - [x] Extract macOS registry sync backfill into `skuld_macos_sync.py`.
 - [x] Extract macOS launchd catalog and track orchestration into
   `skuld_macos_catalog.py`.
+- [x] Extract Linux backend dependency wiring into `skuld_linux_context.py`.
+- [x] Extract Linux CLI command-handler orchestration into
+  `skuld_linux_handlers.py`.
+- [x] Extract macOS backend dependency wiring into `skuld_macos_context.py`.
+- [x] Extract macOS CLI command-handler orchestration into
+  `skuld_macos_handlers.py`.
+- [x] Keep `skuld_linux.py` and `skuld_macos.py` as thin composition roots for
+  parser wiring and main-loop dispatch.
 - [x] Add installable package metadata and an importable CLI entrypoint.
 - [x] Add CI for syntax, unit tests, gate, doctor, shell checks, and packaging.
-- [ ] Continue backend splitting around remaining thin backend wrappers and
-  duplicated host-specific glue where tests justify it.
+- [ ] Continue by hardening context boundaries if future changes show repeated
+  wiring mistakes, not by moving behavior back into backend entrypoints.
 
 ## 5. Do Not Do In The Next Round
 

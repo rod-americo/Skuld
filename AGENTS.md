@@ -24,6 +24,7 @@ Before significant changes, read these files in order:
    `skuld_macos.py`, or `./skuld`
 8. Shared helpers when relevant: `skuld_cli.py`, `skuld_common.py`,
    `skuld_linux_actions.py`, `skuld_linux_catalog.py`,
+   `skuld_linux_context.py`, `skuld_linux_handlers.py`,
    `skuld_linux_model.py`,
    `skuld_linux_registry.py`,
    `skuld_linux_parser.py`,
@@ -34,6 +35,7 @@ Before significant changes, read these files in order:
    `skuld_linux_stats.py`,
    `skuld_linux_timers.py`, `skuld_linux_targets.py`, `skuld_linux_view.py`,
    `skuld_macos_actions.py`, `skuld_macos_catalog.py`,
+   `skuld_macos_context.py`, `skuld_macos_handlers.py`,
    `skuld_macos_model.py`,
    `skuld_macos_registry.py`,
    `skuld_macos_paths.py`,
@@ -99,6 +101,11 @@ inside the existing files until a tested extraction is justified.
     orchestration for `start`, `stop`, `restart`, and `exec`.
   - `skuld_linux_catalog.py` owns Linux systemd catalog discovery, catalog
     target resolution, and `track` orchestration.
+  - `skuld_linux_context.py` owns Linux backend dependency wiring for paths,
+    registry access, output policy, sudo, systemd callbacks, runtime reads, and
+    table callbacks.
+  - `skuld_linux_handlers.py` owns Linux CLI command handlers and orchestration
+    across the Linux context plus action, catalog, command, and view modules.
   - `skuld_linux_model.py` owns Linux service dataclasses, registry
     normalization, service-name normalization, display-name suggestions, and
     identifier helpers.
@@ -145,6 +152,11 @@ inside the existing files until a tested extraction is justified.
     orchestration for `start`, `stop`, `restart`, and `exec`.
   - `skuld_macos_catalog.py` owns macOS launchd catalog discovery, catalog
     rendering, and `track` orchestration.
+  - `skuld_macos_context.py` owns macOS backend dependency wiring for paths,
+    registry access, output policy, sudo, launchd callbacks, runtime reads,
+    process reads, and table callbacks.
+  - `skuld_macos_handlers.py` owns macOS CLI command handlers and orchestration
+    across the macOS context plus action, catalog, command, and view modules.
   - `skuld_macos_model.py` owns macOS service dataclasses, registry
     normalization, display-name suggestions, and validation helpers.
   - `skuld_macos_registry.py` owns macOS registry storage wiring, runtime stats
@@ -228,7 +240,7 @@ files are large; avoid making them larger through unrelated refactors.
 Run this before finalizing repository-wide structural or operational changes:
 
 ```bash
-python3 -m py_compile ./skuld ./skuld_entrypoint.py ./skuld_cli.py ./skuld_common.py ./skuld_linux_actions.py ./skuld_linux_catalog.py ./skuld_linux_model.py ./skuld_linux_registry.py ./skuld_linux_parser.py ./skuld_linux_commands.py ./skuld_linux_presenters.py ./skuld_linux_runtime.py ./skuld_linux_systemd.py ./skuld_linux_sync.py ./skuld_linux_stats.py ./skuld_linux_timers.py ./skuld_linux_targets.py ./skuld_linux_view.py ./skuld_macos_actions.py ./skuld_macos_catalog.py ./skuld_macos_model.py ./skuld_macos_registry.py ./skuld_macos_paths.py ./skuld_macos_parser.py ./skuld_macos_commands.py ./skuld_macos_launchd.py ./skuld_macos_presenters.py ./skuld_macos_processes.py ./skuld_macos_runtime.py ./skuld_macos_schedules.py ./skuld_macos_sync.py ./skuld_macos_targets.py ./skuld_macos_view.py ./skuld_observability.py ./skuld_registry.py ./skuld_sudo.py ./skuld_tables.py ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py
+python3 -m py_compile ./skuld ./skuld_entrypoint.py ./skuld_cli.py ./skuld_common.py ./skuld_linux_actions.py ./skuld_linux_catalog.py ./skuld_linux_context.py ./skuld_linux_handlers.py ./skuld_linux_model.py ./skuld_linux_registry.py ./skuld_linux_parser.py ./skuld_linux_commands.py ./skuld_linux_presenters.py ./skuld_linux_runtime.py ./skuld_linux_systemd.py ./skuld_linux_sync.py ./skuld_linux_stats.py ./skuld_linux_timers.py ./skuld_linux_targets.py ./skuld_linux_view.py ./skuld_macos_actions.py ./skuld_macos_catalog.py ./skuld_macos_context.py ./skuld_macos_handlers.py ./skuld_macos_model.py ./skuld_macos_registry.py ./skuld_macos_paths.py ./skuld_macos_parser.py ./skuld_macos_commands.py ./skuld_macos_launchd.py ./skuld_macos_presenters.py ./skuld_macos_processes.py ./skuld_macos_runtime.py ./skuld_macos_schedules.py ./skuld_macos_sync.py ./skuld_macos_targets.py ./skuld_macos_view.py ./skuld_observability.py ./skuld_registry.py ./skuld_sudo.py ./skuld_tables.py ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py
 python3 -m unittest discover -s tests
 ./skuld --help
 python3 scripts/check_project_gate.py
@@ -273,9 +285,13 @@ SSH.
 
 ## Hotspots
 
-- `skuld_linux.py` and `skuld_macos.py` still carry large backend-specific
-  command flows, though Linux runtime/service-manager/stats/timer helpers and macOS
-  launchd/process/runtime/schedule helpers have been extracted.
+- `skuld_linux_context.py` and `skuld_macos_context.py` are high-leverage
+  composition modules. Keep behavior in the named domain/adapters modules and
+  use the contexts only to bind runtime paths, host adapters, output, and
+  callbacks.
+- `skuld_linux_handlers.py` and `skuld_macos_handlers.py` still coordinate
+  high-impact commands. Do not let them absorb low-level service-manager,
+  parser, model, or rendering rules.
 - Registry loads normalize in memory by default. Use explicit writes through
   `track`, `rename`, `untrack`, `sync`, `save_registry()`, `upsert_registry()`,
   or `RegistryStore.load(write_back=True)` when canonicalization should be

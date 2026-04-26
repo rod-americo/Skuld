@@ -3,6 +3,44 @@
 This file records lightweight architectural and operational decisions. Keep new
 entries factual: context, decision, impact, tradeoff, and rejected alternatives.
 
+## 2026-04-26 - Make Backend Entrypoints Thin Composition Roots
+
+**Context**
+
+The Linux and macOS backend files had already lost many low-level
+responsibilities, but they still mixed runtime path binding, service-manager
+callback wiring, command handlers, parser wiring, and CLI main-loop entry.
+
+**Decision**
+
+Add `skuld_linux_context.py` and `skuld_macos_context.py` for backend
+dependency wiring. Add `skuld_linux_handlers.py` and `skuld_macos_handlers.py`
+for CLI command-handler orchestration. Keep `skuld_linux.py` and
+`skuld_macos.py` as thin composition roots that build the parser, bind one
+context to one handler set, and call the shared CLI main loop.
+
+**Impact**
+
+- Backend entrypoints no longer carry large command flows.
+- Tests exercise behavior through context and handler boundaries instead of
+  backend wrapper patch points.
+- Packaging, CI compile checks, and Linux remote smoke payloads explicitly
+  include the new modules.
+
+**Tradeoff**
+
+- The context modules are now high-leverage wiring surfaces and must not become
+  dumping grounds for low-level adapter or presentation behavior.
+- Some backward-compatible direct imports of old backend wrapper functions are
+  intentionally no longer preserved as design constraints.
+
+**Alternatives rejected**
+
+- Keeping backend wrapper functions only to preserve old internal patch points.
+- Moving all remaining code into one new backend module, which would have made
+  the entrypoint thinner without paying down the real dependency boundary.
+- Introducing a package-directory refactor in the same step.
+
 ## 2026-04-25 - Recover The Existing Repository Instead Of Rescaffolding
 
 **Context**

@@ -78,10 +78,24 @@ points at `skuld_entrypoint:main`.
 
 ### 4.2 Linux Backend
 
-`skuld_linux.py` owns the Linux implementation:
+`skuld_linux.py` is the Linux composition root:
 
-- Linux command wrappers, backend callback wiring, and registry storage paths.
-- Backend coordination for host operations that have not been extracted yet.
+- parser construction through `skuld_linux_parser.py`.
+- binding `LinuxBackendContext` to `LinuxCommandHandlers`.
+- CLI main-loop integration through `skuld_cli.py`.
+
+`skuld_linux_context.py` owns Linux backend dependency wiring:
+
+- local paths, registry storage path, runtime stats path, and sudo policy.
+- output/table policy and service-manager callback binding.
+- systemd, runtime stats, timer, catalog, target, and registry callbacks passed
+  into focused modules.
+
+`skuld_linux_handlers.py` owns Linux command-handler orchestration:
+
+- target resolution before mutating service-manager calls.
+- command-level composition across action, catalog, command, and view modules.
+- no low-level `systemctl`/`journalctl` command construction.
 
 `skuld_linux_model.py` owns the Linux service model:
 
@@ -181,10 +195,24 @@ points at `skuld_entrypoint:main`.
 
 ### 4.3 macOS Backend
 
-`skuld_macos.py` owns the macOS implementation:
+`skuld_macos.py` is the macOS composition root:
 
-- macOS command wrappers, backend callback wiring, and registry storage paths.
-- Backend coordination for host operations that have not been extracted yet.
+- parser construction through `skuld_macos_parser.py`.
+- binding `MacOSBackendContext` to `MacOSCommandHandlers`.
+- CLI main-loop integration through `skuld_cli.py`.
+
+`skuld_macos_context.py` owns macOS backend dependency wiring:
+
+- local paths, registry storage path, runtime stats path, and sudo policy.
+- output/table policy and launchd/process/runtime callback binding.
+- launchd, runtime stats, process, catalog, target, and registry callbacks
+  passed into focused modules.
+
+`skuld_macos_handlers.py` owns macOS command-handler orchestration:
+
+- target resolution before mutating launchd calls.
+- command-level composition across action, catalog, command, and view modules.
+- no low-level `launchctl` command construction.
 
 `skuld_macos_model.py` owns the macOS service model:
 
@@ -323,65 +351,74 @@ the parser modules do not import backend state or host adapters.
   env file parsing, sudo password lookup, subprocess wrappers, output
   formatting, byte/duration formatting, sorting, clipping, table rendering, and
   responsive table fitting.
+- `skuld_linux_context.py` binds Linux runtime paths, registry access, sudo,
+  output policy, systemd callbacks, runtime reads, timer reads, target
+  resolution, and table callbacks.
+- `skuld_linux_handlers.py` provides Linux CLI command-handler orchestration.
 - `skuld_linux_runtime.py` provides Linux runtime stats, journald counting, and
-  restart-count helpers used by `skuld_linux.py`.
-- `skuld_linux_systemd.py` provides the Linux `systemd` adapter used by
-  `skuld_linux.py`.
-- `skuld_linux_sync.py` provides Linux registry backfill used by
-  `skuld_linux.py`.
+  restart-count helpers used by the Linux context.
+- `skuld_linux_systemd.py` provides the Linux `systemd` adapter used by the
+  Linux context.
+- `skuld_linux_sync.py` provides Linux registry backfill used by the Linux
+  context.
 - `skuld_linux_actions.py` provides Linux host-mutating lifecycle and exec
-  orchestration used by `skuld_linux.py`.
+  orchestration used by the Linux handlers.
 - `skuld_linux_catalog.py` provides Linux systemd catalog and track
-  orchestration used by `skuld_linux.py`.
+  orchestration used by the Linux context and handlers.
 - `skuld_linux_model.py` provides Linux service models, registry
   normalization, name normalization, and identifier helpers used by
   `skuld_linux.py`.
 - `skuld_linux_registry.py` provides Linux registry storage and lookup helpers
-  used by `skuld_linux.py`.
-- `skuld_linux_parser.py` provides Linux parser wiring used by
-  `skuld_linux.py`.
+  used by the Linux context.
+- `skuld_linux_parser.py` provides Linux parser wiring used by the Linux
+  composition root.
 - `skuld_linux_commands.py` provides Linux registry and read-only command
-  orchestration used by `skuld_linux.py`.
+  orchestration used by the Linux handlers.
 - `skuld_linux_presenters.py` provides Linux detail-view output formatting used
-  by `skuld_linux.py`.
+  by Linux command modules.
 - `skuld_linux_stats.py` provides Linux host overview, unit usage, process/PID,
-  GPU, and port inspection helpers used by `skuld_linux.py`.
+  GPU, and port inspection helpers used by the Linux context.
 - `skuld_linux_timers.py` provides Linux timer metadata and display helpers used by
-  `skuld_linux.py`.
+  the Linux context.
 - `skuld_linux_targets.py` provides Linux target-resolution helpers used by
-  `skuld_linux.py`.
+  the Linux context.
 - `skuld_linux_view.py` provides Linux service-table flow and row assembly
-  helpers used by `skuld_linux.py`.
+  helpers used by the Linux handlers.
 - `skuld_macos_launchd.py` provides the macOS `launchd` adapter used by
-  `skuld_macos.py`.
+  the macOS context.
+- `skuld_macos_context.py` binds macOS runtime paths, registry access, sudo,
+  output policy, launchd callbacks, runtime reads, process reads, target
+  resolution, and table callbacks.
+- `skuld_macos_handlers.py` provides macOS CLI command-handler orchestration.
 - `skuld_macos_actions.py` provides macOS host-mutating lifecycle and exec
-  orchestration used by `skuld_macos.py`.
+  orchestration used by the macOS handlers.
 - `skuld_macos_catalog.py` provides macOS launchd catalog and track
-  orchestration used by `skuld_macos.py`.
+  orchestration used by the macOS context and handlers.
 - `skuld_macos_model.py` provides macOS service models, registry
-  normalization, and display-name suggestions used by `skuld_macos.py`.
+  normalization, and display-name suggestions used by the macOS context and
+  handlers.
 - `skuld_macos_registry.py` provides macOS registry storage, runtime stats file
-  initialization, and lookup helpers used by `skuld_macos.py`.
+  initialization, and lookup helpers used by the macOS context.
 - `skuld_macos_paths.py` provides macOS launchd label, plist path, and runtime
-  path derivation used by `skuld_macos.py`.
+  path derivation used by the macOS context.
 - `skuld_macos_parser.py` provides macOS parser wiring used by
-  `skuld_macos.py`.
+  the macOS composition root.
 - `skuld_macos_commands.py` provides macOS registry and read-only command
-  orchestration used by `skuld_macos.py`.
+  orchestration used by the macOS handlers.
 - `skuld_macos_presenters.py` provides macOS detail-view output formatting used
-  by `skuld_macos.py`.
+  by macOS command modules.
 - `skuld_macos_processes.py` provides macOS process-tree, host overview,
-  CPU/memory, and port helpers used by `skuld_macos.py`.
+  CPU/memory, and port helpers used by the macOS context.
 - `skuld_macos_runtime.py` provides macOS event stats, runtime stats, log-path,
-  and tail helpers used by `skuld_macos.py`.
+  and tail helpers used by the macOS context.
 - `skuld_macos_schedules.py` provides macOS schedule display helpers used by
-  `skuld_macos.py`.
+  the macOS handlers.
 - `skuld_macos_sync.py` provides macOS registry backfill used by
-  `skuld_macos.py`.
+  the macOS context.
 - `skuld_macos_targets.py` provides macOS target-resolution helpers used by
-  `skuld_macos.py`.
+  the macOS context.
 - `skuld_macos_view.py` provides macOS service-table flow and row assembly
-  helpers used by `skuld_macos.py`.
+  helpers used by the macOS handlers.
 - `skuld_observability.py` provides opt-in redacted debug output controlled by
   `SKULD_DEBUG`.
 - `skuld_registry.py` provides generic registry storage mechanics while leaving
@@ -492,15 +529,14 @@ Host-local configuration:
 
 ## 10. Hotspots And Technical Debt
 
-- The Linux and macOS files still contain large backend-specific command
-  handlers. Extracted responsibilities now include registry command helpers,
-  presenters, runtime helpers, service-manager adapters, stats helpers,
-  schedules/timers, target resolution, service-table row assembly, and shared
-  table policy.
+- The backend entrypoint files are now thin composition roots. The new
+  high-leverage modules are `skuld_linux_context.py`, `skuld_macos_context.py`,
+  `skuld_linux_handlers.py`, and `skuld_macos_handlers.py`; keep them from
+  absorbing low-level adapter, parser, model, or rendering rules.
 - There is still no formal registry migration framework; canonicalization is
   tied to explicit mutating commands.
 - Some CLI presentation, especially operational command output and doctor
-  output, remains tightly coupled in each backend.
+  output, remains coupled to the command modules and presenter modules.
 - Live service operation is high-impact. Disposable smoke scripts now exercise
   real launchd and `systemd --user` paths, but they are still host-dependent
   checks rather than a full compatibility matrix.

@@ -86,6 +86,11 @@ intent.
   verification.
 - Moved shared service-table column policy, fitting, sorting, and host-panel
   helpers into `skuld_tables.py`.
+- Moved Linux and macOS backend dependency wiring into `skuld_linux_context.py`
+  and `skuld_macos_context.py`.
+- Moved Linux and macOS CLI command-handler orchestration into
+  `skuld_linux_handlers.py` and `skuld_macos_handlers.py`, leaving backend
+  entrypoints as thin composition roots.
 - Moved Linux service-table row assembly and state display mapping into
   `skuld_linux_view.py`.
 - Moved Linux target-resolution rules into `skuld_linux_targets.py`.
