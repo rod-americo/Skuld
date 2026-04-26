@@ -203,11 +203,15 @@ Examples:
 
 ```bash
 ./skuld catalog
+./skuld catalog --scope user
 ./skuld track nginx
 ./skuld track system:nginx --alias edge-proxy
 ./skuld track user:syncthing --alias sync-home
 ./skuld track 1 4 22
 ```
+
+Use `./skuld catalog --scope user` when you want to inspect only `systemd --user`
+units while keeping the same catalog IDs used by `track`.
 
 For scheduled jobs, `start`, `stop`, and `restart` act on the `.timer` when the
 registry has schedule metadata and the timer exists. Otherwise they act on the

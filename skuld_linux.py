@@ -28,6 +28,7 @@ FORCE_TABLE_UNICODE = False
 SYSTEMD_UNIT_STARTED_MESSAGE_ID = "39f53479d3a045ac8e11786248231fbf"
 SORT_CHOICES = ("id", "name", "cpu", "memory")
 VALID_SCOPES = ("system", "user")
+DISCOVERABLE_SCOPE_CHOICES = ("all", "system", "user")
 SERVICE_TABLE_COLUMNS = (
     {"key": "id", "header": "id", "min_width": 2, "shrink": False},
     {"key": "name", "header": "name", "min_width": 12, "shrink": True},
@@ -1145,23 +1146,40 @@ def list_discoverable_services_for_scope(scope: str) -> List[DiscoverableService
     return result
 
 
-def list_discoverable_services() -> List[DiscoverableService]:
+def normalize_discoverable_scope(value: Optional[str]) -> str:
+    raw = (value or "all").strip().lower()
+    if raw not in DISCOVERABLE_SCOPE_CHOICES:
+        raise ValueError(f"Invalid catalog scope '{value}'. Use 'all', 'system', or 'user'.")
+    return raw
+
+
+def list_discoverable_services(scope_filter: str = "all") -> List[DiscoverableService]:
     require_systemctl()
+    normalized_scope = normalize_discoverable_scope(scope_filter)
     entries = list_discoverable_services_for_scope("system") + list_discoverable_services_for_scope("user")
     entries.sort(key=lambda item: (item.name.lower(), scope_sort_value(item.scope)))
     for idx, entry in enumerate(entries, start=1):
         entry.index = idx
-    return entries
+    if normalized_scope == "all":
+        return entries
+    return [entry for entry in entries if entry.scope == normalized_scope]
 
 
-def render_discoverable_services_hint(empty_registry_note: bool = True) -> None:
+def render_discoverable_services_hint(empty_registry_note: bool = True, scope_filter: str = "all") -> None:
     if empty_registry_note:
         print("No services tracked by skuld.")
-    entries = list_discoverable_services()
+    normalized_scope = normalize_discoverable_scope(scope_filter)
+    entries = list_discoverable_services(scope_filter=normalized_scope)
     if not entries:
-        print("No systemd services were found.")
+        if normalized_scope == "all":
+            print("No systemd services were found.")
+        else:
+            print(f"No {normalized_scope} systemd services were found.")
         return
-    print("Available systemd services (system + user):")
+    if normalized_scope == "all":
+        print("Available systemd services (system + user):")
+    else:
+        print(f"Available systemd services ({normalized_scope} only):")
     for entry in entries:
         print(
             f"  {entry.index}. [{entry.scope}] {entry.name}  "
@@ -1315,8 +1333,11 @@ def list_services_compact(sort_by: str = "name") -> None:
     _render_services_table(compact=True, sort_by=sort_by)
 
 
-def catalog(_args: argparse.Namespace) -> None:
-    render_discoverable_services_hint(empty_registry_note=False)
+def catalog(args: argparse.Namespace) -> None:
+    render_discoverable_services_hint(
+        empty_registry_note=False,
+        scope_filter=getattr(args, "scope", "all"),
+    )
 
 
 def exec_now(args: argparse.Namespace) -> None:
@@ -1701,7 +1722,13 @@ def build_parser() -> argparse.ArgumentParser:
     l.add_argument("--sort", choices=SORT_CHOICES, default="name", help="Sort by name, id, cpu, or memory")
     l.set_defaults(func=list_services)
 
-    ct = sub.add_parser("catalog", help="Show the current system + user systemd discovery catalog")
+    ct = sub.add_parser("catalog", help="Show the current systemd discovery catalog")
+    ct.add_argument(
+        "--scope",
+        choices=DISCOVERABLE_SCOPE_CHOICES,
+        default="all",
+        help="Filter catalog entries by scope: all, system, or user",
+    )
     ct.set_defaults(func=catalog)
 
     tr = sub.add_parser("track", help="Track systemd services from the current catalog or by service name")

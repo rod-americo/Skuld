@@ -178,6 +178,19 @@ scripts/smoke_linux_systemd_user.sh --host <ssh-host>
 scripts/run_live_smokes.sh --macos --linux-host <ssh-host>
 ```
 
+When a real Linux environment is needed for backend validation, `vidar` is an
+available SSH host for `systemd --user` smoke checks:
+
+```bash
+scripts/smoke_linux_systemd_user.sh --host vidar
+scripts/run_live_smokes.sh --macos --linux-host vidar
+```
+
+`vidar` also has a Skuld checkout at `~/.local/src/skuld/`. For iterative
+validation, it is acceptable to update that checkout with `git pull` and run
+tests from there when that is more practical than copying the local tree over
+SSH.
+
 ## Hotspots
 
 - `skuld_linux.py` and `skuld_macos.py` still carry large backend-specific

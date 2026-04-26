@@ -40,6 +40,17 @@ scripts/smoke_linux_systemd_user.sh --host <ssh-host>
 scripts/run_live_smokes.sh --macos --linux-host <ssh-host>
 ```
 
+For Linux live validation, `vidar` is an available SSH host:
+
+```bash
+scripts/smoke_linux_systemd_user.sh --host vidar
+scripts/run_live_smokes.sh --macos --linux-host vidar
+```
+
+`vidar` also keeps a Skuld checkout at `~/.local/src/skuld/`. When remote
+iteration is faster with an in-place checkout than with ad-hoc copy over SSH,
+update that repository with `git pull` and validate there.
+
 ## Pull Request Expectations
 
 - One logical change per PR.

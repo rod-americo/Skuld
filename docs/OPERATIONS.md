@@ -111,6 +111,17 @@ scripts/smoke_linux_systemd_user.sh
 scripts/smoke_linux_systemd_user.sh --host <ssh-host>
 ```
 
+For repository validation, `vidar` is an available Linux SSH host:
+
+```bash
+scripts/smoke_linux_systemd_user.sh --host vidar
+```
+
+`vidar` also has a repository checkout at `~/.local/src/skuld/`. If the
+copy-over-SSH workflow is not the most practical option for a validation
+cycle, update that checkout with `git pull` and run the Linux validation from
+there instead.
+
 macOS live smoke creates a disposable LaunchAgent:
 
 ```bash
@@ -121,6 +132,7 @@ To run selected live smokes through one command:
 
 ```bash
 scripts/run_live_smokes.sh --macos --linux-host <ssh-host>
+scripts/run_live_smokes.sh --macos --linux-host vidar
 ```
 
 The smoke scripts use temporary `SKULD_HOME` directories, track the disposable

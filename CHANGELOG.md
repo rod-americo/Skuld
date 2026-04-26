@@ -68,6 +68,8 @@ intent.
   macOS backend.
 - macOS `logs` can now read externally tracked launchd jobs when their plist
   declares `StandardOutPath` or `StandardErrorPath`.
+- Linux `catalog` now accepts `--scope all|system|user` to focus discovery on
+  one systemd scope without changing the catalog IDs used by `track`.
 - Registry reads now normalize in memory by default. Existing registry files
   are rewritten only by explicit mutating commands or intentional
   `write_back=True` code paths.

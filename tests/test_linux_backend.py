@@ -129,6 +129,56 @@ class LinuxTargetResolutionTest(unittest.TestCase):
             self.assertEqual(linux.resolve_managed_from_token("2").scope, "user")
 
 
+class LinuxCatalogScopeTest(unittest.TestCase):
+    def test_normalizes_catalog_scope(self) -> None:
+        self.assertEqual(linux.normalize_discoverable_scope(None), "all")
+        self.assertEqual(linux.normalize_discoverable_scope(" USER "), "user")
+        with self.assertRaisesRegex(ValueError, "Invalid catalog scope"):
+            linux.normalize_discoverable_scope("daemon")
+
+    def test_scope_filter_preserves_global_catalog_ids(self) -> None:
+        system_entry = linux.DiscoverableService(0, "system", "alpha", "enabled", "n/a")
+        user_entry = linux.DiscoverableService(0, "user", "alpha", "enabled", "enabled")
+        beta_entry = linux.DiscoverableService(0, "system", "beta", "enabled", "n/a")
+
+        def list_scope(scope: str) -> list[linux.DiscoverableService]:
+            if scope == "system":
+                return [system_entry, beta_entry]
+            if scope == "user":
+                return [user_entry]
+            return []
+
+        with patch.object(linux, "require_systemctl"), patch.object(
+            linux, "list_discoverable_services_for_scope", side_effect=list_scope
+        ):
+            all_entries = linux.list_discoverable_services()
+            user_entries = linux.list_discoverable_services("user")
+
+        self.assertEqual([(item.index, item.scope, item.name) for item in all_entries], [
+            (1, "system", "alpha"),
+            (2, "user", "alpha"),
+            (3, "system", "beta"),
+        ])
+        self.assertEqual([(item.index, item.scope, item.name) for item in user_entries], [
+            (2, "user", "alpha"),
+        ])
+
+    def test_catalog_scope_filters_rendered_entries(self) -> None:
+        entries = [
+            linux.DiscoverableService(1, "system", "alpha", "enabled", "n/a"),
+            linux.DiscoverableService(2, "user", "beta", "enabled", "enabled"),
+        ]
+        with patch.object(linux, "list_discoverable_services", return_value=[entries[1]]):
+            stdout = io.StringIO()
+            with redirect_stdout(stdout):
+                linux.catalog(argparse.Namespace(scope="user"))
+
+        output = stdout.getvalue()
+        self.assertIn("Available systemd services (user only):", output)
+        self.assertIn("2. [user] beta", output)
+        self.assertNotIn("[system] alpha", output)
+
+
 class LinuxCommandBehaviorTest(unittest.TestCase):
     def test_list_does_not_persist_registry_normalization(self) -> None:
         with IsolatedLinuxState(linux) as state:
