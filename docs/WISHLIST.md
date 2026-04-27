@@ -23,19 +23,6 @@ Initial boundary:
 - No container creation, deletion, image pulls, compose editing, or restart
   orchestration until a separate operation contract exists.
 
-### nginx
-
-Potential value:
-
-- Show server names and upstreams that route to a tracked service.
-- Correlate listening ports and proxy targets with Skuld service entries.
-- Surface route metadata in `describe` and optional table columns.
-
-Initial boundary:
-
-- Read-only parsing or command-backed inspection.
-- No config writing, reloads, certificate handling, or virtual-host creation.
-
 ### Caddy
 
 Potential value:
@@ -53,4 +40,6 @@ Initial boundary:
 
 These providers should enrich Skuld's visibility first. They should not weaken
 the rule that host-mutating service operations resolve through Skuld's registry
-and an explicit backend operation contract.
+and an explicit backend operation contract. nginx already follows that shape as
+a Linux-only explicit read-only provider; Docker and Caddy should keep the same
+discipline when they move out of wishlist status.

@@ -71,8 +71,22 @@ class ConfigTest(unittest.TestCase):
 
             self.assertEqual(
                 skuld_config.config_lines(path, ("id", "name")),
-                [f"path: {path}", "exists: no", "columns: id,name"],
+                [f"path: {path}", "exists: no", "columns: id,name", "providers: -"],
             )
+
+    def test_saves_and_loads_enabled_providers(self) -> None:
+        with tempfile.TemporaryDirectory() as tempdir:
+            path = Path(tempdir) / "config.json"
+
+            skuld_config.save_provider_enabled(path, "nginx", True)
+
+            self.assertTrue(skuld_config.provider_enabled(path, "nginx"))
+            self.assertEqual(skuld_config.enabled_providers(path), ("nginx",))
+
+            skuld_config.save_provider_enabled(path, "nginx", False)
+
+            self.assertFalse(skuld_config.provider_enabled(path, "nginx"))
+            self.assertEqual(json.loads(path.read_text(encoding="utf-8")), {})
 
 
 if __name__ == "__main__":

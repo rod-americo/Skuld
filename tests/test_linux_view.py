@@ -114,6 +114,7 @@ class LinuxViewTest(unittest.TestCase):
             format_restarts_exec=lambda _name, _stats: "-",
             read_timer_next_run=lambda *_args, **_kwargs: "-",
             read_timer_last_run=lambda *_args, **_kwargs: "-",
+            render_extra_sections=lambda _services: calls.append("extra"),
             sort_service_rows=lambda rows, _sort_by: rows,
             fit_service_table=lambda rows: (["id"], [[str(row["id"])] for row in rows]),
             render_table=lambda _headers, _rows: calls.append("table"),
@@ -154,6 +155,7 @@ class LinuxViewTest(unittest.TestCase):
             format_restarts_exec=lambda _name, _stats: "-",
             read_timer_next_run=lambda *_args, **_kwargs: "-",
             read_timer_last_run=lambda *_args, **_kwargs: "-",
+            render_extra_sections=lambda _services: calls.append("extra"),
             sort_service_rows=lambda rows, sort_by: calls.append(f"sort:{sort_by}") or rows,
             fit_service_table=lambda rows: (["id", "name"], [[str(row["id"]), str(row["name"])] for row in rows]),
             render_table=lambda headers, rows: calls.append(f"table:{headers}:{rows}"),
@@ -166,6 +168,7 @@ class LinuxViewTest(unittest.TestCase):
             "host",
             "sort:id",
             "table:['id', 'name']:[['2', 'api']]",
+            "extra",
             "blank",
         ])
 

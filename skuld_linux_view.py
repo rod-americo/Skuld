@@ -160,6 +160,7 @@ def render_services_table(
     format_restarts_exec: Callable[[str, Dict[str, Dict[str, int]]], str],
     read_timer_next_run: Callable[..., str],
     read_timer_last_run: Callable[..., str],
+    render_extra_sections: Callable[[List[object]], None],
     sort_service_rows: Callable[[List[Dict[str, object]], str], List[Dict[str, object]]],
     fit_service_table: Callable[[List[Dict[str, object]]], tuple[List[str], List[List[str]]]],
     render_table: Callable[[List[str], List[List[str]]], None],
@@ -197,4 +198,5 @@ def render_services_table(
     ordered_rows = sort_service_rows(rows, sort_by)
     headers, fitted_rows = fit_service_table(ordered_rows)
     render_table(headers, fitted_rows)
+    render_extra_sections(services)
     emit_blank()

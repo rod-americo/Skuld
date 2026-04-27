@@ -101,6 +101,18 @@ class LinuxParserTest(unittest.TestCase):
         self.assertIsNone(args.name_flag)
         self.assertIsNone(args.id_flag)
 
+    def test_track_accepts_provider_activation(self) -> None:
+        args = self.build_parser().parse_args(["track", "--provider", "nginx"])
+
+        self.assertEqual(args.provider, "nginx")
+        self.assertEqual(args.targets, [])
+
+    def test_untrack_accepts_provider_deactivation(self) -> None:
+        args = self.build_parser().parse_args(["untrack", "--provider", "nginx"])
+
+        self.assertEqual(args.provider, "nginx")
+        self.assertEqual(args.targets, [])
+
     def test_sync_keeps_target_forms(self) -> None:
         args = self.build_parser().parse_args(["sync", "--id", "7"])
 

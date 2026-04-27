@@ -91,6 +91,7 @@ Internal modules:
 | `skuld_linux_context.py` | Linux backend dependency context for registry paths, output, sudo, systemd, runtime, and table callbacks. |
 | `skuld_linux_handlers.py` | Linux CLI command handlers that orchestrate context callbacks and domain modules. |
 | `skuld_linux_model.py` | Linux service dataclasses, registry normalization, name normalization, and identifier helpers. |
+| `skuld_linux_nginx.py` | Linux read-only nginx route discovery, parsing, service correlation, and route-table rendering. |
 | `skuld_linux_registry.py` | Linux registry storage wiring and lookup helpers. |
 | `skuld_linux_parser.py` | Linux CLI parser construction and subcommand handler registration. |
 | `skuld_linux_commands.py` | Linux registry and read-only command orchestration. |
@@ -317,29 +318,23 @@ Examples:
 ./skuld catalog --scope user
 ./skuld track nginx
 ./skuld track system:nginx --alias edge-proxy
+./skuld track --provider nginx
+./skuld track provider:nginx
 ./skuld track user:syncthing --alias sync-home
 ./skuld track 1 4 22
+./skuld describe edge-proxy
 ./skuld untrack 1 2 3
+./skuld untrack --provider nginx
 ```
 
 Use `./skuld catalog --scope user` when you want to inspect only `systemd --user`
 units while keeping the same catalog IDs used by `track`.
 
-## macOS Notes
-
-Examples:
-
-```bash
-./skuld catalog
-./skuld catalog --grep draupnir
-./skuld track 1 4 22
-./skuld track com.example.worker --alias worker
-./skuld untrack 1 2 3
-```
-
-On macOS, `catalog` now renders the full visible `launchd` catalog by default.
-Use `./skuld catalog --grep <text>` to narrow the output to labels whose names
-contain a case-insensitive substring.
+`./skuld track --provider nginx` enables a Linux-only read-only nginx provider.
+When enabled, `list` renders a second local `nginx routes` table below the main
+service table, and `describe <service>` shows matched nginx routes with their
+configuration source file. The provider does not add a managed service, and it
+does not authorize nginx reloads, config edits, or other host mutations.
 
 For scheduled jobs, `start`, `stop`, and `restart` act on the `.timer` when the
 registry has schedule metadata and the timer exists. Otherwise they act on the
@@ -365,8 +360,10 @@ Examples:
 
 ```bash
 ./skuld catalog
+./skuld catalog --grep draupnir
 ./skuld track 1 4 22
 ./skuld track com.apple.Finder --alias finder
+./skuld untrack 1 2 3
 ```
 
 `skuld logs` is file-based on macOS. It can read compatible Skuld-managed log
@@ -374,12 +371,16 @@ paths and externally tracked launchd jobs whose plist declares
 `StandardOutPath` or `StandardErrorPath`. Jobs that rely only on unified logging
 or application-specific logs may not expose logs through Skuld.
 
+`catalog` renders the full visible `launchd` catalog by default. Use
+`./skuld catalog --grep <text>` to narrow the output to labels whose names
+contain a case-insensitive substring.
+
 ## Validation
 
 Minimum repository validation:
 
 ```bash
-python3 -m py_compile ./skuld ./skuld_entrypoint.py ./skuld_cli.py ./skuld_common.py ./skuld_config.py ./skuld_linux_actions.py ./skuld_linux_catalog.py ./skuld_linux_context.py ./skuld_linux_handlers.py ./skuld_linux_model.py ./skuld_linux_registry.py ./skuld_linux_parser.py ./skuld_linux_commands.py ./skuld_linux_presenters.py ./skuld_linux_runtime.py ./skuld_linux_systemd.py ./skuld_linux_sync.py ./skuld_linux_stats.py ./skuld_linux_timers.py ./skuld_linux_targets.py ./skuld_linux_view.py ./skuld_macos_actions.py ./skuld_macos_catalog.py ./skuld_macos_context.py ./skuld_macos_handlers.py ./skuld_macos_model.py ./skuld_macos_registry.py ./skuld_macos_paths.py ./skuld_macos_parser.py ./skuld_macos_commands.py ./skuld_macos_launchd.py ./skuld_macos_presenters.py ./skuld_macos_processes.py ./skuld_macos_runtime.py ./skuld_macos_schedules.py ./skuld_macos_sync.py ./skuld_macos_targets.py ./skuld_macos_view.py ./skuld_observability.py ./skuld_registry.py ./skuld_sudo.py ./skuld_tables.py ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py
+python3 -m py_compile ./skuld ./skuld_entrypoint.py ./skuld_cli.py ./skuld_common.py ./skuld_config.py ./skuld_linux_actions.py ./skuld_linux_catalog.py ./skuld_linux_context.py ./skuld_linux_handlers.py ./skuld_linux_model.py ./skuld_linux_nginx.py ./skuld_linux_registry.py ./skuld_linux_parser.py ./skuld_linux_commands.py ./skuld_linux_presenters.py ./skuld_linux_runtime.py ./skuld_linux_systemd.py ./skuld_linux_sync.py ./skuld_linux_stats.py ./skuld_linux_timers.py ./skuld_linux_targets.py ./skuld_linux_view.py ./skuld_macos_actions.py ./skuld_macos_catalog.py ./skuld_macos_context.py ./skuld_macos_handlers.py ./skuld_macos_model.py ./skuld_macos_registry.py ./skuld_macos_paths.py ./skuld_macos_parser.py ./skuld_macos_commands.py ./skuld_macos_launchd.py ./skuld_macos_presenters.py ./skuld_macos_processes.py ./skuld_macos_runtime.py ./skuld_macos_schedules.py ./skuld_macos_sync.py ./skuld_macos_targets.py ./skuld_macos_view.py ./skuld_observability.py ./skuld_registry.py ./skuld_sudo.py ./skuld_tables.py ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py
 python3 -m unittest discover -s tests
 ./skuld --help
 python3 scripts/check_project_gate.py
@@ -436,11 +437,11 @@ Run live smokes only with explicit operator intent because they mutate
 Future stack discovery should stay read-only until explicit contracts exist:
 
 - Docker containers as runtime inventory correlated with tracked services.
-- nginx virtual hosts and upstreams as route/exposure metadata.
 - Caddy sites and reverse proxies as route/exposure metadata.
 
-These providers should enrich `catalog`, `describe`, and optional table columns
-before Skuld attempts to operate containers or edit proxy configuration.
+Current read-only nginx route discovery is intentionally narrow. Future
+providers should extend that visibility model before Skuld attempts to operate
+containers or edit proxy configuration.
 
 See `docs/WISHLIST.md` for the feature framing.
 

@@ -6,6 +6,7 @@ import skuld_common as common
 import skuld_linux_actions as linux_actions
 import skuld_linux_catalog as linux_catalog
 import skuld_linux_commands as linux_commands
+import skuld_linux_nginx as linux_nginx
 import skuld_linux_view as linux_view
 import skuld_tables as tables
 from skuld_linux_context import LinuxBackendContext
@@ -39,8 +40,20 @@ class LinuxCommandHandlers:
             format_restarts_exec=ctx.format_restarts_exec,
             read_timer_next_run=ctx.read_timer_next_run,
             read_timer_last_run=ctx.read_timer_last_run,
+            render_extra_sections=lambda services: self.render_extra_sections(services),
             sort_service_rows=tables.sort_service_rows,
             fit_service_table=ctx.fit_service_table,
+            render_table=ctx.render_table,
+        )
+
+    def render_extra_sections(self, services: list[ManagedService]) -> None:
+        ctx = self.context
+        if not ctx.nginx_monitoring_enabled():
+            return
+        linux_nginx.render_routes_table(
+            ctx.discover_nginx_routes(),
+            services=services,
+            read_unit_ports=ctx.read_unit_ports,
             render_table=ctx.render_table,
         )
 
@@ -132,9 +145,24 @@ class LinuxCommandHandlers:
 
     def track(self, args: argparse.Namespace) -> None:
         ctx = self.context
+        provider = getattr(args, "provider", None)
+        targets = list(args.targets or [])
+        if provider or (len(targets) == 1 and linux_nginx.is_provider_target(targets[0])):
+            if provider and targets:
+                raise RuntimeError("Use either service targets or --provider, not both.")
+            if args.alias:
+                raise RuntimeError("--alias is not supported when enabling a monitoring provider.")
+            provider_name = provider or linux_nginx.NGINX_PROVIDER
+            if provider_name != linux_nginx.NGINX_PROVIDER:
+                raise RuntimeError(f"Unsupported provider '{provider_name}'.")
+            ctx.set_nginx_monitoring_enabled(True)
+            ctx.ok("Enabled nginx monitoring.")
+            return
+        if not targets:
+            raise RuntimeError("Use: skuld track <id ...> or skuld track <service ...>")
         ctx.require_systemctl()
         linux_catalog.track_services(
-            list(args.targets or []),
+            targets,
             alias=args.alias,
             resolve_discoverable_targets=ctx.resolve_discoverable_targets,
             suggest_display_name=suggest_display_name,
@@ -165,6 +193,17 @@ class LinuxCommandHandlers:
 
     def untrack(self, args: argparse.Namespace) -> None:
         ctx = self.context
+        provider = getattr(args, "provider", None)
+        targets = list(getattr(args, "targets", []) or [])
+        if provider or (len(targets) == 1 and linux_nginx.is_provider_target(targets[0])):
+            if provider and targets:
+                raise RuntimeError("Use either service targets or --provider, not both.")
+            provider_name = provider or linux_nginx.NGINX_PROVIDER
+            if provider_name != linux_nginx.NGINX_PROVIDER:
+                raise RuntimeError(f"Unsupported provider '{provider_name}'.")
+            ctx.set_nginx_monitoring_enabled(False)
+            ctx.ok("Disabled nginx monitoring.")
+            return
         for service in ctx.resolve_managed_many_arg(args):
             linux_commands.untrack_service(
                 service,
@@ -203,6 +242,13 @@ class LinuxCommandHandlers:
             systemctl_show=ctx.systemctl_show,
             format_scoped_name=format_scoped_name,
         )
+        if ctx.nginx_monitoring_enabled():
+            for line in linux_nginx.describe_route_lines(
+                target,
+                routes=ctx.discover_nginx_routes(),
+                read_unit_ports=ctx.read_unit_ports,
+            ):
+                print(line)
 
     def sync(self, args: argparse.Namespace) -> None:
         ctx = self.context

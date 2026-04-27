@@ -11,6 +11,7 @@ from typing import Dict, List, Optional, Tuple
 import skuld_common as common
 import skuld_config
 import skuld_linux_catalog as linux_catalog
+import skuld_linux_nginx as linux_nginx
 import skuld_linux_registry as linux_registry
 import skuld_linux_runtime as linux_runtime
 import skuld_linux_stats as linux_stats
@@ -302,8 +303,19 @@ class LinuxBackendContext:
         for line in skuld_config.config_lines(
             self.config_file,
             columns,
+            providers=skuld_config.enabled_providers(self.config_file),
         ):
             print(line)
+
+    def nginx_monitoring_enabled(self) -> bool:
+        return skuld_config.provider_enabled(self.config_file, linux_nginx.NGINX_PROVIDER)
+
+    def set_nginx_monitoring_enabled(self, enabled: bool) -> None:
+        skuld_config.save_provider_enabled(
+            self.config_file,
+            linux_nginx.NGINX_PROVIDER,
+            enabled,
+        )
 
     def show_columns_catalog(self) -> None:
         columns = tables.parse_service_table_columns(
@@ -427,6 +439,9 @@ class LinuxBackendContext:
 
     def render_host_panel(self) -> None:
         tables.render_host_panel(self.read_host_overview(), self.render_table)
+
+    def discover_nginx_routes(self) -> List[linux_nginx.NginxRoute]:
+        return linux_nginx.discover_routes(run=self.run, run_sudo=self.run_sudo)
 
     def load_runtime_stats(self) -> Dict[str, Dict[str, int]]:
         return linux_runtime.load_runtime_stats(self.runtime_stats_file)

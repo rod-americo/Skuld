@@ -9,6 +9,7 @@ from contextlib import redirect_stderr, redirect_stdout
 from unittest.mock import patch
 
 import skuld_linux_catalog as catalog
+import skuld_linux_nginx as nginx
 from skuld_linux_context import LinuxBackendContext
 from skuld_linux_handlers import LinuxCommandHandlers
 from skuld_linux_model import DiscoverableService, ManagedService
@@ -253,6 +254,164 @@ class LinuxCommandBehaviorTest(unittest.TestCase):
                 )
 
             self.assertEqual(ctx.load_registry(), [])
+
+    def test_track_provider_enables_nginx_monitoring(self) -> None:
+        with IsolatedLinuxContext() as state:
+            ctx = state.context
+            handlers = LinuxCommandHandlers(ctx)
+
+            with redirect_stdout(io.StringIO()):
+                handlers.track(
+                    argparse.Namespace(
+                        targets=[],
+                        provider="nginx",
+                        alias=None,
+                    )
+                )
+
+            self.assertTrue(ctx.nginx_monitoring_enabled())
+
+    def test_untrack_provider_disables_nginx_monitoring(self) -> None:
+        with IsolatedLinuxContext() as state:
+            ctx = state.context
+            handlers = LinuxCommandHandlers(ctx)
+            ctx.set_nginx_monitoring_enabled(True)
+
+            with redirect_stdout(io.StringIO()):
+                handlers.untrack(
+                    argparse.Namespace(
+                        targets=[],
+                        provider="nginx",
+                        name_flag=None,
+                        id_flag=None,
+                    )
+                )
+
+            self.assertFalse(ctx.nginx_monitoring_enabled())
+
+    def test_list_renders_nginx_routes_when_provider_enabled(self) -> None:
+        with IsolatedLinuxContext() as state:
+            ctx = state.context
+            handlers = LinuxCommandHandlers(ctx)
+            service = ManagedService(
+                "api",
+                "system",
+                "/bin/api",
+                "API",
+                "api",
+                id=1,
+            )
+            ctx.save_registry([service])
+            ctx.set_nginx_monitoring_enabled(True)
+
+            with patch.object(ctx, "require_systemctl"), patch.object(
+                ctx,
+                "read_gpu_memory_by_pid",
+                return_value={},
+            ), patch.object(
+                ctx,
+                "load_runtime_stats",
+                return_value={},
+            ), patch.object(
+                ctx,
+                "render_host_panel",
+            ), patch.object(
+                ctx,
+                "unit_exists",
+                return_value=False,
+            ), patch.object(
+                ctx,
+                "read_unit_usage",
+                return_value={"cpu": "-", "memory": "-"},
+            ), patch.object(
+                ctx,
+                "read_unit_ports",
+                side_effect=lambda unit, scope="system": "5005/tcp",
+            ), patch.object(
+                ctx,
+                "timer_triggers_for_display",
+                return_value="-",
+            ), patch.object(
+                ctx,
+                "discover_nginx_routes",
+                return_value=[
+                    nginx.NginxRoute(
+                        index=1,
+                        server="api.example.com",
+                        listen="443 ssl",
+                        target="http://127.0.0.1:5005",
+                        source="/etc/nginx/conf.d/api.conf",
+                    )
+                ],
+            ), redirect_stdout(io.StringIO()) as stdout:
+                handlers.list_services_compact()
+
+            output = stdout.getvalue()
+            self.assertIn("nginx routes", output)
+            self.assertIn("api.example.com", output)
+            self.assertIn("api", output)
+
+    def test_describe_renders_nginx_route_source_for_matched_service(self) -> None:
+        with IsolatedLinuxContext() as state:
+            ctx = state.context
+            handlers = LinuxCommandHandlers(ctx)
+            service = ManagedService(
+                "api",
+                "system",
+                "/bin/api",
+                "API",
+                "api",
+                id=1,
+            )
+            ctx.save_registry([service])
+            ctx.set_nginx_monitoring_enabled(True)
+
+            def systemctl_show(
+                unit: str,
+                props: list[str],
+                scope: str = "system",
+            ) -> dict[str, str]:
+                if unit.endswith(".service"):
+                    return {
+                        "ActiveState": "active",
+                        "SubState": "running",
+                        "FragmentPath": "/etc/systemd/system/api.service",
+                        "MainPID": "123",
+                    }
+                return {}
+
+            with patch.object(ctx, "require_systemctl"), patch.object(
+                ctx,
+                "unit_exists",
+                return_value=False,
+            ), patch.object(
+                ctx,
+                "systemctl_show",
+                side_effect=systemctl_show,
+            ), patch.object(
+                ctx,
+                "discover_nginx_routes",
+                return_value=[
+                    nginx.NginxRoute(
+                        index=1,
+                        server="api.example.com",
+                        listen="443 ssl",
+                        target="http://127.0.0.1:5005",
+                        source="/etc/nginx/conf.d/api.conf",
+                    )
+                ],
+            ), patch.object(
+                ctx,
+                "read_unit_ports",
+                return_value="5005/tcp",
+            ), redirect_stdout(io.StringIO()) as stdout:
+                handlers.describe(
+                    argparse.Namespace(name="api", name_flag=None, id_flag=None)
+                )
+
+            output = stdout.getvalue()
+            self.assertIn("nginx routes:", output)
+            self.assertIn("source: /etc/nginx/conf.d/api.conf", output)
 
     def test_list_does_not_persist_registry_normalization(self) -> None:
         with IsolatedLinuxContext() as state:

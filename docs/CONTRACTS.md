@@ -13,6 +13,7 @@ invariants, and external integration assumptions.
 | Registry file | Skuld runtime path | JSON array | yes for operations | Created as `[]` if missing. Invalid JSON fails explicitly. |
 | User config file | Skuld runtime path | JSON object | no | Sibling `config.json` stores CLI preferences such as saved table columns. |
 | Service catalog | `systemd` or `launchd` | command output | yes for discovery | Linux uses `systemctl list-unit-files`; macOS uses `launchctl list`. |
+| nginx route catalog | Linux `nginx -T` | command output | no | Enabled explicitly as a read-only provider through config or `track --provider nginx`. |
 | Service state | `systemd` or `launchd` | command output | yes for operation views | Used by list, status, doctor, describe, and sync. |
 | Logs | `journalctl` or files | text stream | command-specific | Linux supports journal filters; macOS reads compatible log files or launchd plist log paths. |
 | Sudo timestamp | native `sudo` cache | host-local state | no | Refreshed with `skuld sudo auth`; used through `sudo -n`. |
@@ -28,6 +29,7 @@ invariants, and external integration assumptions.
 | CLI output | stdout/stderr | text tables or key-value lines | Best-effort readable output; not a stable machine API. |
 | Registry update | Skuld registry path | canonical JSON array | Written by mutating commands with pretty JSON, stable ordering, trailing newline, and normalized IDs. |
 | User config update | Skuld config path | JSON object | Written by `skuld config columns ...`; not part of the service registry schema. |
+| Linux nginx route view | stdout | text table or describe section | Best-effort read-only output; enabled explicitly and does not add registry targets. |
 | Backend action | `systemctl` or `launchctl` | service-manager operation | Only targets that resolve from the registry should be operated. |
 | Log output | stdout/stderr | text stream | Mirrors backend/file log availability and permissions. |
 | Debug output | stderr | redacted text lines | Opt-in only; not a stable machine API. |
@@ -92,6 +94,7 @@ The config file is a JSON object stored next to `services.json`.
 | Field | Required | Notes |
 | --- | --- | --- |
 | `columns` | no | List of supported service-table column keys. `skuld config columns` shows the numbered catalog. `skuld config columns default`, `auto`, or `all` removes this preference. |
+| `providers` | no | Object of explicitly enabled read-only providers. Currently supports Linux `nginx` with `{ "enabled": true }`. |
 
 The service registry remains a JSON array. Do not add user preferences to
 `services.json`.
@@ -103,6 +106,7 @@ The service registry remains a JSON array. Do not add user preferences to
 | Dispatch | `./skuld` invocation | backend `main()` call | Unsupported or missing backend module. |
 | Load registry | registry JSON | normalized service list | Missing required fields, invalid JSON, duplicate display names. |
 | Discover | service-manager catalog | discoverable entries | Missing `systemctl`, unavailable user manager, launchctl visibility limits. |
+| Discover nginx routes | enabled provider plus `nginx -T` | local route entries | nginx missing, permission failure, unreadable config, parse gaps in complex configs. |
 | Track | catalog ID or backend name | registry entry | Unknown service, ambiguous Linux scope, duplicate alias. |
 | Operate | registry target | backend action | Missing unit/plist, permission failure, service-manager command failure. |
 | Sync | registry entry and backend metadata | updated registry | Backend metadata missing or inaccessible. |
@@ -129,11 +133,16 @@ The service registry remains a JSON array. Do not add user preferences to
   canonical column keys. Persisted config stores canonical keys.
 - Table-column precedence is CLI `--columns`, then `$SKULD_HOME/config.json`,
   then `SKULD_COLUMNS`, then automatic layout.
+- Read-only providers are disabled unless explicitly enabled in config or by
+  a provider-specific CLI activation flow.
 - Displayed numeric service IDs are zero-padded to the widest visible ID in the
   rendered service table.
 - Optional table columns may expose direct registry metadata (`target`, `scope`,
   `backend`, `user`, `restart`) and best-effort runtime metadata (`pid`,
   `runs`, `last`, `next`) without changing the registry schema.
+- Read-only nginx route discovery does not create registry entries and does not
+  expand the operational target set for `start`, `stop`, `restart`, `exec`,
+  `logs`, or `untrack`.
 - macOS `--since`, `--timer`, `--output`, and `--plain` are compatibility flags
   on logs; some are ignored or rejected as documented by help text and runtime
   behavior.

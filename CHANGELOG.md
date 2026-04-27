@@ -9,6 +9,8 @@ intent.
 
 ### Added
 
+- Linux `track --provider nginx` and `track provider:nginx` for explicit
+  read-only nginx visibility activation.
 - `skuld sudo auth` and `skuld sudo forget` for native sudo timestamp
   authentication without storing a sudo password.
 - macOS `catalog --grep <text>` to filter the visible `launchd` catalog by
@@ -53,6 +55,9 @@ intent.
 
 ### Changed
 
+- Linux `list` now renders a second local `nginx routes` table when the nginx
+  provider is enabled, and Linux `describe` now shows matched nginx routes
+  including their source config file.
 - Reworked `README.md` to distinguish current behavior from non-goals and weak
   spots.
 - Reworked `AGENTS.md` to include reading order, layer rules, validation,
@@ -67,7 +72,7 @@ intent.
   truncating it to the first 60 labels.
 - Added optional service-table columns for target, scope, backend, PID, user,
   restart policy, run counters, last run/trigger, and next run.
-- Documented Docker, nginx, and Caddy discovery as future read-only wishlist
+- Documented Docker and Caddy discovery as future read-only wishlist
   providers.
 - Clarified that the current public CLI tracks and operates existing services
   but does not create or edit service definitions.

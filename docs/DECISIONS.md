@@ -3,6 +3,43 @@
 This file records lightweight architectural and operational decisions. Keep new
 entries factual: context, decision, impact, tradeoff, and rejected alternatives.
 
+## 2026-04-27 - Add Explicit Read-Only nginx Visibility As A Linux Provider
+
+**Context**
+
+Operators wanted nginx exposure data next to the tracked service table, but the
+existing registry boundary should not be weakened by implicit host discovery or
+by treating nginx routes as managed services.
+
+**Decision**
+
+Add a Linux-only read-only nginx provider that is disabled by default and must
+be enabled explicitly through `skuld track --provider nginx` or the equivalent
+provider token flow. Render nginx routes as a second local table under `list`,
+and enrich `describe` with matched route details including the source config
+file.
+
+Do not create registry entries for routes, do not add nginx as an operational
+backend, and do not edit or reload nginx configuration.
+
+**Impact**
+
+- Operators can see which tracked services are exposed through nginx.
+- The main registry remains focused on managed service targets.
+- User config now carries one more explicit visibility toggle.
+
+**Tradeoff**
+
+- Read-only discovery depends on `nginx -T`, config readability, and a parser
+  that intentionally covers common cases first.
+- The feature is Linux-only in this step.
+
+**Alternatives rejected**
+
+- Implicit nginx discovery on every Linux host without activation.
+- Storing nginx routes in `services.json` as if they were managed services.
+- Editing nginx config or reloading nginx from Skuld.
+
 ## 2026-04-26 - Prefer Native Sudo Timestamps And Configurable Table Columns
 
 **Context**

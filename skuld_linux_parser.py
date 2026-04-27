@@ -116,8 +116,13 @@ def build_parser(
     )
     track_parser.add_argument(
         "targets",
-        nargs="+",
+        nargs="*",
         help="Catalog ids or service names (example: 1 4 nginx sshd.service user:syncthing)",
+    )
+    track_parser.add_argument(
+        "--provider",
+        choices=("nginx",),
+        help="Enable a read-only monitoring provider",
     )
     track_parser.add_argument("--alias", help="Friendly name shown by skuld")
     track_parser.set_defaults(func=track)
@@ -135,6 +140,11 @@ def build_parser(
         help="Remove a service from the skuld registry without touching systemd",
     )
     _add_multi_target_args(untrack_parser)
+    untrack_parser.add_argument(
+        "--provider",
+        choices=("nginx",),
+        help="Disable a read-only monitoring provider",
+    )
     untrack_parser.set_defaults(func=untrack)
 
     exec_parser = subparsers.add_parser("exec", help="Execute a service immediately")

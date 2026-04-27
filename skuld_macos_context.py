@@ -313,6 +313,7 @@ class MacOSBackendContext:
         for line in skuld_config.config_lines(
             self.config_file,
             columns,
+            providers=skuld_config.enabled_providers(self.config_file),
         ):
             print(line)
 
