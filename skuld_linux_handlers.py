@@ -55,6 +55,7 @@ class LinuxCommandHandlers:
             services=services,
             read_unit_ports=ctx.read_unit_ports,
             render_table=ctx.render_table,
+            emit_blank=print,
         )
 
     def list_services(self, args: argparse.Namespace) -> None:

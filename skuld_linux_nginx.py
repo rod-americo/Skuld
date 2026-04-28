@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from typing import Callable, Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Callable, Dict, List, Optional, Sequence, Tuple
 
 import skuld_common as common
 
@@ -217,20 +217,48 @@ def service_names_for_target(target: str, port_map: Dict[str, List[str]]) -> str
     return ", ".join(ordered)
 
 
+def _join_unique(values: Sequence[str]) -> str:
+    items = [item for item in values if item and item != "-"]
+    if not items:
+        return "-"
+    return ", ".join(dict.fromkeys(items))
+
+
 def build_route_rows(
     routes: Sequence[NginxRoute],
     *,
     port_map: Dict[str, List[str]],
 ) -> List[Dict[str, object]]:
-    rows: List[Dict[str, object]] = []
+    grouped: Dict[str, Dict[str, object]] = {}
+    order: List[str] = []
     for route in routes:
+        service = service_names_for_target(route.target, port_map)
+        item = grouped.get(route.server)
+        if item is None:
+            item = {
+                "server": route.server,
+                "listens": [],
+                "targets": [],
+                "services": [],
+                "index": route.index,
+            }
+            grouped[route.server] = item
+            order.append(route.server)
+        item["listens"].append(route.listen)
+        item["targets"].append(route.target)
+        if service != "-":
+            item["services"].append(service)
+
+    rows: List[Dict[str, object]] = []
+    for server in order:
+        item = grouped[server]
         rows.append(
             {
-                "id": route.index,
-                "server": route.server,
-                "listen": route.listen,
-                "target": route.target,
-                "service": service_names_for_target(route.target, port_map),
+                "id": item["index"],
+                "server": item["server"],
+                "listen": _join_unique(item["listens"]),
+                "target": "; ".join(dict.fromkeys(item["targets"])) or "-",
+                "service": _join_unique(item["services"]),
             }
         )
     return rows
@@ -255,13 +283,14 @@ def render_routes_table(
     services: Sequence[object],
     read_unit_ports: Callable[..., str],
     render_table: Callable[[List[str], List[List[str]]], None],
+    emit_blank: Callable[[], None] = print,
     emit: Callable[[str], None] = print,
 ) -> None:
+    emit_blank()
     emit("nginx routes")
     emit("")
     if not routes:
         emit("No visible nginx routes were discovered.")
-        emit("")
         return
     rows = build_route_rows(
         routes,
@@ -269,7 +298,6 @@ def render_routes_table(
     )
     headers, fitted_rows = fit_nginx_route_table(rows)
     render_table(headers, fitted_rows)
-    emit("")
 
 
 def describe_route_lines(

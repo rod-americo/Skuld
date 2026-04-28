@@ -98,6 +98,30 @@ server {
         self.assertIn("  source: /etc/nginx/conf.d/api.conf", lines)
         self.assertNotIn("admin.example.com", "\n".join(lines))
 
+    def test_build_route_rows_groups_multiple_blocks_by_server(self) -> None:
+        routes = [
+            nginx.NginxRoute(1, "wpp-niz.mezo.med.br", "443 ssl", "http://127.0.0.1:3300", "/etc/nginx/sites-enabled/wpp.conf"),
+            nginx.NginxRoute(2, "wpp-niz.mezo.med.br", "80", "static", "/etc/nginx/sites-enabled/wpp.conf"),
+        ]
+
+        rows = nginx.build_route_rows(
+            routes,
+            port_map={"3300": ["orchestrum-wpp-niz"]},
+        )
+
+        self.assertEqual(
+            rows,
+            [
+                {
+                    "id": 1,
+                    "server": "wpp-niz.mezo.med.br",
+                    "listen": "443 ssl, 80",
+                    "target": "http://127.0.0.1:3300; static",
+                    "service": "orchestrum-wpp-niz",
+                }
+            ],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
