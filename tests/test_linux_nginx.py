@@ -104,10 +104,7 @@ server {
             nginx.NginxRoute(2, "wpp-niz.mezo.med.br", "80", "static", "/etc/nginx/sites-enabled/wpp.conf"),
         ]
 
-        rows = nginx.build_route_rows(
-            routes,
-            port_map={"3300": ["orchestrum-wpp-niz"]},
-        )
+        rows = nginx.build_route_rows(routes)
 
         self.assertEqual(
             rows,
@@ -115,9 +112,28 @@ server {
                 {
                     "id": 1,
                     "server": "wpp-niz.mezo.med.br",
-                    "listen": "443 ssl, 80",
-                    "target": "http://127.0.0.1:3300; static",
-                    "service": "orchestrum-wpp-niz",
+                    "listen": "443, 80",
+                    "target": "3300",
+                }
+            ],
+        )
+
+    def test_build_route_rows_deduplicates_ipv6_and_static_only_servers(self) -> None:
+        routes = [
+            nginx.NginxRoute(1, "works.mezo.med.br", "443 ssl, [::]:443 ssl", "static", "/etc/nginx/sites-enabled/works.conf"),
+            nginx.NginxRoute(2, "works.mezo.med.br", "80, [::]:80", "static", "/etc/nginx/sites-enabled/works.conf"),
+        ]
+
+        rows = nginx.build_route_rows(routes)
+
+        self.assertEqual(
+            rows,
+            [
+                {
+                    "id": 1,
+                    "server": "works.mezo.med.br",
+                    "listen": "443, 80",
+                    "target": "static",
                 }
             ],
         )

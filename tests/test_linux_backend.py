@@ -349,7 +349,8 @@ class LinuxCommandBehaviorTest(unittest.TestCase):
             output = stdout.getvalue()
             self.assertIn("nginx routes", output)
             self.assertIn("api.example.com", output)
-            self.assertIn("api", output)
+            self.assertIn("5005", output)
+            self.assertNotIn("| service |\n+----+-----------------+--------+--------+", output)
 
     def test_describe_renders_nginx_route_source_for_matched_service(self) -> None:
         with IsolatedLinuxContext() as state:

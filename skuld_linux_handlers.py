@@ -52,8 +52,6 @@ class LinuxCommandHandlers:
             return
         linux_nginx.render_routes_table(
             ctx.discover_nginx_routes(),
-            services=services,
-            read_unit_ports=ctx.read_unit_ports,
             render_table=ctx.render_table,
             emit_blank=print,
         )

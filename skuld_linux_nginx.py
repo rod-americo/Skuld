@@ -14,10 +14,9 @@ NGINX_ROUTE_TABLE_COLUMNS = (
     {"key": "server", "header": "server", "min_width": 12, "shrink": True},
     {"key": "listen", "header": "listen", "min_width": 6, "shrink": True},
     {"key": "target", "header": "target", "min_width": 12, "shrink": True},
-    {"key": "service", "header": "service", "min_width": 8, "shrink": True},
 )
-NGINX_ROUTE_SHRINK_ORDER = ("server", "target", "listen", "service")
-NGINX_ROUTE_HIDE_ORDER = ("service",)
+NGINX_ROUTE_SHRINK_ORDER = ("server", "target", "listen")
+NGINX_ROUTE_HIDE_ORDER: Tuple[str, ...] = ()
 
 CONFIG_FILE_RE = re.compile(r"^# configuration file (?P<path>.+?)(?::\d*)?\s*$")
 TARGET_PORT_RE = re.compile(r":(?P<port>\d+)(?:$|[\s/;])")
@@ -59,6 +58,32 @@ def _normalize_target(value: str, upstreams: Dict[str, List[str]]) -> str:
         if members:
             return ", ".join(members)
     return target
+
+
+def _simplify_listen_value(value: str) -> str:
+    raw = value.strip()
+    if not raw:
+        return "-"
+    match = re.search(r"(?::|\b)(\d+)\b", raw)
+    if match:
+        return match.group(1)
+    return raw.split()[0]
+
+
+def _simplify_target_value(value: str) -> str:
+    raw = value.strip()
+    if not raw or raw == "-":
+        return "-"
+    if raw == "static":
+        return "static"
+    if raw.startswith("unix:"):
+        return raw[5:]
+    match = TARGET_PORT_RE.search(raw)
+    if match:
+        return match.group("port")
+    if raw.startswith("/"):
+        return raw
+    return raw
 
 
 def parse_nginx_dump(text: str) -> List[NginxRoute]:
@@ -226,39 +251,46 @@ def _join_unique(values: Sequence[str]) -> str:
 
 def build_route_rows(
     routes: Sequence[NginxRoute],
-    *,
-    port_map: Dict[str, List[str]],
 ) -> List[Dict[str, object]]:
     grouped: Dict[str, Dict[str, object]] = {}
     order: List[str] = []
     for route in routes:
-        service = service_names_for_target(route.target, port_map)
         item = grouped.get(route.server)
         if item is None:
             item = {
                 "server": route.server,
                 "listens": [],
                 "targets": [],
-                "services": [],
                 "index": route.index,
             }
             grouped[route.server] = item
             order.append(route.server)
         item["listens"].append(route.listen)
         item["targets"].append(route.target)
-        if service != "-":
-            item["services"].append(service)
 
     rows: List[Dict[str, object]] = []
     for server in order:
         item = grouped[server]
+        simplified_listens = [
+            _simplify_listen_value(str(value))
+            for value in item["listens"]
+            for value in str(value).split(",")
+        ]
+        simplified_targets = [
+            _simplify_target_value(str(value))
+            for value in item["targets"]
+        ]
+        non_static_targets = [value for value in simplified_targets if value not in {"-", "static"}]
+        if non_static_targets:
+            rendered_target = _join_unique(non_static_targets)
+        else:
+            rendered_target = "static"
         rows.append(
             {
                 "id": item["index"],
                 "server": item["server"],
-                "listen": _join_unique(item["listens"]),
-                "target": "; ".join(dict.fromkeys(item["targets"])) or "-",
-                "service": _join_unique(item["services"]),
+                "listen": _join_unique(simplified_listens),
+                "target": rendered_target,
             }
         )
     return rows
@@ -280,8 +312,6 @@ def fit_nginx_route_table(
 def render_routes_table(
     routes: Sequence[NginxRoute],
     *,
-    services: Sequence[object],
-    read_unit_ports: Callable[..., str],
     render_table: Callable[[List[str], List[List[str]]], None],
     emit_blank: Callable[[], None] = print,
     emit: Callable[[str], None] = print,
@@ -292,10 +322,7 @@ def render_routes_table(
     if not routes:
         emit("No visible nginx routes were discovered.")
         return
-    rows = build_route_rows(
-        routes,
-        port_map=read_unit_ports_map(services, read_unit_ports=read_unit_ports),
-    )
+    rows = build_route_rows(routes)
     headers, fitted_rows = fit_nginx_route_table(rows)
     render_table(headers, fitted_rows)
 
