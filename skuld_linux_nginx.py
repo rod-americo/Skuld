@@ -108,6 +108,7 @@ def parse_nginx_dump(text: str) -> List[NginxRoute]:
         names = [item for item in server_data.get("server_names", []) if item]
         listens = [item for item in server_data.get("listens", []) if item]
         targets = [item for item in server_data.get("targets", []) if item]
+        static_paths = [item for item in server_data.get("static_paths", []) if item]
         server_name = ", ".join(names) if names else "_"
         listen = ", ".join(listens) if listens else "-"
         normalized_targets = [
@@ -115,7 +116,7 @@ def parse_nginx_dump(text: str) -> List[NginxRoute]:
             for item in targets
         ]
         if not normalized_targets:
-            normalized_targets = ["static"]
+            normalized_targets = list(dict.fromkeys(static_paths)) or ["static"]
         for target in normalized_targets:
             routes.append(
                 NginxRoute(
@@ -149,6 +150,7 @@ def parse_nginx_dump(text: str) -> List[NginxRoute]:
                             "server_names": [],
                             "listens": [],
                             "targets": [],
+                            "static_paths": [],
                         },
                     )
                 )
@@ -189,6 +191,9 @@ def parse_nginx_dump(text: str) -> List[NginxRoute]:
                     for token in value.split()
                     if token and not token.startswith("$")
                 )
+                continue
+            if key in {"root", "alias"}:
+                current_server["static_paths"].append(value.strip())
                 continue
             if key in {"proxy_pass", "fastcgi_pass", "uwsgi_pass", "scgi_pass", "grpc_pass"}:
                 current_server["targets"].append(value.strip())

@@ -31,6 +31,7 @@ server {
 server {
     listen 80;
     server_name static.example.com;
+    root /var/www/static;
 }
 }
         """
@@ -49,7 +50,7 @@ server {
                 (
                     "static.example.com",
                     "80",
-                    "static",
+                    "/var/www/static",
                     "/etc/nginx/conf.d/static.conf",
                 ),
             ],
@@ -120,7 +121,7 @@ server {
 
     def test_build_route_rows_deduplicates_ipv6_and_static_only_servers(self) -> None:
         routes = [
-            nginx.NginxRoute(1, "works.mezo.med.br", "443 ssl, [::]:443 ssl", "static", "/etc/nginx/sites-enabled/works.conf"),
+            nginx.NginxRoute(1, "works.mezo.med.br", "443 ssl, [::]:443 ssl", "/home/mezo/Orchestrum/web", "/etc/nginx/sites-enabled/works.conf"),
             nginx.NginxRoute(2, "works.mezo.med.br", "80, [::]:80", "static", "/etc/nginx/sites-enabled/works.conf"),
         ]
 
@@ -133,7 +134,7 @@ server {
                     "id": 1,
                     "server": "works.mezo.med.br",
                     "listen": "443, 80",
-                    "target": "static",
+                    "target": "/home/mezo/Orchestrum/web",
                 }
             ],
         )
