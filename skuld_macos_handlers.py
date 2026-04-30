@@ -29,6 +29,7 @@ class MacOSCommandHandlers:
             get_managed=ctx.get_managed,
             launchctl_print_service_raw=ctx.launchctl_print_service_raw,
             extract_launchctl_value=ctx.extract_launchctl_value,
+            read_schedule_from_plist=ctx.read_schedule_from_plist,
             service_factory=ManagedService,
             upsert_registry=ctx.upsert_registry,
             ok=ctx.ok,

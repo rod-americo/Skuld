@@ -19,6 +19,13 @@ class MacosSyncTest(unittest.TestCase):
             plist_path.write_bytes(
                 plistlib.dumps(
                     {
+                        "StartCalendarInterval": [
+                            {"Weekday": 1, "Hour": 8, "Minute": 0},
+                            {"Weekday": 2, "Hour": 8, "Minute": 0},
+                            {"Weekday": 3, "Hour": 8, "Minute": 0},
+                            {"Weekday": 4, "Hour": 8, "Minute": 0},
+                            {"Weekday": 5, "Hour": 8, "Minute": 0},
+                        ],
                         "WorkingDirectory": "/srv/worker",
                         "UserName": "rodrigo",
                         "StandardOutPath": "/tmp/skuld/worker/out.log",
@@ -35,6 +42,7 @@ class MacosSyncTest(unittest.TestCase):
 
         self.assertEqual(changed, 1)
         [updated] = saved[0]
+        self.assertEqual(updated.schedule, "Mon-Fri *-*-* 08:00:00")
         self.assertEqual(updated.working_dir, "/srv/worker")
         self.assertEqual(updated.user, "rodrigo")
         self.assertEqual(updated.log_dir, "/tmp/skuld/worker")

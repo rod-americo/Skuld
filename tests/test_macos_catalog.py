@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import types
+import tempfile
 import unittest
+from pathlib import Path
 
 import skuld_macos_catalog as catalog
 from skuld_macos_model import DiscoverableService, ManagedService
@@ -109,6 +111,7 @@ class MacosCatalogTest(unittest.TestCase):
             get_managed=lambda label: None,
             launchctl_print_service_raw=lambda label: raw,
             extract_launchctl_value=extract_value,
+            read_schedule_from_plist=lambda path: "Mon-Fri *-*-* 08:00:00",
             service_factory=ManagedService,
             upsert_registry=saved.append,
             ok=messages.append,
@@ -123,6 +126,7 @@ class MacosCatalogTest(unittest.TestCase):
         )
         self.assertFalse(saved[0].managed_by_skuld)
         self.assertEqual(saved[0].scope, "agent")
+        self.assertEqual(saved[0].schedule, "Mon-Fri *-*-* 08:00:00")
 
 
 if __name__ == "__main__":

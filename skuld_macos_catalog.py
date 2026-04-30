@@ -69,6 +69,7 @@ def track_services(
     get_managed: Callable[[str], Optional[ManagedService]],
     launchctl_print_service_raw: Callable[[str], str],
     extract_launchctl_value: Callable[[str, str], str],
+    read_schedule_from_plist: Callable[[str], str],
     service_factory: Callable[..., ManagedService],
     upsert_registry: Callable[[ManagedService], None],
     ok: Callable[[str], None],
@@ -93,6 +94,7 @@ def track_services(
         program = extract_launchctl_value(raw, "program") or label
         state = extract_launchctl_value(raw, "state")
         description = label if not state else f"{label} ({state})"
+        schedule = read_schedule_from_plist(plist_path)
         service = service_factory(
             name=label,
             exec_cmd=program,
@@ -101,6 +103,7 @@ def track_services(
             launchd_label=label,
             plist_path_hint=plist_path,
             managed_by_skuld=False,
+            schedule=schedule,
             scope="agent",
             log_dir="",
         )

@@ -3,6 +3,7 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Callable, List, Optional
 
+import skuld_macos_schedules as schedules
 from skuld_macos_model import ManagedService
 
 
@@ -35,6 +36,8 @@ def sync_registry_from_launchd(
             stdout_path = str(plist.get("StandardOutPath", "")).strip()
             if stdout_path:
                 new_service.log_dir = str(Path(stdout_path).parent)
+            if not new_service.schedule:
+                new_service.schedule = schedules.schedule_from_plist(path)
 
         if asdict(new_service) != asdict(service):
             changed += 1

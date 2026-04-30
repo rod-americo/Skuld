@@ -3,9 +3,11 @@ from __future__ import annotations
 import argparse
 import io
 import json
+import plistlib
 import subprocess
 import unittest
 from contextlib import redirect_stdout
+from pathlib import Path
 from unittest.mock import patch
 
 from skuld_macos_handlers import MacOSCommandHandlers
@@ -100,6 +102,44 @@ class MacRegistryTest(unittest.TestCase):
 
             with self.assertRaisesRegex(RuntimeError, "'user' is only valid"):
                 ctx.load_registry()
+
+    def test_load_registry_hydrates_schedule_from_plist_hint(self) -> None:
+        with IsolatedMacContext() as state:
+            ctx = state.context
+            plist_path = state.root / "weekday.plist"
+            plist_path.write_bytes(
+                plistlib.dumps(
+                    {
+                        "StartCalendarInterval": [
+                            {"Weekday": 1, "Hour": 19, "Minute": 30},
+                            {"Weekday": 2, "Hour": 19, "Minute": 30},
+                            {"Weekday": 3, "Hour": 19, "Minute": 30},
+                            {"Weekday": 4, "Hour": 19, "Minute": 30},
+                            {"Weekday": 5, "Hour": 19, "Minute": 30},
+                        ]
+                    }
+                )
+            )
+            state.registry.parent.mkdir(parents=True, exist_ok=True)
+            state.registry.write_text(
+                json.dumps(
+                    [
+                        {
+                            "name": "com.example.worker",
+                            "exec_cmd": "/bin/worker",
+                            "description": "Worker",
+                            "display_name": "worker",
+                            "plist_path_hint": str(plist_path),
+                            "id": 7,
+                        }
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            [service] = ctx.load_registry()
+
+            self.assertEqual(service.schedule, "Mon-Fri *-*-* 19:30:00")
 
 
 class MacCommandBehaviorTest(unittest.TestCase):

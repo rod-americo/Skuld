@@ -4,6 +4,7 @@ import argparse
 import os
 import subprocess
 import sys
+from dataclasses import replace
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -16,6 +17,7 @@ import skuld_macos_paths as macos_paths
 import skuld_macos_processes as processes
 import skuld_macos_registry as macos_registry
 import skuld_macos_runtime as runtime
+import skuld_macos_schedules as schedules
 import skuld_macos_sync as macos_sync
 import skuld_macos_targets as macos_targets
 import skuld_sudo
@@ -112,13 +114,23 @@ class MacOSBackendContext:
         )
 
     def load_registry(self, *, write_back: bool = False) -> List[ManagedService]:
-        return macos_registry.load_registry(
+        services = macos_registry.load_registry(
             self.skuld_home,
             self.registry_file,
             self.runtime_stats_file,
             normalize_item=self.normalize_service,
             write_back=write_back,
         )
+        changed = False
+        hydrated: List[ManagedService] = []
+        for service in services:
+            updated = self.hydrate_service_from_plist(service)
+            hydrated.append(updated)
+            if updated != service:
+                changed = True
+        if write_back and changed:
+            self.save_registry(hydrated)
+        return hydrated
 
     def save_registry(self, services: List[ManagedService]) -> None:
         macos_registry.save_registry(
@@ -401,6 +413,17 @@ class MacOSBackendContext:
             discover_launchd_services=self.discover_launchd_services,
             grep=grep,
         )
+
+    def read_schedule_from_plist(self, plist_path: str | Path) -> str:
+        return schedules.schedule_from_plist(Path(plist_path))
+
+    def hydrate_service_from_plist(self, service: ManagedService) -> ManagedService:
+        if service.schedule:
+            return service
+        schedule = self.read_schedule_from_plist(self.plist_path_for_service(service))
+        if not schedule:
+            return service
+        return replace(service, schedule=schedule)
 
     def launchctl_print_service_raw(self, label: str) -> str:
         return launchd.print_service_raw(label)
