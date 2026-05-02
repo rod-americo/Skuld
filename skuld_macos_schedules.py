@@ -29,6 +29,35 @@ WEEKDAY_NAMES = {
 }
 
 
+def _compact_interval(seconds: int) -> str:
+    if seconds <= 0:
+        return ""
+    if seconds % 3600 == 0:
+        hours = seconds // 3600
+        return f"every {hours} hour{'s' if hours != 1 else ''}"
+    if seconds % 60 == 0:
+        minutes = seconds // 60
+        return f"every {minutes} minute{'s' if minutes != 1 else ''}"
+    return f"every {seconds} second{'s' if seconds != 1 else ''}"
+
+
+def _parse_hhmm_list(text: str) -> List[tuple[int, int]]:
+    result: List[tuple[int, int]] = []
+    for raw_part in text.split(","):
+        part = raw_part.strip()
+        match = re.match(r"^(\d{2}):(\d{2})$", part)
+        if not match:
+            return []
+        value = (int(match.group(1)), int(match.group(2)))
+        if value not in result:
+            result.append(value)
+    return result
+
+
+def _hhmm_list_text(times: Iterable[tuple[int, int]]) -> str:
+    return ", ".join(f"{hour:02d}:{minute:02d}" for hour, minute in times)
+
+
 def _parse_weekday_spec(spec: str) -> List[int]:
     value = spec.strip()
     if not value:
@@ -62,6 +91,10 @@ def _weekday_spec_for_display(weekdays: Iterable[int]) -> str:
     return ",".join(WEEKDAY_NAMES[value] for value in values)
 
 
+def _calendar_item_signature(item: Dict[str, int]) -> tuple[tuple[str, int], ...]:
+    return tuple(sorted(item.items()))
+
+
 def _normalize_calendar_item(item: object) -> Dict[str, int]:
     if not isinstance(item, dict):
         return {}
@@ -87,12 +120,17 @@ def _schedule_from_calendar_item(item: Dict[str, int]) -> str:
         weekday = item["Weekday"]
         if weekday not in WEEKDAY_NAMES:
             return ""
-        return f"{WEEKDAY_NAMES[weekday]} *-*-* {hour:02d}:{minute:02d}:00"
+        return f"{WEEKDAY_NAMES[weekday]} at {hour:02d}:{minute:02d}"
+    if "Month" in item:
+        month = item["Month"]
+        if "Day" in item:
+            return f"yearly on {month:02d}-{item['Day']:02d} at {hour:02d}:{minute:02d}"
+        return f"yearly in month {month:02d} at {hour:02d}:{minute:02d}"
     if "Day" in item:
-        return f"*-*-{item['Day']:02d} {hour:02d}:{minute:02d}:00"
+        return f"monthly on day {item['Day']} at {hour:02d}:{minute:02d}"
     if "Hour" in item:
-        return f"*-*-* {hour:02d}:{minute:02d}:00"
-    return f"*-*-* *:{minute:02d}:00"
+        return f"daily at {hour:02d}:{minute:02d}"
+    return f"hourly at :{minute:02d}"
 
 
 def _schedule_from_calendar_items(items: List[Dict[str, int]]) -> str:
@@ -101,26 +139,67 @@ def _schedule_from_calendar_items(items: List[Dict[str, int]]) -> str:
         return ""
     if len(entries) == 1:
         return _schedule_from_calendar_item(entries[0])
-    base_items = []
-    weekdays: List[int] = []
+    if all(set(item.keys()) <= {"Hour", "Minute"} for item in entries):
+        times = sorted({(item.get("Hour", 0), item.get("Minute", 0)) for item in entries})
+        return f"daily at {_hhmm_list_text(times)}"
+    if all(set(item.keys()) <= {"Weekday", "Hour", "Minute"} and "Weekday" in item for item in entries):
+        grouped_by_weekdays: Dict[str, List[tuple[int, int]]] = {}
+        by_time: Dict[tuple[int, int], List[int]] = {}
+        for item in entries:
+            time_key = (item.get("Hour", 0), item.get("Minute", 0))
+            by_time.setdefault(time_key, []).append(item["Weekday"])
+        for time_key, weekdays in by_time.items():
+            spec = _weekday_spec_for_display(weekdays)
+            if not spec:
+                return ""
+            grouped_by_weekdays.setdefault(spec, []).append(time_key)
+        summaries = []
+        for spec, times in grouped_by_weekdays.items():
+            summaries.append(f"{spec} at {_hhmm_list_text(sorted(set(times)))}")
+        return "; ".join(sorted(summaries))
+
+    grouped: Dict[tuple[tuple[str, int], ...], List[tuple[int, int]]] = {}
     for item in entries:
-        if "Weekday" not in item:
-            return ""
-        weekdays.append(item["Weekday"])
         base = dict(item)
-        base.pop("Weekday", None)
-        base_items.append(base)
-    first = base_items[0]
-    if any(base != first for base in base_items[1:]):
+        base.pop("Hour", None)
+        base.pop("Minute", None)
+        key = _calendar_item_signature(base)
+        grouped.setdefault(key, []).append((item.get("Hour", 0), item.get("Minute", 0)))
+
+    summaries: List[str] = []
+    for signature, times in grouped.items():
+        base = dict(signature)
+        weekday = base.pop("Weekday", None)
+        if "Month" in base or ("Day" in base and weekday is None):
+            return ""
+        time_text = _hhmm_list_text(sorted(set(times)))
+        if weekday is None and not base:
+            summaries.append(f"daily at {time_text}")
+            continue
+        if weekday is None:
+            return ""
+        weekday_spec = _weekday_spec_for_display([weekday])
+        if not weekday_spec:
+            return ""
+        summaries.append(f"{weekday_spec} at {time_text}")
+
+    if not summaries:
         return ""
-    spec = _weekday_spec_for_display(weekdays)
-    if spec == "daily":
-        return _schedule_from_calendar_item(first)
-    if not spec:
-        return ""
-    hour = first.get("Hour", 0)
-    minute = first.get("Minute", 0)
-    return f"{spec} *-*-* {hour:02d}:{minute:02d}:00"
+    if len(summaries) == 1:
+        return summaries[0]
+
+    combined: Dict[str, List[str]] = {}
+    for summary in summaries:
+        if " at " not in summary:
+            return "; ".join(summaries)
+        prefix, time_text = summary.split(" at ", 1)
+        combined.setdefault(prefix, []).append(time_text)
+    if len(combined) == 1:
+        prefix, groups = next(iter(combined.items()))
+        times = _parse_hhmm_list(", ".join(groups))
+        if times:
+            return f"{prefix} at {_hhmm_list_text(times)}"
+    return "; ".join(summaries)
 
 
 def schedule_from_plist(path: Path) -> str:
@@ -137,10 +216,8 @@ def schedule_from_plist(path: Path) -> str:
             seconds = int(start_interval)
         except (TypeError, ValueError):
             seconds = 0
-        if seconds > 0 and seconds % 60 == 0:
-            minutes = seconds // 60
-            if 1 <= minutes <= 59:
-                return f"*-*-* *:00/{minutes}:00"
+        if seconds > 0:
+            return _compact_interval(seconds)
     start_calendar = plist.get("StartCalendarInterval")
     if isinstance(start_calendar, dict):
         return _schedule_from_calendar_item(_normalize_calendar_item(start_calendar))
@@ -155,12 +232,33 @@ def parse_schedule(schedule: str) -> Tuple[Optional[str], object]:
     value = (schedule or "").strip()
     if not value:
         return None, None
+    match = re.match(r"^every (\d+) second(?:s)?$", value, flags=re.IGNORECASE)
+    if match:
+        seconds = int(match.group(1))
+        if seconds <= 0:
+            raise RuntimeError("Unsupported --schedule interval. Use a positive interval.")
+        return "StartInterval", seconds
+    match = re.match(r"^every (\d+) minute(?:s)?$", value, flags=re.IGNORECASE)
+    if match:
+        minutes = int(match.group(1))
+        if minutes <= 0:
+            raise RuntimeError("Unsupported --schedule interval. Use a positive interval.")
+        return "StartInterval", minutes * 60
+    match = re.match(r"^every (\d+) hour(?:s)?$", value, flags=re.IGNORECASE)
+    if match:
+        hours = int(match.group(1))
+        if hours <= 0:
+            raise RuntimeError("Unsupported --schedule interval. Use a positive interval.")
+        return "StartInterval", hours * 3600
     match = re.match(r"^\*-\*-\* \*:00/(\d{1,2}):00$", value)
     if match:
         minutes = int(match.group(1))
         if minutes <= 0 or minutes > 59:
             raise RuntimeError("Unsupported --schedule interval. Use minutes between 1 and 59.")
         return "StartInterval", minutes * 60
+    match = re.match(r"^hourly at :(\d{2})$", value, flags=re.IGNORECASE)
+    if match:
+        return "StartCalendarInterval", {"Minute": int(match.group(1))}
     match = re.match(r"^\*-\*-\* \*:(\d{2}):(\d{2})$", value)
     if match:
         minute = int(match.group(1))
@@ -168,12 +266,42 @@ def parse_schedule(schedule: str) -> Tuple[Optional[str], object]:
         if second != 0:
             raise RuntimeError("Unsupported --schedule seconds. macOS schedule subset requires :00 seconds.")
         return "StartCalendarInterval", {"Minute": minute}
+    match = re.match(r"^daily at ((?:\d{2}:\d{2})(?:,\s*\d{2}:\d{2})*)$", value, flags=re.IGNORECASE)
+    if match:
+        times = _parse_hhmm_list(match.group(1))
+        if not times:
+            raise RuntimeError("Unsupported daily schedule format for macOS.")
+        if len(times) == 1:
+            hour, minute = times[0]
+            return "StartCalendarInterval", {"Hour": hour, "Minute": minute}
+        return "StartCalendarInterval", [
+            {"Hour": hour, "Minute": minute}
+            for hour, minute in times
+        ]
     match = re.match(r"^\*-\*-\* (\d{2}):(\d{2}):(\d{2})$", value)
     if match:
         hour, minute, second = map(int, match.groups())
         if second != 0:
             raise RuntimeError("Unsupported --schedule seconds. macOS schedule subset requires :00 seconds.")
         return "StartCalendarInterval", {"Hour": hour, "Minute": minute}
+    match = re.match(
+        r"^([A-Za-z]{3}(?:-[A-Za-z]{3}|(?:,[A-Za-z]{3})*)) at ((?:\d{2}:\d{2})(?:,\s*\d{2}:\d{2})*)$",
+        value,
+        flags=re.IGNORECASE,
+    )
+    if match:
+        weekdays = _parse_weekday_spec(match.group(1))
+        times = _parse_hhmm_list(match.group(2))
+        if not weekdays or not times:
+            raise RuntimeError("Unsupported weekday schedule format for macOS.")
+        if len(weekdays) == 1 and len(times) == 1:
+            hour, minute = times[0]
+            return "StartCalendarInterval", {"Weekday": weekdays[0], "Hour": hour, "Minute": minute}
+        items = []
+        for weekday in weekdays:
+            for hour, minute in times:
+                items.append({"Weekday": weekday, "Hour": hour, "Minute": minute})
+        return "StartCalendarInterval", items
     match = re.match(r"^([A-Za-z]{3}(?:-[A-Za-z]{3}|(?:,[A-Za-z]{3})*)) \*-\*-\* (\d{2}):(\d{2}):(\d{2})$", value)
     if match:
         weekdays = _parse_weekday_spec(match.group(1))
@@ -201,10 +329,17 @@ def parse_schedule(schedule: str) -> Tuple[Optional[str], object]:
         if second != 0:
             raise RuntimeError("Unsupported --schedule seconds. macOS schedule subset requires :00 seconds.")
         return "StartCalendarInterval", {"Day": day, "Hour": hour, "Minute": minute}
+    match = re.match(r"^monthly on day (\d{1,2}) at (\d{2}):(\d{2})$", value, flags=re.IGNORECASE)
+    if match:
+        return "StartCalendarInterval", {
+            "Day": int(match.group(1)),
+            "Hour": int(match.group(2)),
+            "Minute": int(match.group(3)),
+        }
     raise RuntimeError(
         "Unsupported --schedule for macOS. Supported subset: "
-        "'*-*-* *:00/15:00', '*-*-* *:05:00', '*-*-* 02:30:00', "
-        "'Mon *-*-* 08:00:00', '*-*-01 00:01:00'."
+        "'every 30 seconds', 'every 15 minutes', 'daily at 02:30', "
+        "'daily at 00:05, 07:05', 'Mon-Fri at 08:00', '*-*-01 00:01:00'."
     )
 
 
@@ -212,6 +347,13 @@ def humanize_schedule_for_display(schedule: str, timer_persistent: bool, max_wid
     value = (schedule or "").strip()
     if not value:
         return "-"
+    match = re.match(
+        r"^(every \d+ (?:second|seconds|minute|minutes|hour|hours)|hourly at :\d{2}|daily at (?:\d{2}:\d{2})(?:,\s*\d{2}:\d{2})*|[A-Za-z]{3}(?:-[A-Za-z]{3}|(?:,[A-Za-z]{3})*) at (?:\d{2}:\d{2})(?:,\s*\d{2}:\d{2})*|monthly on day \d{1,2} at \d{2}:\d{2}|yearly on \d{2}-\d{2} at \d{2}:\d{2}|yearly in month \d{2} at \d{2}:\d{2})$",
+        value,
+        flags=re.IGNORECASE,
+    )
+    if match:
+        return common.clip_text(value, max_width)
 
     match = re.match(r"^\*-\*-\* \*:00/(\d{1,2}):00$", value)
     if match:

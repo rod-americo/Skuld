@@ -77,7 +77,7 @@ invariants, and external integration assumptions.
 | `launchd_label` | yes after normalization | Launchd label used for `launchctl`. |
 | `plist_path_hint` | no | Captured plist path when inspectable. |
 | `managed_by_skuld` | yes after normalization | External tracked jobs are currently stored as `false`. |
-| `schedule` | no | Legacy/compatible schedule metadata. |
+| `schedule` | no | Compatibility schedule cache. When a launchd plist is resolvable, Skuld derives the effective schedule from the live plist and may override this field in memory or during `sync`. |
 | `working_dir` | no | Working directory when known. |
 | `user` | no | Only valid for daemon scope. |
 | `restart` | no | Restart policy metadata, default `on-failure`. |

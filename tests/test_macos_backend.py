@@ -139,7 +139,34 @@ class MacRegistryTest(unittest.TestCase):
 
             [service] = ctx.load_registry()
 
-            self.assertEqual(service.schedule, "Mon-Fri *-*-* 19:30:00")
+            self.assertEqual(service.schedule, "Mon-Fri at 19:30")
+
+    def test_load_registry_prefers_live_plist_schedule_over_stale_registry_value(self) -> None:
+        with IsolatedMacContext() as state:
+            ctx = state.context
+            plist_path = state.root / "interval.plist"
+            plist_path.write_bytes(plistlib.dumps({"StartInterval": 30}))
+            state.registry.parent.mkdir(parents=True, exist_ok=True)
+            state.registry.write_text(
+                json.dumps(
+                    [
+                        {
+                            "name": "com.example.worker",
+                            "exec_cmd": "/bin/worker",
+                            "description": "Worker",
+                            "display_name": "worker",
+                            "plist_path_hint": str(plist_path),
+                            "schedule": "every 2 minutes",
+                            "id": 8,
+                        }
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            [service] = ctx.load_registry()
+
+            self.assertEqual(service.schedule, "every 30 seconds")
 
 
 class MacCommandBehaviorTest(unittest.TestCase):

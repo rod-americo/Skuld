@@ -11,6 +11,10 @@ It is a registry boundary around the host service manager:
 Skuld only operates services that are already in its own registry. Service
 definition files remain owned by `systemd` or `launchd`.
 
+On macOS, when a tracked `launchd` job has a resolvable plist, Skuld derives
+the effective schedule from that live plist. The registry keeps identity and
+metadata, but `StartInterval` and `StartCalendarInterval` come from the plist.
+
 ## What This Repository Is
 
 - A standard-library Python CLI for local service visibility and control.
@@ -106,7 +110,7 @@ Internal modules:
 | `skuld_macos.py` | macOS composition root: parser construction, handler wiring, and CLI main. |
 | `skuld_macos_actions.py` | macOS host-mutating launchd action orchestration for start, stop, restart, and exec. |
 | `skuld_macos_catalog.py` | macOS launchd catalog discovery, rendering, and track orchestration. |
-| `skuld_macos_context.py` | macOS backend dependency context for registry paths, output, sudo, launchd, runtime, process, and table callbacks. |
+| `skuld_macos_context.py` | macOS backend dependency context for registry paths, output, sudo, launchd, runtime, process, table callbacks, and live plist schedule hydration. |
 | `skuld_macos_handlers.py` | macOS CLI command handlers that orchestrate context callbacks and domain modules. |
 | `skuld_macos_model.py` | macOS service dataclasses, registry normalization, display-name suggestions, and validation helpers. |
 | `skuld_macos_registry.py` | macOS registry storage wiring, runtime stats file initialization, and lookup helpers. |
@@ -117,7 +121,7 @@ Internal modules:
 | `skuld_macos_presenters.py` | macOS line-oriented output formatting for selected detail views. |
 | `skuld_macos_processes.py` | macOS process tree, termination, host overview, CPU/memory, and port inspection helpers. |
 | `skuld_macos_runtime.py` | macOS event stats, runtime stats file updates, recent-run PID extraction, file-log paths, and tail helpers. |
-| `skuld_macos_schedules.py` | macOS schedule parsing, trigger formatting, and next-run display. |
+| `skuld_macos_schedules.py` | macOS schedule parsing, live plist schedule extraction, trigger formatting, and next-run display. |
 | `skuld_macos_sync.py` | macOS registry backfill from live launchd plist metadata. |
 | `skuld_macos_targets.py` | macOS target-resolution rules for labels, display names, IDs, catalog entries, and multi-target de-duplication. |
 | `skuld_macos_view.py` | macOS service-table flow, row assembly, and state display mapping. |

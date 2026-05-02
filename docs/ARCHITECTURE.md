@@ -227,6 +227,8 @@ points at `skuld_entrypoint:main`.
 
 - local paths, registry storage path, runtime stats path, and sudo policy.
 - output/table policy and launchd/process/runtime callback binding.
+- live schedule hydration from resolved launchd plists before list, describe,
+  and action flows consume tracked service objects.
 - launchd, runtime stats, process, catalog, target, and registry callbacks
   passed into focused modules.
 
@@ -316,13 +318,16 @@ points at `skuld_entrypoint:main`.
 
 `skuld_macos_sync.py` owns macOS registry backfill from launchd plist metadata:
 
+- schedule backfill from live plist `StartInterval` and
+  `StartCalendarInterval`.
 - working directory and user backfill.
 - log directory backfill from `StandardOutPath`.
 - targeted sync for one tracked launchd label.
 
 `skuld_macos_schedules.py` owns macOS schedule helpers:
 
-- schedule subset parsing for launchd plist metadata.
+- schedule subset parsing for CLI compatibility.
+- live schedule extraction from launchd plists.
 - schedule display formatting for compact service tables.
 - next-run calculation for `describe` output.
 

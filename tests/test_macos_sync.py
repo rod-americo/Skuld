@@ -42,7 +42,7 @@ class MacosSyncTest(unittest.TestCase):
 
         self.assertEqual(changed, 1)
         [updated] = saved[0]
-        self.assertEqual(updated.schedule, "Mon-Fri *-*-* 08:00:00")
+        self.assertEqual(updated.schedule, "Mon-Fri at 08:00")
         self.assertEqual(updated.working_dir, "/srv/worker")
         self.assertEqual(updated.user, "rodrigo")
         self.assertEqual(updated.log_dir, "/tmp/skuld/worker")

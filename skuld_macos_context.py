@@ -418,10 +418,11 @@ class MacOSBackendContext:
         return schedules.schedule_from_plist(Path(plist_path))
 
     def hydrate_service_from_plist(self, service: ManagedService) -> ManagedService:
-        if service.schedule:
+        path = self.plist_path_for_service(service)
+        if not path.exists():
             return service
-        schedule = self.read_schedule_from_plist(self.plist_path_for_service(service))
-        if not schedule:
+        schedule = self.read_schedule_from_plist(path)
+        if schedule == service.schedule:
             return service
         return replace(service, schedule=schedule)
 
