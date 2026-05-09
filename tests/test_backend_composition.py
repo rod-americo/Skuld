@@ -8,13 +8,13 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-import skuld_config
-import skuld_linux
-import skuld_macos
-from skuld_linux_context import LinuxBackendContext
-from skuld_linux_handlers import LinuxCommandHandlers
-from skuld_macos_context import MacOSBackendContext
-from skuld_macos_handlers import MacOSCommandHandlers
+from skuld import skuld_config
+from skuld import skuld_linux
+from skuld import skuld_macos
+from skuld.skuld_linux_context import LinuxBackendContext
+from skuld.skuld_linux_handlers import LinuxCommandHandlers
+from skuld.skuld_macos_context import MacOSBackendContext
+from skuld.skuld_macos_handlers import MacOSCommandHandlers
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -38,7 +38,7 @@ def top_level_functions(path: Path) -> set[str]:
 
 class BackendCompositionTest(unittest.TestCase):
     def test_linux_entrypoint_is_only_composition_root(self) -> None:
-        functions = top_level_functions(ROOT / "skuld_linux.py")
+        functions = top_level_functions(ROOT / "skuld" / "skuld_linux.py")
 
         self.assertEqual(functions, COMPOSITION_FUNCTIONS)
         self.assertTrue(LEGACY_BACKEND_WRAPPERS.isdisjoint(functions))
@@ -46,7 +46,7 @@ class BackendCompositionTest(unittest.TestCase):
         self.assertIsInstance(skuld_linux.HANDLERS, LinuxCommandHandlers)
 
     def test_macos_entrypoint_is_only_composition_root(self) -> None:
-        functions = top_level_functions(ROOT / "skuld_macos.py")
+        functions = top_level_functions(ROOT / "skuld" / "skuld_macos.py")
 
         self.assertEqual(functions, COMPOSITION_FUNCTIONS)
         self.assertTrue(LEGACY_BACKEND_WRAPPERS.isdisjoint(functions))

@@ -3,6 +3,51 @@
 This file records lightweight architectural and operational decisions. Keep new
 entries factual: context, decision, impact, tradeoff, and rejected alternatives.
 
+## 2026-05-09 - Move Runtime Code Into The `skuld/` Package
+
+**Context**
+
+The repository had accumulated many Python modules at the root. Skidbladnir's
+current baseline prefers a clean repository root for docs, config, tests,
+scripts, and runtime wrappers, with the main application code under a
+repository-local package directory. Skuld had enough tests and packaging checks
+to make that move safely.
+
+**Decision**
+
+Move the runtime modules into `skuld/`, keep module responsibilities and file
+names intact, and add package entrypoints through `skuld/skuld_entrypoint.py`
+and `skuld/__main__.py`. Keep direct checkout execution through `bin/skuld`
+because a root file named `skuld` cannot coexist with the `skuld/` package
+directory. Point the packaged console command at `skuld.skuld_entrypoint:main`.
+
+Do not move to `src/`; the package directory at the repository root matches
+Skidbladnir's default layout and avoids an extra packaging indirection.
+
+**Impact**
+
+- The repository root is cleaner and now matches the adopted project baseline.
+- Imports are package-relative inside runtime code and package-qualified in
+  tests.
+- Direct checkout use changes from `./skuld` to `bin/skuld`.
+- Installed command behavior remains `skuld`.
+
+**Tradeoff**
+
+- Direct checkout users need to update local muscle memory from `./skuld` to
+  `bin/skuld`, or use the installed command.
+- Module filenames retain the existing `skuld_` prefixes for now to keep the
+  refactor structural instead of combining it with a broad rename.
+
+**Alternatives rejected**
+
+- Keeping a root `./skuld` wrapper, which is impossible alongside a same-level
+  `skuld/` directory on normal filesystems.
+- Moving directly to `src/skuld/`, which adds packaging distance without a
+  current need.
+- Renaming every module while moving, which would increase review noise without
+  changing ownership boundaries.
+
 ## 2026-04-27 - Add Explicit Read-Only nginx Visibility As A Linux Provider
 
 **Context**

@@ -4,7 +4,7 @@ import types
 import unittest
 from unittest.mock import patch
 
-import skuld_linux_commands as commands
+from skuld import skuld_linux_commands as commands
 
 
 def completed(stdout: str = "", stderr: str = "", returncode: int = 0):
@@ -162,7 +162,7 @@ class LinuxCommandsTest(unittest.TestCase):
     def test_show_stats_formats_runtime_counts(self) -> None:
         output = []
 
-        with patch("skuld_linux_presenters.print_lines", side_effect=output.extend):
+        with patch("skuld.skuld_linux_presenters.print_lines", side_effect=output.extend):
             commands.show_stats(
                 service(),
                 since="1 hour ago",
@@ -195,7 +195,7 @@ class LinuxCommandsTest(unittest.TestCase):
                 "LastTriggerUSec": "Sun 2026-04-26 09:00:00",
             }
 
-        with patch("skuld_linux_presenters.print_lines", side_effect=output.extend):
+        with patch("skuld.skuld_linux_presenters.print_lines", side_effect=output.extend):
             commands.describe_service(
                 service(),
                 require_managed=lambda name, **kwargs: service(),

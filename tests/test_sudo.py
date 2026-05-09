@@ -4,9 +4,7 @@ import subprocess
 import unittest
 from argparse import Namespace
 
-import skuld_sudo
-
-
+from skuld import skuld_sudo
 def completed(stdout: str = "", stderr: str = "", returncode: int = 0) -> subprocess.CompletedProcess:
     return subprocess.CompletedProcess(args=["fake"], returncode=returncode, stdout=stdout, stderr=stderr)
 

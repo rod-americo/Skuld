@@ -4,7 +4,7 @@ import subprocess
 import unittest
 from unittest.mock import patch
 
-import skuld_macos_processes as processes
+from skuld import skuld_macos_processes as processes
 
 
 def completed(stdout: str = "", stderr: str = "", returncode: int = 0) -> subprocess.CompletedProcess:

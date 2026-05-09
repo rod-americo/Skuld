@@ -23,8 +23,8 @@ touch behavior, packaging, docs, operations, or service-manager integration.
 ```bash
 git clone git@github.com:rod-americo/skuld.git
 cd skuld
-chmod +x ./skuld
-./skuld --help
+chmod +x bin/skuld
+bin/skuld --help
 ```
 
 Live smoke checks are intentionally separate because they mutate disposable

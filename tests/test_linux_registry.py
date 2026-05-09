@@ -5,8 +5,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-import skuld_linux_registry as registry
-from skuld_linux_model import ManagedService
+from skuld import skuld_linux_registry as registry
+from skuld.skuld_linux_model import ManagedService
 
 
 class LinuxRegistryModuleTest(unittest.TestCase):

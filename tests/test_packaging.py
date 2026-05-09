@@ -4,8 +4,8 @@ import importlib
 import re
 import unittest
 
-import skuld_linux
-import skuld_macos
+from skuld import skuld_linux
+from skuld import skuld_macos
 from tests.helpers import ROOT
 
 
@@ -20,22 +20,8 @@ class PackagingMetadataTest(unittest.TestCase):
         text = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
 
         self.assertIn('[project.scripts]', text)
-        self.assertIn('skuld = "skuld_entrypoint:main"', text)
-        self.assertIn('"skuld_entrypoint"', text)
-        self.assertIn('"skuld_config"', text)
-        self.assertIn('"skuld_linux"', text)
-        self.assertIn('"skuld_linux_commands"', text)
-        self.assertIn('"skuld_linux_presenters"', text)
-        self.assertIn('"skuld_linux_runtime"', text)
-        self.assertIn('"skuld_linux_targets"', text)
-        self.assertIn('"skuld_linux_view"', text)
-        self.assertIn('"skuld_macos"', text)
-        self.assertIn('"skuld_macos_commands"', text)
-        self.assertIn('"skuld_macos_presenters"', text)
-        self.assertIn('"skuld_macos_runtime"', text)
-        self.assertIn('"skuld_macos_targets"', text)
-        self.assertIn('"skuld_macos_view"', text)
-        self.assertIn('"skuld_tables"', text)
+        self.assertIn('skuld = "skuld.skuld_entrypoint:main"', text)
+        self.assertIn('packages = ["skuld"]', text)
 
     def test_console_script_target_resolves_to_callable(self) -> None:
         module_name, separator, function_name = self.console_script_target().partition(":")

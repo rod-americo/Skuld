@@ -25,7 +25,7 @@ operations because they create disposable service-manager state.
 ### Local Setup
 
 ```bash
-chmod +x ./skuld
+chmod +x bin/skuld
 ```
 
 ### User Install
@@ -40,14 +40,14 @@ See `docs/INSTALL.md` for install and uninstall details.
 ### Primary Run
 
 ```bash
-./skuld
+bin/skuld
 ```
 
 ### Non-Mutating Interface Check
 
 ```bash
-./skuld --help
-./skuld version
+bin/skuld --help
+bin/skuld version
 ```
 
 ## 4. Operational Configuration
@@ -80,14 +80,14 @@ Table-column precedence is CLI `--columns`, then `$SKULD_HOME/config.json`,
 then `SKULD_COLUMNS`, then automatic layout. Persist a preference with:
 
 ```bash
-./skuld --columns
-./skuld list --columns
-./skuld config columns
-./skuld config columns 1 2 3
-./skuld config columns id,name,service
-./skuld config columns id name service
-./skuld config show
-./skuld config columns default
+bin/skuld --columns
+bin/skuld list --columns
+bin/skuld config columns
+bin/skuld config columns 1 2 3
+bin/skuld config columns id,name,service
+bin/skuld config columns id name service
+bin/skuld config show
+bin/skuld config columns default
 ```
 
 `skuld --columns`, `skuld list --columns`, and `skuld config columns` without
@@ -97,10 +97,10 @@ by `track`.
 Linux-only read-only nginx monitoring is opt-in:
 
 ```bash
-./skuld track --provider nginx
-./skuld track provider:nginx
-./skuld untrack --provider nginx
-./skuld config show
+bin/skuld track --provider nginx
+bin/skuld track provider:nginx
+bin/skuld untrack --provider nginx
+bin/skuld config show
 ```
 
 When enabled, `list` renders a second `nginx routes` table below the main
@@ -117,9 +117,9 @@ overrides.
 ## 5. Minimum Validation
 
 ```bash
-python3 -m py_compile ./skuld ./skuld_entrypoint.py ./skuld_cli.py ./skuld_common.py ./skuld_config.py ./skuld_linux_actions.py ./skuld_linux_catalog.py ./skuld_linux_context.py ./skuld_linux_handlers.py ./skuld_linux_model.py ./skuld_linux_nginx.py ./skuld_linux_registry.py ./skuld_linux_parser.py ./skuld_linux_commands.py ./skuld_linux_presenters.py ./skuld_linux_runtime.py ./skuld_linux_systemd.py ./skuld_linux_sync.py ./skuld_linux_stats.py ./skuld_linux_timers.py ./skuld_linux_targets.py ./skuld_linux_view.py ./skuld_macos_actions.py ./skuld_macos_catalog.py ./skuld_macos_context.py ./skuld_macos_handlers.py ./skuld_macos_model.py ./skuld_macos_registry.py ./skuld_macos_paths.py ./skuld_macos_parser.py ./skuld_macos_commands.py ./skuld_macos_launchd.py ./skuld_macos_presenters.py ./skuld_macos_processes.py ./skuld_macos_runtime.py ./skuld_macos_schedules.py ./skuld_macos_sync.py ./skuld_macos_targets.py ./skuld_macos_view.py ./skuld_observability.py ./skuld_registry.py ./skuld_sudo.py ./skuld_tables.py ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py
+python3 -m py_compile bin/skuld skuld/*.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py
 python3 -m unittest discover -s tests
-./skuld --help
+bin/skuld --help
 python3 scripts/check_project_gate.py
 python3 scripts/project_doctor.py
 python3 scripts/project_doctor.py --strict
@@ -130,14 +130,14 @@ bash -n .githooks/pre-commit scripts/install_git_hooks.sh scripts/install_runtim
 For a changed subcommand, also run:
 
 ```bash
-./skuld <subcommand> --help
+bin/skuld <subcommand> --help
 ```
 
 For live backend validation, run only when the host service manager is available
 and the registry points at disposable or intentionally managed services:
 
 ```bash
-./skuld doctor
+bin/skuld doctor
 ```
 
 The automated test suite proves command behavior with faked backend command
@@ -149,11 +149,11 @@ scripts in the next section when those scripts are run on real hosts.
 Non-mutating smoke:
 
 ```bash
-./skuld --help
-./skuld version
-./skuld list --help
-./skuld sudo --help
-./skuld config --help
+bin/skuld --help
+bin/skuld version
+bin/skuld list --help
+bin/skuld sudo --help
+bin/skuld config --help
 ```
 
 Linux live smoke can create a disposable `systemd --user` service locally or
@@ -211,9 +211,9 @@ remain payloads for disposable smoke units.
 Linux logs:
 
 ```bash
-./skuld logs <name> --lines 200
-./skuld logs <name> --follow
-./skuld logs <name> --timer --since "1 hour ago"
+bin/skuld logs <name> --lines 200
+bin/skuld logs <name> --follow
+bin/skuld logs <name> --timer --since "1 hour ago"
 ```
 
 Linux uses `journalctl`. System-scope logs can require sudo depending on host
@@ -222,8 +222,8 @@ permissions.
 macOS logs:
 
 ```bash
-./skuld logs <name> --lines 200
-./skuld logs <name> --follow
+bin/skuld logs <name> --lines 200
+bin/skuld logs <name> --follow
 ```
 
 macOS logs are file-based. They work for compatible Skuld-managed entries and
@@ -234,16 +234,16 @@ expose logs through Skuld.
 Diagnostic commands:
 
 ```bash
-./skuld doctor
-./skuld describe <name-or-id>
-./skuld status <name-or-id>
-./skuld stats <name-or-id>
+bin/skuld doctor
+bin/skuld describe <name-or-id>
+bin/skuld status <name-or-id>
+bin/skuld stats <name-or-id>
 ```
 
 Redacted debug output:
 
 ```bash
-SKULD_DEBUG=1 ./skuld status <name-or-id>
+SKULD_DEBUG=1 bin/skuld status <name-or-id>
 ```
 
 Debug output is intended for local diagnosis only and is not a stable machine
@@ -258,7 +258,7 @@ Operational impact by change type:
 
 | Change | Restart impact |
 | --- | --- |
-| `./skuld`, backend modules, shared helper modules | Rerun the CLI. Existing backend services are not automatically restarted. |
+| `bin/skuld`, backend modules, shared helper modules | Rerun the CLI. Existing backend services are not automatically restarted. |
 | `scripts/skuld_journal_stats_collector.py` | Reinstall or update the collector where the Linux timer was installed. |
 | `scripts/install_runtime_stats_timer.sh` | Rerun installer intentionally; it mutates systemd files with sudo. |
 | `config/doctor.json` | Rerun `python3 scripts/project_doctor.py --audit-config`. |
@@ -306,7 +306,7 @@ Registry formatting or default fields are stale:
 
 - Symptom: read-only commands work, but the registry file still has older
   ordering, omitted default fields, or non-canonical formatting.
-- Action: run `./skuld sync` intentionally. Read-only commands do not rewrite an
+- Action: run `bin/skuld sync` intentionally. Read-only commands do not rewrite an
   existing registry just to canonicalize it.
 
 Ambiguous Linux target:
@@ -329,15 +329,15 @@ macOS log unavailable:
 Sudo password support:
 
 - Symptom: Skuld warns about `SKULD_SUDO_PASSWORD`.
-- Action: prefer the native sudo timestamp workflow. Run `./skuld sudo auth`
-  once, then `./skuld sudo check`; Skuld sudo calls without a stored password
+- Action: prefer the native sudo timestamp workflow. Run `bin/skuld sudo auth`
+  once, then `bin/skuld sudo check`; Skuld sudo calls without a stored password
   use `sudo -n` and fail if the timestamp is not active. Use
-  `./skuld sudo forget` to invalidate the timestamp. Never commit `.env`.
+  `bin/skuld sudo forget` to invalidate the timestamp. Never commit `.env`.
 
 Invalid table columns:
 
 - Symptom: Skuld exits with `Unknown service table column`.
-- Action: run `./skuld --columns` or `./skuld config columns` to see numbered
+- Action: run `bin/skuld --columns` or `bin/skuld config columns` to see numbered
   column IDs. Use IDs such as `1 2 3`, names such as `id name service`, or a
   comma-separated subset of `id`, `name`, `service`, `timer`, `triggers`,
   `cpu`, `memory`, `ports`, `target`, `scope`, `backend`, `pid`, `user`,
@@ -349,7 +349,7 @@ Invalid user config:
 - Symptom: Skuld exits with `Invalid Skuld config` or `Invalid Skuld config
   JSON`.
 - Action: inspect `$SKULD_HOME/config.json` and either fix the JSON object or
-  reset table columns with `./skuld config columns default`.
+  reset table columns with `bin/skuld config columns default`.
 
 Runtime stats timer preview or removal:
 
@@ -369,11 +369,11 @@ Runtime stats timer preview or removal:
 These commands can change host service state:
 
 ```bash
-./skuld exec <name-or-id>
-./skuld start <name-or-id>
-./skuld stop <name-or-id>
-./skuld restart <name-or-id>
-./skuld sudo run -- <command>
+bin/skuld exec <name-or-id>
+bin/skuld start <name-or-id>
+bin/skuld stop <name-or-id>
+bin/skuld restart <name-or-id>
+bin/skuld sudo run -- <command>
 ./scripts/install_runtime_stats_timer.sh
 ```
 

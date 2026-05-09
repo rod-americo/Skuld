@@ -5,8 +5,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-import skuld_macos_registry as registry
-from skuld_macos_model import ManagedService, normalize_service
+from skuld import skuld_macos_registry as registry
+from skuld.skuld_macos_model import ManagedService, normalize_service
 
 
 def normalize_with_temp_paths(item: dict[str, object]) -> ManagedService:

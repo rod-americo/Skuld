@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-import skuld_macos_commands as commands
+from skuld import skuld_macos_commands as commands
 
 
 def service():
@@ -151,7 +151,7 @@ class MacosCommandsTest(unittest.TestCase):
     def test_show_status_formats_launchd_info(self) -> None:
         output = []
 
-        with patch("skuld_macos_presenters.print_lines", side_effect=output.extend):
+        with patch("skuld.skuld_macos_presenters.print_lines", side_effect=output.extend):
             commands.show_status(
                 service(),
                 launchd_label_for_service=lambda service: service.launchd_label,
@@ -171,7 +171,7 @@ class MacosCommandsTest(unittest.TestCase):
     def test_show_stats_formats_runtime_stats(self) -> None:
         output = []
 
-        with patch("skuld_macos_presenters.print_lines", side_effect=output.extend):
+        with patch("skuld.skuld_macos_presenters.print_lines", side_effect=output.extend):
             commands.show_stats(
                 service(),
                 update_runtime_stats=lambda service: {
@@ -192,7 +192,7 @@ class MacosCommandsTest(unittest.TestCase):
     def test_describe_service_formats_launchd_info_and_stats(self) -> None:
         output = []
 
-        with patch("skuld_macos_presenters.print_lines", side_effect=output.extend):
+        with patch("skuld.skuld_macos_presenters.print_lines", side_effect=output.extend):
             commands.describe_service(
                 service(),
                 launchctl_service_info=lambda service: {

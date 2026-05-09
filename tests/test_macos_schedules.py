@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-import skuld_macos_schedules as schedules
+from skuld import skuld_macos_schedules as schedules
 
 
 class MacScheduleTest(unittest.TestCase):

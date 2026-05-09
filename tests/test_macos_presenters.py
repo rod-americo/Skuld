@@ -4,7 +4,7 @@ import types
 import unittest
 from pathlib import Path
 
-import skuld_macos_presenters as presenters
+from skuld import skuld_macos_presenters as presenters
 
 
 def service():

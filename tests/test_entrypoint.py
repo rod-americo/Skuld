@@ -5,7 +5,7 @@ import types
 import unittest
 from unittest.mock import patch
 
-import skuld_entrypoint
+from skuld import skuld_entrypoint
 from tests.helpers import load_entrypoint_module
 
 
@@ -17,24 +17,30 @@ class EntrypointTest(unittest.TestCase):
 
     def test_selects_macos_backend_on_darwin(self) -> None:
         with patch.object(skuld_entrypoint.sys, "platform", "darwin"):
-            self.assertEqual(skuld_entrypoint.select_backend_module(), "skuld_macos")
+            self.assertEqual(
+                skuld_entrypoint.select_backend_module(),
+                "skuld.skuld_macos",
+            )
 
     def test_selects_linux_backend_for_other_platforms(self) -> None:
         with patch.object(skuld_entrypoint.sys, "platform", "linux"):
-            self.assertEqual(skuld_entrypoint.select_backend_module(), "skuld_linux")
+            self.assertEqual(
+                skuld_entrypoint.select_backend_module(),
+                "skuld.skuld_linux",
+            )
 
     def test_main_dispatches_to_selected_backend(self) -> None:
         fake_backend = types.SimpleNamespace(main=lambda: 23)
-        original = sys.modules.get("skuld_linux")
-        sys.modules["skuld_linux"] = fake_backend
+        original = sys.modules.get("skuld.skuld_linux")
+        sys.modules["skuld.skuld_linux"] = fake_backend
         try:
             with patch.object(skuld_entrypoint.sys, "platform", "linux"):
                 self.assertEqual(skuld_entrypoint.main(), 23)
         finally:
             if original is None:
-                sys.modules.pop("skuld_linux", None)
+                sys.modules.pop("skuld.skuld_linux", None)
             else:
-                sys.modules["skuld_linux"] = original
+                sys.modules["skuld.skuld_linux"] = original
 
 
 if __name__ == "__main__":

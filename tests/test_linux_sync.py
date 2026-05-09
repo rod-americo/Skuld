@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import unittest
 
-import skuld_linux_sync as sync
-from skuld_linux_model import ManagedService, managed_service_key
+from skuld import skuld_linux_sync as sync
+from skuld.skuld_linux_model import ManagedService, managed_service_key
 
 
 class LinuxSyncTest(unittest.TestCase):

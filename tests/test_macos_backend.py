@@ -10,8 +10,8 @@ from contextlib import redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
-from skuld_macos_handlers import MacOSCommandHandlers
-from skuld_macos_model import DiscoverableService, ManagedService
+from skuld.skuld_macos_handlers import MacOSCommandHandlers
+from skuld.skuld_macos_model import DiscoverableService, ManagedService
 from tests.helpers import IsolatedMacContext
 
 

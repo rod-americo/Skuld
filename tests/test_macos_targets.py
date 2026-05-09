@@ -4,7 +4,7 @@ import argparse
 import types
 import unittest
 
-import skuld_macos_targets as targets
+from skuld import skuld_macos_targets as targets
 
 
 def service(service_id: int, name: str, *, display_name: str = ""):

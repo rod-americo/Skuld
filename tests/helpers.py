@@ -7,8 +7,8 @@ import tempfile
 from pathlib import Path
 from types import ModuleType
 
-from skuld_linux_context import LinuxBackendContext
-from skuld_macos_context import MacOSBackendContext
+from skuld.skuld_linux_context import LinuxBackendContext
+from skuld.skuld_macos_context import MacOSBackendContext
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -17,10 +17,13 @@ if str(ROOT) not in sys.path:
 
 
 def load_entrypoint_module() -> ModuleType:
-    loader = importlib.machinery.SourceFileLoader("skuld_entrypoint_test", str(ROOT / "skuld"))
+    loader = importlib.machinery.SourceFileLoader(
+        "skuld_entrypoint_test",
+        str(ROOT / "bin" / "skuld"),
+    )
     spec = importlib.util.spec_from_loader(loader.name, loader)
     if spec is None:
-        raise RuntimeError("Could not create module spec for ./skuld")
+        raise RuntimeError("Could not create module spec for bin/skuld")
     module = importlib.util.module_from_spec(spec)
     loader.exec_module(module)
     return module

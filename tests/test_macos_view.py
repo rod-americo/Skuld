@@ -3,8 +3,8 @@ from __future__ import annotations
 import types
 import unittest
 
-import skuld_macos_view as view
-import skuld_tables as tables
+from skuld import skuld_macos_view as view
+from skuld import skuld_tables as tables
 
 
 def colorize(text: str, color: str) -> str:

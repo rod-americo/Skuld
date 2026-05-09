@@ -8,11 +8,11 @@ import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from unittest.mock import patch
 
-import skuld_linux_catalog as catalog
-import skuld_linux_nginx as nginx
-from skuld_linux_context import LinuxBackendContext
-from skuld_linux_handlers import LinuxCommandHandlers
-from skuld_linux_model import DiscoverableService, ManagedService
+from skuld import skuld_linux_catalog as catalog
+from skuld import skuld_linux_nginx as nginx
+from skuld.skuld_linux_context import LinuxBackendContext
+from skuld.skuld_linux_handlers import LinuxCommandHandlers
+from skuld.skuld_linux_model import DiscoverableService, ManagedService
 from tests.helpers import IsolatedLinuxContext
 
 

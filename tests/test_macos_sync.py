@@ -5,8 +5,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-import skuld_macos_sync as sync
-from skuld_macos_model import ManagedService
+from skuld import skuld_macos_sync as sync
+from skuld.skuld_macos_model import ManagedService
 
 
 class MacosSyncTest(unittest.TestCase):

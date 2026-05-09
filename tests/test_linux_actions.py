@@ -3,7 +3,7 @@ from __future__ import annotations
 import types
 import unittest
 
-import skuld_linux_actions as actions
+from skuld import skuld_linux_actions as actions
 
 
 def completed(stdout: str = "", stderr: str = "", returncode: int = 0):

@@ -6,7 +6,7 @@ import unittest
 from contextlib import redirect_stderr
 from unittest.mock import patch
 
-import skuld_observability as observability
+from skuld import skuld_observability as observability
 
 
 class ObservabilityTest(unittest.TestCase):

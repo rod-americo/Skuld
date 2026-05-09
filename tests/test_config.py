@@ -5,9 +5,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-import skuld_config
-
-
+from skuld import skuld_config
 class ConfigTest(unittest.TestCase):
     def test_missing_config_loads_as_empty(self) -> None:
         with tempfile.TemporaryDirectory() as tempdir:

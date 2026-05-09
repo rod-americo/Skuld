@@ -1,6 +1,0 @@
-#!/usr/bin/env python3
-from skuld_entrypoint import main, select_backend_module
-
-
-if __name__ == "__main__":
-    raise SystemExit(main())

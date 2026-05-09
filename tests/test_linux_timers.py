@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import unittest
 
-import skuld_linux_timers as timers
+from skuld import skuld_linux_timers as timers
 
 
 @dataclass

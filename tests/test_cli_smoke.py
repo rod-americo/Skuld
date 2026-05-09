@@ -23,7 +23,7 @@ class CliSmokeTest(unittest.TestCase):
             }
             env.pop("SKULD_SUDO_PASSWORD", None)
             return subprocess.run(
-                [sys.executable, str(ROOT / "skuld"), *args],
+                [sys.executable, str(ROOT / "bin" / "skuld"), *args],
                 env=env,
                 text=True,
                 capture_output=True,
@@ -96,7 +96,7 @@ class CliSmokeTest(unittest.TestCase):
                     "-c",
                     (
                         "import sys; "
-                        "from skuld_entrypoint import main; "
+                        "from skuld.skuld_entrypoint import main; "
                         "sys.argv = ['skuld', 'version']; "
                         "raise SystemExit(main())"
                     ),

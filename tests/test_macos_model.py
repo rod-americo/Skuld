@@ -3,7 +3,7 @@ from __future__ import annotations
 import unittest
 from pathlib import Path
 
-import skuld_macos_model as model
+from skuld import skuld_macos_model as model
 
 
 class MacosModelTest(unittest.TestCase):

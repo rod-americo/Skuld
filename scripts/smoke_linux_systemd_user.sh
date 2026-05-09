@@ -102,12 +102,12 @@ systemctl --user daemon-reload
 systemctl --user start "$UNIT_NAME.service"
 sleep 1
 
-SKULD_HOME="$STATE_DIR/skuld-home" "$REPO/skuld" track "user:$UNIT_NAME" --alias "$ALIAS"
-SKULD_HOME="$STATE_DIR/skuld-home" "$REPO/skuld" status "$ALIAS"
-SKULD_HOME="$STATE_DIR/skuld-home" "$REPO/skuld" doctor
-SKULD_HOME="$STATE_DIR/skuld-home" "$REPO/skuld" restart "$ALIAS"
-SKULD_HOME="$STATE_DIR/skuld-home" "$REPO/skuld" exec "$ALIAS"
-SKULD_HOME="$STATE_DIR/skuld-home" "$REPO/skuld" untrack "$ALIAS" >/dev/null
+SKULD_HOME="$STATE_DIR/skuld-home" "$REPO/bin/skuld" track "user:$UNIT_NAME" --alias "$ALIAS"
+SKULD_HOME="$STATE_DIR/skuld-home" "$REPO/bin/skuld" status "$ALIAS"
+SKULD_HOME="$STATE_DIR/skuld-home" "$REPO/bin/skuld" doctor
+SKULD_HOME="$STATE_DIR/skuld-home" "$REPO/bin/skuld" restart "$ALIAS"
+SKULD_HOME="$STATE_DIR/skuld-home" "$REPO/bin/skuld" exec "$ALIAS"
+SKULD_HOME="$STATE_DIR/skuld-home" "$REPO/bin/skuld" untrack "$ALIAS" >/dev/null
 echo "[ok] untracked $ALIAS"
 
 echo "Linux systemd user smoke passed for $UNIT_NAME"
@@ -136,38 +136,12 @@ if [[ -n "$HOST" ]]; then
     fi
   }
   trap 'cleanup_remote_repo_and_audit "$?"' EXIT
-  COPYFILE_DISABLE=1 tar --no-xattrs -C "$ROOT" -czf - \
+  COPYFILE_DISABLE=1 tar --no-xattrs --exclude='*/__pycache__' -C "$ROOT" -czf - \
+    bin/skuld \
     skuld \
-    skuld_entrypoint.py \
-    skuld_cli.py \
-    skuld_common.py \
-    skuld_config.py \
-    skuld_linux.py \
-    skuld_linux_actions.py \
-    skuld_linux_catalog.py \
-    skuld_linux_context.py \
-    skuld_linux_handlers.py \
-    skuld_linux_model.py \
-    skuld_linux_nginx.py \
-    skuld_linux_registry.py \
-    skuld_linux_parser.py \
-    skuld_linux_commands.py \
-    skuld_linux_presenters.py \
-    skuld_linux_runtime.py \
-    skuld_linux_systemd.py \
-    skuld_linux_sync.py \
-    skuld_linux_stats.py \
-    skuld_linux_timers.py \
-    skuld_linux_targets.py \
-    skuld_linux_view.py \
-    skuld_macos_launchd.py \
-    skuld_observability.py \
-    skuld_registry.py \
-    skuld_sudo.py \
-    skuld_tables.py \
     scripts/smoke_process.sh |
     ssh "$HOST" "tar -xzf - -C '$REMOTE_DIR'"
-  ssh "$HOST" "chmod +x '$REMOTE_DIR/skuld' '$REMOTE_DIR/scripts/smoke_process.sh'"
+  ssh "$HOST" "chmod +x '$REMOTE_DIR/bin/skuld' '$REMOTE_DIR/scripts/smoke_process.sh'"
   ssh "$HOST" "bash -s" -- "$REMOTE_DIR" "$UNIT_NAME" "$ALIAS" "/tmp/$UNIT_NAME-state" < <(remote_payload)
 else
   run_payload "$ROOT" "$UNIT_NAME" "$ALIAS" "/tmp/$UNIT_NAME-state" < <(remote_payload)

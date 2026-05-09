@@ -5,9 +5,9 @@ is not a greenfield scaffold checklist.
 
 ## 0. Existence Decision
 
-- [x] The repository has a real CLI entrypoint: `./skuld`.
-- [x] The repository has real backend implementations: `skuld_linux.py` and
-  `skuld_macos.py`.
+- [x] The repository has a real CLI entrypoint: `bin/skuld`.
+- [x] The repository has real backend implementations:
+  `skuld/skuld_linux.py` and `skuld/skuld_macos.py`.
 - [x] The scope is narrow enough to justify a repository: registry-based local
   service operation.
 - [x] The repository should not be collapsed into dotfiles because it has a
@@ -41,11 +41,12 @@ is not a greenfield scaffold checklist.
 - [x] `.gitignore` covers local runtime, logs, caches, and secrets.
 - [x] A behavior-focused `unittest` suite exists under `tests/`.
 - [x] `pyproject.toml` exposes an installable console command without removing
-  direct checkout execution through `./skuld`.
+  direct checkout execution through `bin/skuld`.
 - [x] GitHub Actions runs non-mutating validation on Ubuntu and macOS.
 
 ## 3. What Is Intentionally Not Done Yet
 
+- [x] Runtime code now lives in the repository-local `skuld/` package.
 - [ ] No mass move into `src/` was done.
 - [ ] No artificial `domain / application / infrastructure / interfaces`
   directory tree was created.

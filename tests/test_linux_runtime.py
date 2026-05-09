@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-import skuld_linux_runtime as runtime
+from skuld import skuld_linux_runtime as runtime
 
 
 def completed(stdout: str = "", stderr: str = "", returncode: int = 0) -> subprocess.CompletedProcess:

@@ -7,6 +7,12 @@ intent.
 
 ## [Unreleased]
 
+### Changed
+
+- Moved runtime modules into the repository-local `skuld/` package, changed
+  the direct checkout wrapper from `./skuld` to `bin/skuld`, and kept the
+  installed console command as `skuld`.
+
 ### Added
 
 - Linux `track --provider nginx` and `track provider:nginx` for explicit
@@ -104,7 +110,7 @@ intent.
 - Linux `catalog` now accepts `--scope all|system|user` to focus discovery on
   one systemd scope without changing the catalog IDs used by `track`.
 - Added `pyproject.toml`, `skuld_entrypoint.py`, and install/release docs so
-  the CLI can be installed as a standard Python console command while `./skuld`
+  the CLI can be installed as a standard Python console command while `bin/skuld`
   remains supported for direct checkout use.
 - Added GitHub Actions CI for non-mutating Ubuntu/macOS validation, including
   syntax, unit tests, gate/doctor checks, shell syntax, and package install

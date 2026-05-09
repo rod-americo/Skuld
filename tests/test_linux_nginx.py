@@ -3,7 +3,7 @@ from __future__ import annotations
 import types
 import unittest
 
-import skuld_linux_nginx as nginx
+from skuld import skuld_linux_nginx as nginx
 
 
 def completed(stdout: str = "", stderr: str = "", returncode: int = 0):

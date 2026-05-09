@@ -4,7 +4,7 @@ import subprocess
 import unittest
 from unittest.mock import patch
 
-import skuld_linux_systemd as systemd
+from skuld import skuld_linux_systemd as systemd
 
 
 def completed(stdout: str = "", stderr: str = "", returncode: int = 0) -> subprocess.CompletedProcess:

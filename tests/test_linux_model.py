@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 
-import skuld_linux_model as model
+from skuld import skuld_linux_model as model
 
 
 class LinuxModelTest(unittest.TestCase):

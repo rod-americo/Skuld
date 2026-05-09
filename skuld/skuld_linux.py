@@ -1,0 +1,85 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+
+from . import skuld_cli
+from . import skuld_linux_parser as linux_parser
+from . import skuld_tables as tables
+from .skuld_linux_catalog import DISCOVERABLE_SCOPE_CHOICES
+from .skuld_linux_context import LinuxBackendContext, SORT_CHOICES
+from .skuld_linux_handlers import LinuxCommandHandlers
+from .skuld_linux_model import DiscoverableService, ManagedService
+
+VERSION = "0.3.0"
+
+CONTEXT = LinuxBackendContext()
+HANDLERS = LinuxCommandHandlers(CONTEXT)
+
+
+def build_parser() -> argparse.ArgumentParser:
+    return linux_parser.build_parser(
+        sort_choices=SORT_CHOICES,
+        column_choices=tables.SERVICE_TABLE_COLUMN_KEYS,
+        discoverable_scope_choices=DISCOVERABLE_SCOPE_CHOICES,
+        version=VERSION,
+        list_services=HANDLERS.list_services,
+        catalog=HANDLERS.catalog,
+        track=HANDLERS.track,
+        rename=HANDLERS.rename,
+        untrack=HANDLERS.untrack,
+        exec_now=HANDLERS.exec_now,
+        start_stop=HANDLERS.start_stop,
+        restart=HANDLERS.restart,
+        status=HANDLERS.status,
+        logs=HANDLERS.logs,
+        stats=HANDLERS.stats,
+        doctor=HANDLERS.doctor,
+        describe=HANDLERS.describe,
+        sync=HANDLERS.sync,
+        sudo_check=CONTEXT.sudo_check,
+        sudo_auth=CONTEXT.sudo_auth,
+        sudo_forget=CONTEXT.sudo_forget,
+        sudo_run_command=CONTEXT.sudo_run_command,
+        config_show=CONTEXT.config_show,
+        config_columns=CONTEXT.config_columns,
+    )
+
+
+def configure_cli_globals(
+    args: argparse.Namespace,
+    parser: argparse.ArgumentParser,
+) -> None:
+    CONTEXT.configure_cli_globals(args, parser)
+
+
+def main() -> int:
+    return skuld_cli.run_current_process_backend(
+        parser=build_parser(),
+        configure_globals=configure_cli_globals,
+        load_registry=CONTEXT.load_registry,
+        list_services_compact=HANDLERS.list_services_compact,
+        resolve_sort_arg=CONTEXT.resolve_sort_arg,
+        err=CONTEXT.err,
+        show_columns_catalog=CONTEXT.show_columns_catalog,
+    )
+
+
+__all__ = [
+    "CONTEXT",
+    "DISCOVERABLE_SCOPE_CHOICES",
+    "DiscoverableService",
+    "HANDLERS",
+    "LinuxBackendContext",
+    "LinuxCommandHandlers",
+    "ManagedService",
+    "SORT_CHOICES",
+    "VERSION",
+    "build_parser",
+    "configure_cli_globals",
+    "main",
+]
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

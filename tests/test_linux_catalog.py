@@ -3,8 +3,8 @@ from __future__ import annotations
 import types
 import unittest
 
-import skuld_linux_catalog as catalog
-from skuld_linux_model import DiscoverableService, ManagedService, managed_service_key
+from skuld import skuld_linux_catalog as catalog
+from skuld.skuld_linux_model import DiscoverableService, ManagedService, managed_service_key
 
 
 def completed(stdout: str = "", returncode: int = 0):

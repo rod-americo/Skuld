@@ -4,7 +4,7 @@ import argparse
 import types
 import unittest
 
-import skuld_linux_targets as targets
+from skuld import skuld_linux_targets as targets
 
 
 def service(

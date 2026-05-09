@@ -9,22 +9,22 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def root_modules() -> list[str]:
-    return sorted(path.stem for path in ROOT.glob("skuld_*.py"))
+    return sorted(path.stem for path in (ROOT / "skuld").glob("skuld_*.py"))
 
 
-def pyproject_modules() -> list[str]:
+def pyproject_packages() -> list[str]:
     text = (ROOT / "pyproject.toml").read_text(encoding="utf-8")
-    match = re.search(r"py-modules\s*=\s*\[(.*?)\]", text, flags=re.S)
+    match = re.search(r"packages\s*=\s*\[(.*?)\]", text, flags=re.S)
     if not match:
-        raise AssertionError("pyproject.toml is missing [tool.setuptools] py-modules")
-    return sorted(re.findall(r'"(skuld_[^"]+)"', match.group(1)))
+        raise AssertionError("pyproject.toml is missing [tool.setuptools] packages")
+    return sorted(re.findall(r'"([^"]+)"', match.group(1)))
 
 
 class ModuleInventoryTest(unittest.TestCase):
-    def test_pyproject_packages_every_root_skuld_module(self) -> None:
-        self.assertEqual(pyproject_modules(), root_modules())
+    def test_pyproject_packages_skuld_package(self) -> None:
+        self.assertEqual(pyproject_packages(), ["skuld"])
 
-    def test_documented_compile_commands_include_every_root_skuld_module(self) -> None:
+    def test_documented_compile_commands_include_package_glob(self) -> None:
         files = [
             ROOT / "README.md",
             ROOT / "AGENTS.md",
@@ -34,34 +34,14 @@ class ModuleInventoryTest(unittest.TestCase):
         ]
         for path in files:
             text = path.read_text(encoding="utf-8")
-            missing = [
-                f"./{module}.py"
-                for module in root_modules()
-                if f"./{module}.py" not in text
-            ]
-            self.assertEqual(missing, [], f"{path} misses modules")
+            self.assertIn("skuld/*.py", text, f"{path} misses package compile glob")
 
     def test_linux_remote_smoke_payload_includes_linux_runtime_modules(self) -> None:
         text = (ROOT / "scripts" / "smoke_linux_systemd_user.sh").read_text(
             encoding="utf-8"
         )
-        shared = {
-            "skuld_entrypoint",
-            "skuld_cli",
-            "skuld_common",
-            "skuld_config",
-            "skuld_observability",
-            "skuld_registry",
-            "skuld_sudo",
-            "skuld_tables",
-        }
-        required = [
-            f"{module}.py"
-            for module in root_modules()
-            if module.startswith("skuld_linux") or module in shared
-        ]
-        missing = [module for module in required if module not in text]
-        self.assertEqual(missing, [])
+        self.assertIn("bin/skuld", text)
+        self.assertIn("    skuld \\", text)
         self.assertIn("scripts/smoke_process.sh", text)
 
 

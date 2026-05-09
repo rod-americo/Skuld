@@ -3,8 +3,8 @@
 Skuld can still be run directly from a checkout:
 
 ```bash
-chmod +x ./skuld
-./skuld --help
+chmod +x bin/skuld
+bin/skuld --help
 ```
 
 For user-level installation from a checkout, prefer `pipx`:
@@ -24,8 +24,8 @@ skuld --help
 ```
 
 The package exposes the console command `skuld` through
-`skuld_entrypoint:main`. The root `./skuld` script remains for development and
-direct checkout operation.
+`skuld.skuld_entrypoint:main`. The `bin/skuld` wrapper remains for development
+and direct checkout operation.
 
 ## Runtime State
 

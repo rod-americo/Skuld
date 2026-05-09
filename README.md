@@ -18,9 +18,9 @@ metadata, but `StartInterval` and `StartCalendarInterval` come from the plist.
 ## What This Repository Is
 
 - A standard-library Python CLI for local service visibility and control.
-- A root-level codebase whose checkout entrypoint is `./skuld`, installable
-  entrypoint is `skuld_entrypoint:main`, and platform composition roots are
-  `skuld_linux.py` and `skuld_macos.py`.
+- A package-layout codebase whose checkout entrypoint is `bin/skuld`,
+  installable entrypoint is `skuld.skuld_entrypoint:main`, and platform
+  composition roots are `skuld/skuld_linux.py` and `skuld/skuld_macos.py`.
 - A registry-based operator tool for listing, tracking, starting, stopping,
   restarting, executing, inspecting, and reading logs for selected services.
 - A structurally recovered existing repository with tests, docs, gates, doctor
@@ -33,8 +33,8 @@ metadata, but `StartInterval` and `StartCalendarInterval` come from the plist.
 - Not a deployment framework, package manager, scheduler authoring tool, fleet
   manager, metrics platform, or log aggregation system.
 - Not a published package channel, hosted service, or stable Python library API.
-- Not a `src/`-layout package; the current installable package intentionally
-  preserves the root-level module layout.
+- Not a `src/`-layout package; the runtime code lives directly in the
+  repository-local `skuld/` package.
 - Not authorized to operate arbitrary host services outside the Skuld registry.
 
 ## Current Maturity
@@ -71,15 +71,17 @@ create or edit them.
 The public entrypoint is:
 
 ```bash
-./skuld
+bin/skuld
 ```
 
-`./skuld` is the composition root. It selects the backend from `sys.platform`:
+`bin/skuld` is a direct-checkout wrapper around the importable composition
+root. The installed `skuld` command and `python -m skuld` use the same package
+entrypoint. Backend selection comes from `sys.platform`:
 
-- `darwin` -> `skuld_macos.main()`
-- other platforms -> `skuld_linux.main()`
+- `darwin` -> `skuld.skuld_macos.main()`
+- other platforms -> `skuld.skuld_linux.main()`
 
-Internal modules:
+Internal modules live under `skuld/`:
 
 | Module | Responsibility |
 | --- | --- |
@@ -139,7 +141,7 @@ cd skuld
 ### 2. Prepare
 
 ```bash
-chmod +x ./skuld
+chmod +x bin/skuld
 ```
 
 ### 3. Configure
@@ -151,13 +153,13 @@ supported environment variables.
 ### 4. Run
 
 ```bash
-./skuld
+bin/skuld
 ```
 
 For a non-mutating interface check:
 
 ```bash
-./skuld --help
+bin/skuld --help
 ```
 
 No external Python packages are required for normal CLI use.
@@ -193,9 +195,9 @@ preferences file is not part of the service registry contract.
 Prefer the native sudo timestamp instead of storing a password:
 
 ```bash
-./skuld sudo auth
-./skuld sudo check
-./skuld sudo forget
+bin/skuld sudo auth
+bin/skuld sudo check
+bin/skuld sudo forget
 ```
 
 `skuld sudo auth` runs the normal system `sudo -v` prompt and lets later Skuld
@@ -206,35 +208,35 @@ operation. They are not production credential management.
 ## Commands
 
 ```bash
-./skuld
-./skuld list
-./skuld catalog
-./skuld catalog --grep <text>
-./skuld track ...
-./skuld rename ...
-./skuld untrack ...
-./skuld exec ...
-./skuld start ...
-./skuld stop ...
-./skuld restart ...
-./skuld status ...
-./skuld logs ...
-./skuld stats ...
-./skuld describe ...
-./skuld doctor
-./skuld sync
-./skuld version
-./skuld config show
-./skuld config columns
-./skuld config columns 1 2 3
-./skuld config columns id,name,service
-./skuld sudo check
-./skuld sudo auth
-./skuld sudo forget
-./skuld sudo run -- <command>
+bin/skuld
+bin/skuld list
+bin/skuld catalog
+bin/skuld catalog --grep <text>
+bin/skuld track ...
+bin/skuld rename ...
+bin/skuld untrack ...
+bin/skuld exec ...
+bin/skuld start ...
+bin/skuld stop ...
+bin/skuld restart ...
+bin/skuld status ...
+bin/skuld logs ...
+bin/skuld stats ...
+bin/skuld describe ...
+bin/skuld doctor
+bin/skuld sync
+bin/skuld version
+bin/skuld config show
+bin/skuld config columns
+bin/skuld config columns 1 2 3
+bin/skuld config columns id,name,service
+bin/skuld sudo check
+bin/skuld sudo auth
+bin/skuld sudo forget
+bin/skuld sudo run -- <command>
 ```
 
-`./skuld` and `./skuld list` show the same default compact table:
+`bin/skuld` and `bin/skuld list` show the same default compact table:
 
 ```text
 id | name | service | timer | triggers | cpu | memory | ports
@@ -244,18 +246,18 @@ Column selection can be set per invocation, saved as a user preference, or
 provided by environment fallback:
 
 ```bash
-./skuld --columns id,name,service
-./skuld --columns
-./skuld --columns 1,2,3
-./skuld list --columns
-./skuld list --columns name,cpu,memory
-./skuld config columns
-./skuld config columns 1 2 3
-./skuld config columns id,name,service
-./skuld config columns id name service
-./skuld config show
-./skuld config columns default
-SKULD_COLUMNS=id,name,service,timer ./skuld
+bin/skuld --columns id,name,service
+bin/skuld --columns
+bin/skuld --columns 1,2,3
+bin/skuld list --columns
+bin/skuld list --columns name,cpu,memory
+bin/skuld config columns
+bin/skuld config columns 1 2 3
+bin/skuld config columns id,name,service
+bin/skuld config columns id name service
+bin/skuld config show
+bin/skuld config columns default
+SKULD_COLUMNS=id,name,service,timer bin/skuld
 ```
 
 Supported column keys are `id`, `name`, `service`, `timer`, `triggers`, `cpu`,
@@ -272,22 +274,22 @@ table containing ID `100` renders `001`, `002`, and `100`.
 Optional operational views:
 
 ```bash
-./skuld --columns id,name,scope,target,pid,runs,next
-./skuld --columns id,name,backend,user,restart,last
+bin/skuld --columns id,name,scope,target,pid,runs,next
+bin/skuld --columns id,name,backend,user,restart,last
 ```
 
 Supported sort examples:
 
 ```bash
-./skuld --sort id
-./skuld list --sort cpu
-./skuld list --sort memory
+bin/skuld --sort id
+bin/skuld list --sort cpu
+bin/skuld list --sort memory
 ```
 
 Use command help for the exact current parser contract:
 
 ```bash
-./skuld <subcommand> --help
+bin/skuld <subcommand> --help
 ```
 
 ## Registry
@@ -318,23 +320,23 @@ Skuld supports `system` and `user` systemd scopes.
 Examples:
 
 ```bash
-./skuld catalog
-./skuld catalog --scope user
-./skuld track nginx
-./skuld track system:nginx --alias edge-proxy
-./skuld track --provider nginx
-./skuld track provider:nginx
-./skuld track user:syncthing --alias sync-home
-./skuld track 1 4 22
-./skuld describe edge-proxy
-./skuld untrack 1 2 3
-./skuld untrack --provider nginx
+bin/skuld catalog
+bin/skuld catalog --scope user
+bin/skuld track nginx
+bin/skuld track system:nginx --alias edge-proxy
+bin/skuld track --provider nginx
+bin/skuld track provider:nginx
+bin/skuld track user:syncthing --alias sync-home
+bin/skuld track 1 4 22
+bin/skuld describe edge-proxy
+bin/skuld untrack 1 2 3
+bin/skuld untrack --provider nginx
 ```
 
-Use `./skuld catalog --scope user` when you want to inspect only `systemd --user`
+Use `bin/skuld catalog --scope user` when you want to inspect only `systemd --user`
 units while keeping the same catalog IDs used by `track`.
 
-`./skuld track --provider nginx` enables a Linux-only read-only nginx provider.
+`bin/skuld track --provider nginx` enables a Linux-only read-only nginx provider.
 When enabled, `list` renders a second local `nginx routes` table below the main
 service table, and `describe <service>` shows matched nginx routes with their
 configuration source file. The provider does not add a managed service, and it
@@ -363,11 +365,11 @@ stores the label plus inspected metadata.
 Examples:
 
 ```bash
-./skuld catalog
-./skuld catalog --grep draupnir
-./skuld track 1 4 22
-./skuld track com.apple.Finder --alias finder
-./skuld untrack 1 2 3
+bin/skuld catalog
+bin/skuld catalog --grep draupnir
+bin/skuld track 1 4 22
+bin/skuld track com.apple.Finder --alias finder
+bin/skuld untrack 1 2 3
 ```
 
 `skuld logs` is file-based on macOS. It can read compatible Skuld-managed log
@@ -376,7 +378,7 @@ paths and externally tracked launchd jobs whose plist declares
 or application-specific logs may not expose logs through Skuld.
 
 `catalog` renders the full visible `launchd` catalog by default. Use
-`./skuld catalog --grep <text>` to narrow the output to labels whose names
+`bin/skuld catalog --grep <text>` to narrow the output to labels whose names
 contain a case-insensitive substring.
 
 ## Validation
@@ -384,9 +386,9 @@ contain a case-insensitive substring.
 Minimum repository validation:
 
 ```bash
-python3 -m py_compile ./skuld ./skuld_entrypoint.py ./skuld_cli.py ./skuld_common.py ./skuld_config.py ./skuld_linux_actions.py ./skuld_linux_catalog.py ./skuld_linux_context.py ./skuld_linux_handlers.py ./skuld_linux_model.py ./skuld_linux_nginx.py ./skuld_linux_registry.py ./skuld_linux_parser.py ./skuld_linux_commands.py ./skuld_linux_presenters.py ./skuld_linux_runtime.py ./skuld_linux_systemd.py ./skuld_linux_sync.py ./skuld_linux_stats.py ./skuld_linux_timers.py ./skuld_linux_targets.py ./skuld_linux_view.py ./skuld_macos_actions.py ./skuld_macos_catalog.py ./skuld_macos_context.py ./skuld_macos_handlers.py ./skuld_macos_model.py ./skuld_macos_registry.py ./skuld_macos_paths.py ./skuld_macos_parser.py ./skuld_macos_commands.py ./skuld_macos_launchd.py ./skuld_macos_presenters.py ./skuld_macos_processes.py ./skuld_macos_runtime.py ./skuld_macos_schedules.py ./skuld_macos_sync.py ./skuld_macos_targets.py ./skuld_macos_view.py ./skuld_observability.py ./skuld_registry.py ./skuld_sudo.py ./skuld_tables.py ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py
+python3 -m py_compile bin/skuld skuld/*.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py
 python3 -m unittest discover -s tests
-./skuld --help
+bin/skuld --help
 python3 scripts/check_project_gate.py
 python3 scripts/project_doctor.py
 python3 scripts/project_doctor.py --strict

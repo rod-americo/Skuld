@@ -26,52 +26,7 @@ classifiers = [
 dependencies = []
 
 [project.scripts]
-skuld = "skuld_entrypoint:main"
+skuld = "skuld.skuld_entrypoint:main"
 
 [tool.setuptools]
-py-modules = [
-  "skuld_entrypoint",
-  "skuld_cli",
-  "skuld_common",
-  "skuld_config",
-  "skuld_linux",
-  "skuld_linux_actions",
-  "skuld_linux_catalog",
-  "skuld_linux_context",
-  "skuld_linux_handlers",
-  "skuld_linux_model",
-  "skuld_linux_nginx",
-  "skuld_linux_registry",
-  "skuld_linux_parser",
-  "skuld_linux_commands",
-  "skuld_linux_presenters",
-  "skuld_linux_runtime",
-  "skuld_linux_stats",
-  "skuld_linux_systemd",
-  "skuld_linux_sync",
-  "skuld_linux_targets",
-  "skuld_linux_timers",
-  "skuld_linux_view",
-  "skuld_macos",
-  "skuld_macos_actions",
-  "skuld_macos_catalog",
-  "skuld_macos_context",
-  "skuld_macos_handlers",
-  "skuld_macos_model",
-  "skuld_macos_registry",
-  "skuld_macos_paths",
-  "skuld_macos_parser",
-  "skuld_macos_commands",
-  "skuld_macos_launchd",
-  "skuld_macos_presenters",
-  "skuld_macos_processes",
-  "skuld_macos_runtime",
-  "skuld_macos_schedules",
-  "skuld_macos_sync",
-  "skuld_macos_targets",
-  "skuld_macos_view",
-  "skuld_observability",
-  "skuld_registry",
-  "skuld_sudo",
-  "skuld_tables",
-]
+packages = ["skuld"]

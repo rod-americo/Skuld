@@ -4,8 +4,8 @@ import io
 import unittest
 from contextlib import redirect_stdout
 
-import skuld_common as common
-import skuld_tables as tables
+from skuld import skuld_common as common
+from skuld import skuld_tables as tables
 
 
 class ServiceTableTest(unittest.TestCase):

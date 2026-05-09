@@ -103,7 +103,7 @@ The service registry remains a JSON array. Do not add user preferences to
 
 | Step | Input | Output | Expected Failures |
 | --- | --- | --- | --- |
-| Dispatch | `./skuld` invocation | backend `main()` call | Unsupported or missing backend module. |
+| Dispatch | `bin/skuld`, `python -m skuld`, or installed `skuld` invocation | backend `main()` call | Unsupported or missing backend module. |
 | Load registry | registry JSON | normalized service list | Missing required fields, invalid JSON, duplicate display names. |
 | Discover | service-manager catalog | discoverable entries | Missing `systemctl`, unavailable user manager, launchctl visibility limits. |
 | Discover nginx routes | enabled provider plus `nginx -T` | local route entries | nginx missing, permission failure, unreadable config, parse gaps in complex configs. |

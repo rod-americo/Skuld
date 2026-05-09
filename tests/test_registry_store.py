@@ -6,7 +6,7 @@ import unittest
 from dataclasses import dataclass
 from pathlib import Path
 
-from skuld_registry import RegistryStore
+from skuld.skuld_registry import RegistryStore
 
 
 @dataclass

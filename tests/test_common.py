@@ -6,7 +6,7 @@ import unittest
 from contextlib import redirect_stdout
 from unittest.mock import patch
 
-import skuld_common as common
+from skuld import skuld_common as common
 
 
 class CommonHelperTest(unittest.TestCase):

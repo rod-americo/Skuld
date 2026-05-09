@@ -3,7 +3,7 @@ from __future__ import annotations
 import types
 import unittest
 
-import skuld_linux_presenters as presenters
+from skuld import skuld_linux_presenters as presenters
 
 
 def service():

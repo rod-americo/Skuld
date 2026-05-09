@@ -3,8 +3,8 @@ from __future__ import annotations
 import argparse
 import unittest
 
-import skuld_cli
-import skuld_tables as tables
+from skuld import skuld_cli
+from skuld import skuld_tables as tables
 
 
 def parser_with_commands() -> argparse.ArgumentParser:

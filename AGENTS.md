@@ -20,9 +20,9 @@ Before significant changes, read these files in order:
 4. `docs/CONTRACTS.md`
 5. `docs/OPERATIONS.md`
 6. `docs/DECISIONS.md`
-7. The touched entrypoint/backend file: `skuld_entrypoint.py`, `skuld_linux.py`,
-   `skuld_macos.py`, or `./skuld`
-8. Shared helpers when relevant: `skuld_cli.py`, `skuld_common.py`,
+7. The touched entrypoint/backend file: `skuld/skuld_entrypoint.py`,
+   `skuld/skuld_linux.py`, `skuld/skuld_macos.py`, or `bin/skuld`
+8. Shared helpers when relevant: `skuld/skuld_cli.py`, `skuld/skuld_common.py`,
    `skuld_config.py`,
    `skuld_linux_actions.py`, `skuld_linux_catalog.py`,
    `skuld_linux_context.py`, `skuld_linux_handlers.py`,
@@ -66,7 +66,7 @@ If the change touches host operations, also read:
 
 - A local CLI for tracking and operating explicitly registered services.
 - A registry boundary around `systemd` and `launchd`.
-- A root-level Python codebase with real users and real runtime behavior.
+- A package-layout Python codebase with real users and real runtime behavior.
 
 ## What Skuld Must Not Become Accidentally
 
@@ -244,7 +244,7 @@ files are large; avoid making them larger through unrelated refactors.
 - Warn users when `.env` or `SKULD_SUDO_PASSWORD` sudo support is involved.
 - Prefer `skuld sudo auth` and the native sudo timestamp over storing a sudo
   password.
-- Prefer portable documentation paths such as `./skuld`, `$HOME`, and `$(pwd)`.
+- Prefer portable documentation paths such as `bin/skuld`, `$HOME`, and `$(pwd)`.
 - Avoid machine-specific absolute paths unless a user explicitly asks for them.
 
 ## Minimum Validation
@@ -252,9 +252,9 @@ files are large; avoid making them larger through unrelated refactors.
 Run this before finalizing repository-wide structural or operational changes:
 
 ```bash
-python3 -m py_compile ./skuld ./skuld_entrypoint.py ./skuld_cli.py ./skuld_common.py ./skuld_config.py ./skuld_linux_actions.py ./skuld_linux_catalog.py ./skuld_linux_context.py ./skuld_linux_handlers.py ./skuld_linux_model.py ./skuld_linux_nginx.py ./skuld_linux_registry.py ./skuld_linux_parser.py ./skuld_linux_commands.py ./skuld_linux_presenters.py ./skuld_linux_runtime.py ./skuld_linux_systemd.py ./skuld_linux_sync.py ./skuld_linux_stats.py ./skuld_linux_timers.py ./skuld_linux_targets.py ./skuld_linux_view.py ./skuld_macos_actions.py ./skuld_macos_catalog.py ./skuld_macos_context.py ./skuld_macos_handlers.py ./skuld_macos_model.py ./skuld_macos_registry.py ./skuld_macos_paths.py ./skuld_macos_parser.py ./skuld_macos_commands.py ./skuld_macos_launchd.py ./skuld_macos_presenters.py ./skuld_macos_processes.py ./skuld_macos_runtime.py ./skuld_macos_schedules.py ./skuld_macos_sync.py ./skuld_macos_targets.py ./skuld_macos_view.py ./skuld_observability.py ./skuld_registry.py ./skuld_sudo.py ./skuld_tables.py ./skuld_linux.py ./skuld_macos.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py
+python3 -m py_compile bin/skuld skuld/*.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py
 python3 -m unittest discover -s tests
-./skuld --help
+bin/skuld --help
 python3 scripts/check_project_gate.py
 python3 scripts/project_doctor.py
 python3 scripts/project_doctor.py --strict
@@ -265,7 +265,7 @@ bash -n .githooks/pre-commit scripts/install_git_hooks.sh scripts/install_runtim
 For new or changed CLI commands, also run:
 
 ```bash
-./skuld <subcommand> --help
+bin/skuld <subcommand> --help
 ```
 
 If `systemd` is unavailable, state that clearly instead of treating live Linux

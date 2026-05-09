@@ -3,8 +3,8 @@ from __future__ import annotations
 import unittest
 from typing import Optional
 
-import skuld_macos_parser as macos_parser
-import skuld_tables as tables
+from skuld import skuld_macos_parser as macos_parser
+from skuld import skuld_tables as tables
 
 
 def _noop(*_args: object, **_kwargs: object) -> None:

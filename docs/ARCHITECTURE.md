@@ -6,14 +6,14 @@ Skuld provides a local CLI control layer for selected host services. It keeps a
 registry of services the operator explicitly chose to track, then uses the host
 service manager to inspect and operate those services.
 
-The architecture is currently implemented in root-level Python files. That is a
-real constraint of the existing system, not a recommended final shape.
+The architecture is implemented in the repository-local `skuld/` Python package
+with a small direct-checkout wrapper in `bin/skuld`.
 
 ## 2. Scope
 
 Includes:
 
-- Dispatching to a Linux or macOS backend from `./skuld`.
+- Dispatching to a Linux or macOS backend from `bin/skuld`.
 - Maintaining a JSON registry of tracked services.
 - Discovering backend services from `systemd` or `launchd`.
 - Resolving command targets by registry ID, display name, backend name, and
@@ -78,20 +78,21 @@ Critical dependencies:
 
 ### 4.1 Composition Root
 
-`skuld_entrypoint.py` is the importable composition root. The root `./skuld`
-script reuses it for direct checkout execution, and the packaged console script
-points at `skuld_entrypoint:main`.
+`skuld/skuld_entrypoint.py` is the importable composition root. `bin/skuld`
+reuses it for direct checkout execution, `python -m skuld` uses the same
+entrypoint, and the packaged console script points at
+`skuld.skuld_entrypoint:main`.
 
 ```text
-./skuld or packaged skuld command
-  -> skuld_entrypoint.main()
-  -> sys.platform == "darwin" ? skuld_macos.main()
-  -> otherwise                ? skuld_linux.main()
+bin/skuld or packaged skuld command
+  -> skuld.skuld_entrypoint.main()
+  -> sys.platform == "darwin" ? skuld.skuld_macos.main()
+  -> otherwise                ? skuld.skuld_linux.main()
 ```
 
 ### 4.2 Linux Backend
 
-`skuld_linux.py` is the Linux composition root:
+`skuld/skuld_linux.py` is the Linux composition root:
 
 - parser construction through `skuld_linux_parser.py`.
 - binding `LinuxBackendContext` to `LinuxCommandHandlers`.
@@ -217,7 +218,7 @@ points at `skuld_entrypoint:main`.
 
 ### 4.3 macOS Backend
 
-`skuld_macos.py` is the macOS composition root:
+`skuld/skuld_macos.py` is the macOS composition root:
 
 - parser construction through `skuld_macos_parser.py`.
 - binding `MacOSBackendContext` to `MacOSCommandHandlers`.
@@ -461,8 +462,9 @@ the parser modules do not import backend state or host adapters.
 
 ## 5. Main Flow
 
-1. The operator runs `./skuld` or a subcommand.
-2. `./skuld` imports the platform backend and calls `main()`.
+1. The operator runs `bin/skuld`, `python -m skuld`, or the installed `skuld`
+   command.
+2. The package entrypoint imports the platform backend and calls `main()`.
 3. The backend parser maps CLI arguments to a command handler.
 4. `skuld_cli.py` runs the backend-neutral command loop.
 5. For most commands, `load_registry()` ensures runtime storage exists, parses
@@ -560,7 +562,7 @@ Host-local configuration:
   external launchd jobs whose plist declares `StandardOutPath` or
   `StandardErrorPath`.
 - Minimal health checks are CLI help, project doctor, and backend-specific
-  `./skuld doctor` when the local service manager is available.
+  `bin/skuld doctor` when the local service manager is available.
 
 ## 10. Hotspots And Technical Debt
 
