@@ -318,6 +318,87 @@ class MacCommandBehaviorTest(unittest.TestCase):
 
             self.assertEqual(calls, ["bootstrap", "kickstart:False"])
 
+    def test_start_with_name_and_command_creates_agent_service(self) -> None:
+        with IsolatedMacContext() as state:
+            ctx = state.context
+            handlers = MacOSCommandHandlers(ctx)
+            created = []
+
+            with patch.object(
+                ctx,
+                "create_managed_agent_service",
+                side_effect=lambda name, command: created.append((name, command)),
+            ):
+                handlers.start_stop(
+                    argparse.Namespace(
+                        targets=["--", "python", "app.py"],
+                        name_flag="api",
+                        id_flag=None,
+                    ),
+                    "start",
+                )
+
+            self.assertEqual(created, [("api", ["python", "app.py"])])
+
+    def test_delete_refuses_external_service(self) -> None:
+        with IsolatedMacContext() as state:
+            ctx = state.context
+            handlers = MacOSCommandHandlers(ctx)
+            ctx.save_registry(
+                [
+                    ManagedService(
+                        "com.example.api",
+                        "/bin/api",
+                        "API",
+                        display_name="api",
+                        managed_by_skuld=False,
+                        scope="agent",
+                        id=1,
+                    )
+                ]
+            )
+
+            with self.assertRaisesRegex(RuntimeError, "externally tracked"):
+                handlers.delete(
+                    argparse.Namespace(
+                        targets=["api"],
+                        name_flag=None,
+                        id_flag=None,
+                    )
+                )
+
+    def test_delete_removes_only_skuld_managed_agent_service(self) -> None:
+        with IsolatedMacContext() as state:
+            ctx = state.context
+            handlers = MacOSCommandHandlers(ctx)
+            service = ManagedService(
+                "api",
+                "/bin/api",
+                "API",
+                display_name="api",
+                managed_by_skuld=True,
+                scope="agent",
+                id=1,
+            )
+            ctx.save_registry([service])
+            deleted = []
+
+            with patch.object(
+                ctx,
+                "delete_managed_agent_service",
+                side_effect=deleted.append,
+            ):
+                handlers.delete(
+                    argparse.Namespace(
+                        targets=["api"],
+                        name_flag=None,
+                        id_flag=None,
+                    )
+                )
+
+            self.assertEqual([item.name for item in deleted], ["api"])
+            self.assertTrue(deleted[0].managed_by_skuld)
+
     def test_start_scheduled_job_does_not_kickstart_immediately(self) -> None:
         with IsolatedMacContext() as state:
             ctx = state.context

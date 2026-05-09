@@ -28,6 +28,7 @@ def build_parser() -> argparse.ArgumentParser:
         track=HANDLERS.track,
         rename=HANDLERS.rename,
         untrack=HANDLERS.untrack,
+        delete=HANDLERS.delete,
         exec_now=HANDLERS.exec_now,
         start_stop=HANDLERS.start_stop,
         restart=HANDLERS.restart,

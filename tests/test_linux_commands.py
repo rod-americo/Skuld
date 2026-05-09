@@ -24,6 +24,7 @@ def service():
         user="",
         restart="on-failure",
         timer_persistent=True,
+        managed_by_skuld=False,
     )
 
 
@@ -49,6 +50,7 @@ class LinuxCommandsTest(unittest.TestCase):
         self.assertEqual(saved[0].scope, "user")
         self.assertEqual(saved[0].display_name, "worker")
         self.assertEqual(saved[0].working_dir, "/srv/api")
+        self.assertFalse(saved[0].managed_by_skuld)
 
     def test_rename_same_display_name_does_not_write(self) -> None:
         saved = []
@@ -79,6 +81,16 @@ class LinuxCommandsTest(unittest.TestCase):
 
         self.assertEqual(removed, [("api", "user")])
         self.assertEqual(messages, ["Removed 'api' from the skuld registry."])
+
+    def test_delete_delegates_to_managed_service_removal(self) -> None:
+        calls = []
+
+        commands.delete_service(
+            service(),
+            delete_managed_user_service=calls.append,
+        )
+
+        self.assertEqual(calls[0].name, "api")
 
     def test_doctor_reports_missing_expected_timer(self) -> None:
         output = []

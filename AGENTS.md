@@ -70,7 +70,7 @@ If the change touches host operations, also read:
 
 ## What Skuld Must Not Become Accidentally
 
-- A service definition generator.
+- An arbitrary service definition generator.
 - A deployment framework.
 - A fleet manager.
 - A metrics platform.
@@ -103,6 +103,8 @@ inside the existing files until a tested extraction is justified.
     orchestration for `start`, `stop`, `restart`, and `exec`.
   - `skuld_linux_catalog.py` owns Linux systemd catalog discovery, catalog
     target resolution, and `track` orchestration.
+  - `skuld_linux_managed.py` owns Linux Skuld-managed user service unit
+    rendering, creation, and safe deletion.
   - `skuld_linux_context.py` owns Linux backend dependency wiring for paths,
     registry access, output policy, sudo, systemd callbacks, runtime reads, and
     table callbacks.
@@ -139,6 +141,8 @@ inside the existing files until a tested extraction is justified.
   - `skuld_macos_launchd.py` owns macOS `launchd` command construction,
     domain/target formatting, launchctl parsing, and low-level launchctl
     execution.
+  - `skuld_macos_managed.py` owns macOS Skuld-managed LaunchAgent wrapper,
+    plist rendering, creation, and safe deletion.
   - `skuld_macos_presenters.py` owns macOS line-oriented output formatting for
     selected detail views such as `status`, `stats`, and `describe`.
   - `skuld_macos_processes.py` owns macOS process-tree inspection,
@@ -198,9 +202,12 @@ testing seam for behavior already present.
 - Keep the CLI stable and backward-compatible when possible.
 - Treat `systemd` and `launchd` operations as high-impact. Prefer explicit
   commands and clear errors.
-- Preserve the rule: Skuld only operates services in its registry.
+- Preserve the rule: Skuld only operates services in its registry, except for
+  initial creation of explicitly requested Skuld-managed user/agent services.
 - Do not remove existing units, launchd plists, or registry entries unless the
-  user explicitly requests that behavior.
+  user explicitly requests that behavior. `delete` may remove only
+  `managed_by_skuld=true` user/agent service definitions; external services use
+  `untrack`.
 - Do not log secrets.
 
 ## Code Style
@@ -334,8 +341,8 @@ SSH.
 
 - Do not perform a mass directory refactor without tests that prove behavior is
   preserved.
-- Do not reintroduce service definition creation/editing without updating
-  contracts, operations docs, and safety checks.
+- Do not broaden service definition creation beyond Skuld-managed user/agent
+  services without updating contracts, operations docs, and safety checks.
 - Do not broaden Skuld to arbitrary host services outside the registry.
 - Do not add dependencies for formatting, tables, config, or process execution
   unless the standard library path is demonstrably insufficient.

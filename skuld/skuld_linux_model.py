@@ -22,6 +22,7 @@ class ManagedService:
     user: str = ""
     restart: str = "on-failure"
     timer_persistent: bool = True
+    managed_by_skuld: bool = False
     id: int = 0
 
 
@@ -110,6 +111,7 @@ def normalize_registry_item(item: Dict[str, object]) -> ManagedService:
         user=str(item.get("user", "")).strip(),
         restart=str(item.get("restart", "on-failure")).strip() or "on-failure",
         timer_persistent=common.parse_bool(str(item.get("timer_persistent", True))),
+        managed_by_skuld=common.parse_bool(str(item.get("managed_by_skuld", False))),
         id=common.parse_int(str(item.get("id", 0))),
     )
 

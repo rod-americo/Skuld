@@ -53,6 +53,14 @@ def untrack_service(
     ok(f"Removed '{service.display_name}' from the skuld registry.")
 
 
+def delete_service(
+    service: object,
+    *,
+    delete_managed_agent_service: Callable[[object], None],
+) -> None:
+    delete_managed_agent_service(service)
+
+
 def doctor_services(
     services: List[object],
     *,

@@ -21,6 +21,7 @@ invariants, and external integration assumptions.
 | Table columns | CLI, config, or env | numbered IDs or keys | no | `--columns`, `$SKULD_HOME/config.json`, or `SKULD_COLUMNS`; default keeps automatic layout. |
 | Debug switch | env | boolean-like string | no | `SKULD_DEBUG` enables redacted stderr diagnostics. |
 | Runtime stats | stats JSON or event files | JSON | no | Used to show execution/restart counters when present. |
+| Managed service command | Operator | argv after `start --name <name> --` | no | Creates a Skuld-managed user service definition and registry entry. |
 
 ## 3. Canonical Outputs
 
@@ -35,6 +36,7 @@ invariants, and external integration assumptions.
 | Debug output | stderr | redacted text lines | Opt-in only; not a stable machine API. |
 | Linux journal stats | configured stats path | JSON object | Collector writes atomically when run. |
 | macOS event stats | application support path | JSON or JSONL | Available only for compatible Skuld-managed entries. |
+| Managed service definition | user service-manager paths | systemd unit, launchd plist, or wrapper script | Written only by explicit Skuld-managed creation; deleted only when the registry entry is marked `managed_by_skuld=true`. |
 
 ## 4. Identifiers And Keys
 
@@ -64,6 +66,7 @@ invariants, and external integration assumptions.
 | `user` | no | Captured from backend service metadata when available. |
 | `restart` | no | Captured restart policy or `on-failure`. |
 | `timer_persistent` | no | Boolean timer metadata, default `true`. |
+| `managed_by_skuld` | yes after normalization | `true` only for definitions created and owned by Skuld; external tracked services normalize to `false`. |
 | `id` | yes after normalization | Positive integer assigned by Skuld. |
 
 ### macOS `ManagedService`
@@ -108,7 +111,9 @@ The service registry remains a JSON array. Do not add user preferences to
 | Discover | service-manager catalog | discoverable entries | Missing `systemctl`, unavailable user manager, launchctl visibility limits. |
 | Discover nginx routes | enabled provider plus `nginx -T` | local route entries | nginx missing, permission failure, unreadable config, parse gaps in complex configs. |
 | Track | catalog ID or backend name | registry entry | Unknown service, ambiguous Linux scope, duplicate alias. |
+| Create managed service | `start --name <name> -- <command>` | user service-manager definition plus registry entry | Invalid name, duplicate registry name, existing unit/plist/wrapper, backend start failure. |
 | Operate | registry target | backend action | Missing unit/plist, permission failure, service-manager command failure. |
+| Delete managed service | registry target | removed Skuld-managed definition and registry entry | External tracked service, wrong scope, backend removal failure. |
 | Sync | registry entry and backend metadata | updated registry | Backend metadata missing or inaccessible. |
 | Doctor | registry plus backend state | issues or success text | Backend unavailable, missing service, schedule mismatch, permission issues. |
 | Stats | registry target plus logs/events | counters | Journal retention, permission limits, missing event files. |
@@ -118,6 +123,11 @@ The service registry remains a JSON array. Do not add user preferences to
 - Skuld commands must resolve operational targets from the registry.
 - `untrack` removes registry state only; it must not remove backend service
   definitions.
+- `delete` may remove backend service definitions only when the registry entry
+  has `managed_by_skuld=true` and belongs to the current user's supported
+  user/agent scope.
+- `start --name <name> -- <command>` is the only CLI service-definition
+  creation flow. It must create a registry entry marked `managed_by_skuld=true`.
 - Normal CLI registry loads validate and normalize in memory without rewriting
   an existing registry file.
 - Registry canonicalization is persisted by explicit mutating commands or by
@@ -179,3 +189,7 @@ restart procedures, or new validation.
 - 2026-04-26: Added sibling user `config.json` for persisted table-column
   preferences and display-only service ID padding; no registry schema change
   was made.
+- 2026-05-09: Added `managed_by_skuld` to Linux registry normalization and
+  changed macOS external tracked jobs to normalize it as `false`. Added
+  Skuld-managed user service creation through `start --name <name> -- <command>`
+  and safe deletion through `delete`.

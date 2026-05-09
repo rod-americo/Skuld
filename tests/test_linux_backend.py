@@ -570,6 +570,86 @@ class LinuxCommandBehaviorTest(unittest.TestCase):
 
             self.assertEqual(calls, [("user", ["start", "job.timer"])])
 
+    def test_start_with_name_and_command_creates_user_service(self) -> None:
+        with IsolatedLinuxContext() as state:
+            ctx = state.context
+            handlers = LinuxCommandHandlers(ctx)
+            created = []
+
+            with patch.object(ctx, "require_systemctl"), patch.object(
+                ctx,
+                "create_managed_user_service",
+                side_effect=lambda name, command: created.append((name, command)),
+            ):
+                handlers.start_stop(
+                    argparse.Namespace(
+                        targets=["--", "python", "app.py"],
+                        name_flag="api",
+                        id_flag=None,
+                    ),
+                    "start",
+                )
+
+            self.assertEqual(created, [("api", ["python", "app.py"])])
+
+    def test_delete_refuses_external_service(self) -> None:
+        with IsolatedLinuxContext() as state:
+            ctx = state.context
+            handlers = LinuxCommandHandlers(ctx)
+            ctx.save_registry(
+                [
+                    ManagedService(
+                        "api",
+                        "user",
+                        "/bin/api",
+                        "API",
+                        "api",
+                        managed_by_skuld=False,
+                        id=1,
+                    )
+                ]
+            )
+
+            with self.assertRaisesRegex(RuntimeError, "externally tracked"):
+                handlers.delete(
+                    argparse.Namespace(
+                        targets=["api"],
+                        name_flag=None,
+                        id_flag=None,
+                    )
+                )
+
+    def test_delete_removes_only_skuld_managed_user_service(self) -> None:
+        with IsolatedLinuxContext() as state:
+            ctx = state.context
+            handlers = LinuxCommandHandlers(ctx)
+            service = ManagedService(
+                "api",
+                "user",
+                "/bin/api",
+                "API",
+                "api",
+                managed_by_skuld=True,
+                id=1,
+            )
+            ctx.save_registry([service])
+            deleted = []
+
+            with patch.object(
+                ctx,
+                "delete_managed_user_service",
+                side_effect=deleted.append,
+            ):
+                handlers.delete(
+                    argparse.Namespace(
+                        targets=["api"],
+                        name_flag=None,
+                        id_flag=None,
+                    )
+                )
+
+            self.assertEqual(deleted, [service])
+
     def test_start_routes_unscheduled_services_to_service(self) -> None:
         with IsolatedLinuxContext() as state:
             ctx = state.context

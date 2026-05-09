@@ -32,6 +32,7 @@ def build_parser(
     track: Callable[..., None],
     rename: Callable[..., None],
     untrack: Callable[..., None],
+    delete: Callable[..., None],
     exec_now: Callable[..., None],
     start_stop: Callable[..., None],
     restart: Callable[..., None],
@@ -77,7 +78,11 @@ def build_parser(
     )
     subparsers = parser.add_subparsers(dest="command", required=False)
 
-    list_parser = subparsers.add_parser("list", help="List services tracked by skuld")
+    list_parser = subparsers.add_parser(
+        "list",
+        aliases=["ls"],
+        help="List services tracked by skuld",
+    )
     list_parser.add_argument(
         "--sort",
         choices=sort_choices,
@@ -137,8 +142,17 @@ def build_parser(
     _add_name_target_args(exec_parser)
     exec_parser.set_defaults(func=exec_now)
 
-    start_parser = subparsers.add_parser("start", help="Start one or more services")
-    _add_multi_target_args(start_parser)
+    start_parser = subparsers.add_parser(
+        "start",
+        help="Start services, or create a LaunchAgent with --name NAME -- COMMAND",
+    )
+    start_parser.add_argument(
+        "targets",
+        nargs=argparse.REMAINDER,
+        help="Service target(s), or -- COMMAND when creating with --name",
+    )
+    start_parser.add_argument("--name", dest="name_flag")
+    start_parser.add_argument("--id", dest="id_flag", type=int)
     start_parser.set_defaults(func=lambda args: start_stop(args, "start"))
 
     stop_parser = subparsers.add_parser("stop", help="Stop one or more services")
@@ -148,6 +162,13 @@ def build_parser(
     restart_parser = subparsers.add_parser("restart", help="Restart one or more services")
     _add_multi_target_args(restart_parser)
     restart_parser.set_defaults(func=restart)
+
+    delete_parser = subparsers.add_parser(
+        "delete",
+        help="Remove Skuld-managed LaunchAgent definitions and registry entries",
+    )
+    _add_multi_target_args(delete_parser)
+    delete_parser.set_defaults(func=delete)
 
     status_parser = subparsers.add_parser("status", help="Service status")
     _add_name_target_args(status_parser)
@@ -177,7 +198,11 @@ def build_parser(
     doctor_parser = subparsers.add_parser("doctor", help="Check registry/launchd inconsistencies")
     doctor_parser.set_defaults(func=doctor)
 
-    describe_parser = subparsers.add_parser("describe", help="Show details for a tracked service")
+    describe_parser = subparsers.add_parser(
+        "describe",
+        aliases=["info"],
+        help="Show details for a tracked service",
+    )
     _add_name_target_args(describe_parser)
     describe_parser.set_defaults(func=describe)
 

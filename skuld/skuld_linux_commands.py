@@ -31,6 +31,7 @@ def rename_service(
             user=service.user,
             restart=service.restart,
             timer_persistent=service.timer_persistent,
+            managed_by_skuld=getattr(service, "managed_by_skuld", False),
             id=service.id,
         )
     )
@@ -45,6 +46,14 @@ def untrack_service(
 ) -> None:
     remove_registry(service.name, service.scope)
     ok(f"Removed '{service.display_name}' from the skuld registry.")
+
+
+def delete_service(
+    service: object,
+    *,
+    delete_managed_user_service: Callable[[object], None],
+) -> None:
+    delete_managed_user_service(service)
 
 
 def doctor_services(

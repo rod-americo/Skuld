@@ -71,6 +71,7 @@ class CliSmokeTest(unittest.TestCase):
             "start",
             "stop",
             "restart",
+            "delete",
             "status",
             "logs",
             "stats",
@@ -80,6 +81,8 @@ class CliSmokeTest(unittest.TestCase):
             "version",
             "sudo",
             "config",
+            "ls",
+            "info",
         )
         for subcommand in subcommands:
             with self.subTest(subcommand=subcommand):

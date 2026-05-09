@@ -114,6 +114,29 @@ reload or edit nginx.
 Never commit real registry files, logs, stats, `.env`, or local config
 overrides.
 
+### Managed Service Creation
+
+Skuld can create a current-user service definition when explicitly requested:
+
+```bash
+bin/skuld start --name api -- python app.py
+```
+
+On Linux this writes a user `systemd` service under
+`~/.config/systemd/user/`. On macOS this writes a LaunchAgent plist plus a
+Skuld wrapper script under the user's Skuld runtime paths. The new registry
+entry is marked `managed_by_skuld=true`.
+
+Delete only removes definitions created by Skuld:
+
+```bash
+bin/skuld delete api
+```
+
+External services added with `track` are not deleted by `delete`; use
+`bin/skuld untrack <name-or-id>` when the intent is to remove only the registry
+entry.
+
 ## 5. Minimum Validation
 
 ```bash
@@ -286,8 +309,9 @@ Safe cleanup:
 - Python caches and local `runtime/` scratch directories can be removed.
 - Do not delete registry files unless the operator intentionally wants to lose
   Skuld's tracked service list.
-- Do not delete backend unit files or launchd plists as part of Skuld cleanup
-  unless that is a separate, explicit service-manager operation.
+- Do not delete backend unit files or launchd plists as part of Skuld cleanup.
+  Use `bin/skuld delete <name-or-id>` only for entries created by Skuld and
+  marked `managed_by_skuld=true`; otherwise use service-manager tooling.
 
 ## 10. Troubleshooting
 
@@ -313,6 +337,12 @@ Ambiguous Linux target:
 
 - Symptom: service exists in multiple scopes.
 - Action: use `system:<name>`, `user:<name>`, or the registry ID.
+
+Delete refuses an external service:
+
+- Symptom: command reports that the target is externally tracked.
+- Action: use `bin/skuld untrack <name-or-id>` for registry-only removal, or
+  remove the service definition with the owning service-manager workflow.
 
 Permission-limited Linux logs:
 
@@ -370,9 +400,11 @@ These commands can change host service state:
 
 ```bash
 bin/skuld exec <name-or-id>
+bin/skuld start --name <name> -- <command>
 bin/skuld start <name-or-id>
 bin/skuld stop <name-or-id>
 bin/skuld restart <name-or-id>
+bin/skuld delete <name-or-id>
 bin/skuld sudo run -- <command>
 ./scripts/install_runtime_stats_timer.sh
 ```
@@ -383,6 +415,7 @@ Before running them, confirm:
 - The backend scope is correct.
 - The host service is safe to mutate.
 - The command does not depend on a stale registry entry.
+- `delete` targets only a Skuld-managed user service or LaunchAgent.
 
 ## 12. Changes That Require Updating This Document
 

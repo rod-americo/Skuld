@@ -11,6 +11,7 @@ from typing import Dict, List, Optional, Tuple
 from . import skuld_common as common
 from . import skuld_config
 from . import skuld_linux_catalog as linux_catalog
+from . import skuld_linux_managed as linux_managed
 from . import skuld_linux_nginx as linux_nginx
 from . import skuld_linux_registry as linux_registry
 from . import skuld_linux_runtime as linux_runtime
@@ -603,3 +604,35 @@ class LinuxBackendContext:
 
     def parse_bool(self, value: str, default: bool = True) -> bool:
         return common.parse_bool(value, default=default)
+
+    def user_service_unit_path(self, name: str) -> Path:
+        return linux_managed.user_service_unit_path(name)
+
+    def create_managed_user_service(
+        self,
+        name: str,
+        command: List[str],
+    ) -> ManagedService:
+        return linux_managed.create_user_service(
+            name=name,
+            command=command,
+            working_dir=os.getcwd(),
+            service_factory=ManagedService,
+            validate_name=validate_name,
+            ensure_display_name_available=self.ensure_display_name_available,
+            get_managed=self.get_managed,
+            unit_exists=self.unit_exists,
+            run_systemctl_action=self.run_systemctl_action,
+            upsert_registry=self.upsert_registry,
+            ok=self.ok,
+            unit_path_for_name=self.user_service_unit_path,
+        )
+
+    def delete_managed_user_service(self, service: ManagedService) -> None:
+        linux_managed.delete_user_service(
+            service,
+            remove_registry=self.remove_registry,
+            run_systemctl_action=self.run_systemctl_action,
+            ok=self.ok,
+            unit_path_for_name=self.user_service_unit_path,
+        )

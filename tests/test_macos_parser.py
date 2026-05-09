@@ -26,6 +26,7 @@ class MacParserTest(unittest.TestCase):
             track=_noop,
             rename=_noop,
             untrack=_noop,
+            delete=_noop,
             exec_now=_noop,
             start_stop=start_stop,
             restart=_noop,
@@ -96,6 +97,21 @@ class MacParserTest(unittest.TestCase):
         args.func(args)
 
         self.assertEqual(calls, [("stop", ["api", "worker"])])
+
+    def test_start_accepts_pm2_style_create_command(self) -> None:
+        args = self.build_parser().parse_args(["start", "--name", "api", "--", "python", "app.py"])
+
+        self.assertEqual(args.name_flag, "api")
+        self.assertEqual(args.targets, ["--", "python", "app.py"])
+
+    def test_pm2_aliases_are_registered(self) -> None:
+        list_args = self.build_parser().parse_args(["ls"])
+        info_args = self.build_parser().parse_args(["info", "api"])
+        delete_args = self.build_parser().parse_args(["delete", "api"])
+
+        self.assertIs(list_args.func, _noop)
+        self.assertEqual(info_args.name, "api")
+        self.assertEqual(delete_args.targets, ["api"])
 
     def test_untrack_accepts_multiple_targets(self) -> None:
         args = self.build_parser().parse_args(["untrack", "1", "2", "worker"])

@@ -81,9 +81,36 @@ class LinuxCommandHandlers:
             ok=ctx.ok,
         )
 
+    def _start_creation_command(self, args: argparse.Namespace) -> list[str]:
+        targets = list(getattr(args, "targets", []) or [])
+        if targets and targets[0] == "--":
+            return targets[1:]
+        if "--" in targets:
+            raise RuntimeError("Use: skuld start --name <name> -- <command>")
+        return []
+
+    def _start_lifecycle_args(self, args: argparse.Namespace) -> argparse.Namespace:
+        targets = list(getattr(args, "targets", []) or [])
+        return argparse.Namespace(
+            targets=targets,
+            name_flag=getattr(args, "name_flag", None),
+            id_flag=getattr(args, "id_flag", None),
+        )
+
     def start_stop(self, args: argparse.Namespace, action: str) -> None:
         ctx = self.context
-        services = ctx.resolve_managed_many_arg(args)
+        command = self._start_creation_command(args) if action == "start" else []
+        if command:
+            if not getattr(args, "name_flag", None):
+                raise RuntimeError("Use: skuld start --name <name> -- <command>")
+            if getattr(args, "id_flag", None):
+                raise RuntimeError("--id cannot be used when creating a service.")
+            ctx.require_systemctl()
+            ctx.create_managed_user_service(args.name_flag, command)
+            return
+        services = ctx.resolve_managed_many_arg(
+            self._start_lifecycle_args(args) if action == "start" else args
+        )
         ctx.require_systemctl()
         linux_actions.apply_lifecycle_action_to_services(
             services,
@@ -208,6 +235,14 @@ class LinuxCommandHandlers:
                 service,
                 remove_registry=ctx.remove_registry,
                 ok=ctx.ok,
+            )
+
+    def delete(self, args: argparse.Namespace) -> None:
+        ctx = self.context
+        for service in ctx.resolve_managed_many_arg(args):
+            linux_commands.delete_service(
+                service,
+                delete_managed_user_service=ctx.delete_managed_user_service,
             )
 
     def doctor(self, _args: argparse.Namespace) -> None:

@@ -5,8 +5,8 @@ selected `systemd` and `launchd` services.
 
 Skuld gives a single-host operator a stable view over explicitly registered
 services. It can list, inspect, start, stop, restart, execute, sync, diagnose,
-and read logs for those services while keeping service definitions owned by the
-host service manager.
+read logs, and create or delete narrowly scoped Skuld-managed user services.
+Externally defined services remain owned by the host service manager.
 
 ## Why It Exists
 
@@ -14,10 +14,12 @@ Local service operation tends to drift into shell aliases, one-off scripts, and
 implicit host knowledge. Skuld keeps the operational boundary explicit:
 
 - discover existing services from `systemd` or `launchd`
-- track only the services the operator chooses
+- track only the external services the operator chooses
+- create only explicit user-level service definitions marked as Skuld-managed
 - resolve future commands through Skuld's local registry
 - operate only registered services
-- leave unit files, plist files, deployment, and provisioning outside the tool
+- leave arbitrary unit files, arbitrary plist files, deployment, and
+  provisioning outside the tool
 
 ## What This Repository Is
 
@@ -29,7 +31,7 @@ implicit host knowledge. Skuld keeps the operational boundary explicit:
 
 ## What This Repository Is Not
 
-- Not a service definition generator.
+- Not an arbitrary service definition generator.
 - Not a process supervisor.
 - Not a deployment framework, package manager, scheduler authoring tool, fleet
   manager, metrics platform, or log aggregation system.
@@ -56,11 +58,13 @@ exec, start, stop, restart, status, logs, describe, stats, rename, sync, untrack
 ```
 
 `catalog` discovers candidates from the host service manager. `track` adds an
-existing backend service to the registry. `untrack` removes only the Skuld
-registry entry; it does not remove a `systemd` unit or `launchd` plist.
+existing backend service to the registry. `start --name <name> -- <command>`
+creates a Skuld-managed user service and registers it.
 
-Skuld may inspect service definitions, but the current public CLI does not
-create or edit them.
+`untrack` removes only the Skuld registry entry; it does not remove a `systemd`
+unit or `launchd` plist. `delete` removes service definitions only when the
+registry entry has `managed_by_skuld=true`; external services are refused and
+should use `untrack`.
 
 ## Quick Start
 
@@ -115,7 +119,9 @@ All entrypoints dispatch through `skuld.skuld_entrypoint:main`, which selects
 ```bash
 bin/skuld
 bin/skuld list
+bin/skuld ls
 bin/skuld catalog
+bin/skuld start --name api -- python app.py
 bin/skuld track <catalog-id-or-backend-name> --alias <name>
 bin/skuld status <name-or-id>
 bin/skuld logs <name-or-id>
@@ -128,6 +134,8 @@ bin/skuld restart <name-or-id>
 bin/skuld sync
 bin/skuld doctor
 bin/skuld untrack <name-or-id>
+bin/skuld delete <name-or-id>
+bin/skuld info <name-or-id>
 ```
 
 Use command help for the exact parser contract:
@@ -198,6 +206,13 @@ bin/skuld track system:nginx --alias edge-proxy
 bin/skuld track user:syncthing --alias sync-home
 ```
 
+Create a Skuld-managed user service without sudo:
+
+```bash
+bin/skuld start --name api -- python app.py
+bin/skuld delete api
+```
+
 For scheduled Linux jobs, `start`, `stop`, and `restart` act on the `.timer`
 when the registry has schedule metadata and the timer exists. Otherwise they
 act on the `.service`. `exec` starts the `.service` for an immediate run.
@@ -217,6 +232,13 @@ macOS discovers visible launchd jobs from `launchctl list`:
 ```bash
 bin/skuld catalog --grep finder
 bin/skuld track com.apple.Finder --alias finder
+```
+
+Create a Skuld-managed LaunchAgent without sudo:
+
+```bash
+bin/skuld start --name api -- python app.py
+bin/skuld delete api
 ```
 
 macOS logs are file-based. They work for compatible Skuld-managed log paths and

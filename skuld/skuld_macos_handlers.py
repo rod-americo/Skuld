@@ -35,10 +35,36 @@ class MacOSCommandHandlers:
             ok=ctx.ok,
         )
 
+    def _start_creation_command(self, args: argparse.Namespace) -> list[str]:
+        targets = list(getattr(args, "targets", []) or [])
+        if targets and targets[0] == "--":
+            return targets[1:]
+        if "--" in targets:
+            raise RuntimeError("Use: skuld start --name <name> -- <command>")
+        return []
+
+    def _start_lifecycle_args(self, args: argparse.Namespace) -> argparse.Namespace:
+        targets = list(getattr(args, "targets", []) or [])
+        return argparse.Namespace(
+            targets=targets,
+            name_flag=getattr(args, "name_flag", None),
+            id_flag=getattr(args, "id_flag", None),
+        )
+
     def start_stop(self, args: argparse.Namespace, action: str) -> None:
         ctx = self.context
+        command = self._start_creation_command(args) if action == "start" else []
+        if command:
+            if not getattr(args, "name_flag", None):
+                raise RuntimeError("Use: skuld start --name <name> -- <command>")
+            if getattr(args, "id_flag", None):
+                raise RuntimeError("--id cannot be used when creating a service.")
+            ctx.create_managed_agent_service(args.name_flag, command)
+            return
         macos_actions.apply_lifecycle_action_to_services(
-            ctx.resolve_managed_many_arg(args),
+            ctx.resolve_managed_many_arg(
+                self._start_lifecycle_args(args) if action == "start" else args
+            ),
             action,
             bootstrap_service=ctx.bootstrap_service,
             bootout_service=ctx.bootout_service,
@@ -172,6 +198,14 @@ class MacOSCommandHandlers:
                 service,
                 remove_registry=ctx.remove_registry,
                 ok=ctx.ok,
+            )
+
+    def delete(self, args: argparse.Namespace) -> None:
+        ctx = self.context
+        for service in ctx.resolve_managed_many_arg(args):
+            macos_commands.delete_service(
+                service,
+                delete_managed_agent_service=ctx.delete_managed_agent_service,
             )
 
     def describe(self, args: argparse.Namespace) -> None:

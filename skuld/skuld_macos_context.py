@@ -13,6 +13,7 @@ from . import skuld_common as common
 from . import skuld_config
 from . import skuld_macos_catalog as macos_catalog
 from . import skuld_macos_launchd as launchd
+from . import skuld_macos_managed as macos_managed
 from . import skuld_macos_paths as macos_paths
 from . import skuld_macos_processes as processes
 from . import skuld_macos_registry as macos_registry
@@ -592,3 +593,37 @@ class MacOSBackendContext:
 
     def render_host_panel(self) -> None:
         tables.render_host_panel(self.read_host_overview(), self.render_table)
+
+    def create_managed_agent_service(
+        self,
+        name: str,
+        command: List[str],
+    ) -> ManagedService:
+        return macos_managed.create_agent_service(
+            name=name,
+            command=command,
+            working_dir=os.getcwd(),
+            service_factory=ManagedService,
+            validate_name=validate_name,
+            ensure_display_name_available=self.ensure_display_name_available,
+            get_managed=self.get_managed,
+            service_label=macos_paths.service_label,
+            plist_path_for_service=self.plist_path_for_service,
+            wrapper_script_for_service=self.wrapper_script_for_service,
+            log_dir_for_service=self.log_dir_for_service,
+            event_file_for_service=self.event_file_for_service,
+            bootstrap_service=self.bootstrap_service,
+            kickstart_service=self.kickstart_service,
+            upsert_registry=self.upsert_registry,
+            ok=self.ok,
+        )
+
+    def delete_managed_agent_service(self, service: ManagedService) -> None:
+        macos_managed.delete_agent_service(
+            service,
+            bootout_service=self.bootout_service,
+            remove_registry=self.remove_registry,
+            plist_path_for_service=self.plist_path_for_service,
+            wrapper_script_for_service=self.wrapper_script_for_service,
+            ok=self.ok,
+        )

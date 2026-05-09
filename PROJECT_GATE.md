@@ -26,7 +26,7 @@ from growing without discipline, and which operational costs are accepted.
 ## 4. What must this project not carry?
 
 - out of scope responsibilities: Creating deployment pipelines, owning arbitrary service definitions, managing remote hosts, or replacing service-manager policy.
-- integrations owned by another system: Unit file authoring, launchd plist authoring, managed-service package installation, DNS, network routing, and host provisioning belong outside Skuld.
+- integrations owned by another system: Arbitrary unit file authoring, arbitrary launchd plist authoring, managed-service package installation, DNS, network routing, and host provisioning belong outside Skuld. Skuld may create and remove narrowly scoped user-level service definitions that it marks as Skuld-managed.
 - data that must not live here: Real service registries, user config files, sudo passwords, generated logs, runtime stats, local dumps, and host-specific private configuration.
 
 ## 5. What maintenance cost is expected?
@@ -35,7 +35,7 @@ from growing without discipline, and which operational costs are accepted.
 - most fragile external dependency: Backend command behavior and permissions vary across `systemctl`, `journalctl`, `launchctl`, `/proc`, `ss`, and `lsof`.
 - restart need: Skuld is a CLI, so code changes require rerunning the command; the optional Linux stats timer requires a systemd daemon reload and timer restart after installer changes.
 - backup need: The service registry JSON needs backup if aliases and tracked services matter; the sibling user config needs backup only if local display preferences matter.
-- operational risk: Start, stop, restart, exec, sudo helper, and stats timer installation can change host service state or system files if used carelessly.
+- operational risk: Start, stop, restart, exec, delete, sudo helper, managed-service creation, and stats timer installation can change host service state or local service definition files if used carelessly.
 
 ## 6. Exit condition
 

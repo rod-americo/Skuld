@@ -16,7 +16,7 @@ class ManagedService:
     display_name: str = ""
     launchd_label: str = ""
     plist_path_hint: str = ""
-    managed_by_skuld: bool = True
+    managed_by_skuld: bool = False
     schedule: str = ""
     working_dir: str = ""
     user: str = ""
@@ -69,7 +69,7 @@ def normalize_service(
 ) -> ManagedService:
     scope = resolve_scope(str(item.get("scope", "daemon")))
     name = str(item.get("name", "")).strip()
-    managed_by_skuld = common.parse_bool(str(item.get("managed_by_skuld", True)))
+    managed_by_skuld = common.parse_bool(str(item.get("managed_by_skuld", False)))
     log_dir_default = str(log_dir_for_service(name, scope)) if managed_by_skuld else ""
     log_dir = str(item.get("log_dir", "")).strip() or log_dir_default
     return ManagedService(

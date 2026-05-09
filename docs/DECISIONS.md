@@ -3,6 +3,54 @@
 This file records lightweight architectural and operational decisions. Keep new
 entries factual: context, decision, impact, tradeoff, and rejected alternatives.
 
+## 2026-05-09 - Reintroduce Narrow Skuld-Managed Service Creation
+
+**Context**
+
+Skuld previously avoided service creation and deletion because broad service
+definition authoring tends to require elevated privileges and can turn the tool
+into a deployment framework. The current user-level operating model makes a
+narrower contract practical: create only current-user service definitions that
+Skuld marks as owned by Skuld, and refuse deletion for externally tracked
+services.
+
+Operators also benefit from lower-friction commands that match familiar PM2
+flows, especially `start --name <name> -- <command>`, `delete`, `ls`, and
+`info`.
+
+**Decision**
+
+Support `start --name <name> -- <command>` for creating a Skuld-managed
+current-user service. On Linux, create a user `systemd` service. On macOS,
+create a LaunchAgent plist and Skuld wrapper script. Store
+`managed_by_skuld=true` in the registry for these entries.
+
+Add `delete` for removing only Skuld-managed user/agent definitions and their
+registry entries. Keep `untrack` as registry-only removal for external
+services. Add PM2-style aliases `ls` for `list` and `info` for `describe`.
+
+**Impact**
+
+- Skuld can now bootstrap simple local services without sudo.
+- External tracked services remain protected from accidental deletion.
+- The registry schema now records Linux ownership with `managed_by_skuld`, and
+  macOS external tracked jobs normalize to `managed_by_skuld=false`.
+
+**Tradeoff**
+
+- Creation is intentionally narrower than full systemd or launchd authoring.
+- Failed starts can leave created files and registry state for the operator to
+  inspect or delete intentionally.
+- PM2-style command names improve muscle memory but do not make Skuld a process
+  supervisor.
+
+**Alternatives rejected**
+
+- Reintroducing arbitrary unit/plist authoring.
+- Deleting any tracked service definition regardless of ownership.
+- Adding a separate `create` command before the PM2-compatible `start` flow
+  proved insufficient.
+
 ## 2026-05-09 - Move Runtime Code Into The `skuld/` Package
 
 **Context**

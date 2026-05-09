@@ -12,6 +12,9 @@ intent.
 - Moved runtime modules into the repository-local `skuld/` package, changed
   the direct checkout wrapper from `./skuld` to `bin/skuld`, and kept the
   installed console command as `skuld`.
+- Reintroduced service creation and deletion for Skuld-managed user services
+  only, with PM2-style `start --name NAME -- COMMAND`, `delete`, `ls`, and
+  `info` command compatibility.
 
 ### Added
 

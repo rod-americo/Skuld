@@ -85,6 +85,16 @@ class MacosCommandsTest(unittest.TestCase):
         self.assertEqual(removed, ["com.example.worker"])
         self.assertEqual(messages, ["Removed 'worker' from the skuld registry."])
 
+    def test_delete_delegates_to_managed_service_removal(self) -> None:
+        calls = []
+
+        commands.delete_service(
+            service(),
+            delete_managed_agent_service=calls.append,
+        )
+
+        self.assertEqual(calls[0].name, "com.example.worker")
+
     def test_doctor_reports_missing_plist_and_wrapper(self) -> None:
         output = []
         errors = []
