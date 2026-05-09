@@ -1,5 +1,10 @@
 # Skuld
 
+[![CI](https://github.com/rod-americo/Skuld/actions/workflows/ci.yml/badge.svg)](https://github.com/rod-americo/Skuld/actions/workflows/ci.yml)
+![Python 3.9+](https://img.shields.io/badge/python-3.9%2B-3776AB)
+![Platforms](https://img.shields.io/badge/platform-linux%20%7C%20macOS-555555)
+[![License](https://img.shields.io/github/license/rod-americo/Skuld)](LICENSE)
+
 Local registry-based CLI for safely tracking, inspecting, and operating
 selected `systemd` and `launchd` services.
 
