@@ -16,7 +16,6 @@ REQUIRED_FILES = [
     ROOT / "README.md",
     ROOT / "AGENTS.md",
     ROOT / "PROJECT_GATE.md",
-    ROOT / "START_CHECKLIST.md",
     ROOT / "CHANGELOG.md",
     DOCTOR_CONFIG_PATH,
     ROOT / "docs" / "ARCHITECTURE.md",
@@ -29,7 +28,6 @@ KEY_DOCS = [
     ROOT / "README.md",
     ROOT / "AGENTS.md",
     ROOT / "PROJECT_GATE.md",
-    ROOT / "START_CHECKLIST.md",
     ROOT / "CHANGELOG.md",
     ROOT / "docs" / "ARCHITECTURE.md",
     ROOT / "docs" / "CONTRACTS.md",
@@ -348,10 +346,6 @@ def check_required_sections(errors: list[str]) -> None:
         ROOT / "PROJECT_GATE.md": [
             "## 1. Why does this project exist?",
             "## 4. What must this project not carry?",
-        ],
-        ROOT / "START_CHECKLIST.md": [
-            "## 1. Baseline Added Or Recovered",
-            "## 3. What Is Intentionally Not Done Yet",
         ],
         ROOT / "docs" / "ARCHITECTURE.md": [
             "## 2. Scope",

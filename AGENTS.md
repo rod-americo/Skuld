@@ -322,7 +322,11 @@ SSH.
 - Work directly on `main` for this repository.
 - Do not create `codex/*` branches unless the user explicitly asks for a branch
   workflow.
-- When the user asks to commit and push, default to `git push origin main`.
+- Prefer short commits with one clear scope per commit. Split unrelated work
+  instead of bundling broad cleanup with behavior changes.
+- At the end of each work round, commit the completed changes and push them to
+  `origin main` after validation, unless the user explicitly asks not to.
+- When pushing, default to `git push origin main`.
 - Commit messages are in English, imperative mood, and preferably
   `type(scope): summary`.
 

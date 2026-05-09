@@ -28,7 +28,6 @@ intent.
 - Structural recovery baseline from the project starter, adapted to Skuld's
   existing architecture.
 - `PROJECT_GATE.md` with repository purpose, boundaries, and maintenance cost.
-- `START_CHECKLIST.md` for existing-repository recovery follow-up.
 - `docs/ARCHITECTURE.md` documenting the real composition root, backend flow,
   persistence, and hotspots.
 - `docs/CONTRACTS.md` documenting registry fields, identifiers, inputs,
