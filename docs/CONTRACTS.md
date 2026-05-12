@@ -2,8 +2,7 @@
 
 ## 1. Purpose
 
-This document records Skuld's canonical inputs, outputs, identifiers,
-invariants, and external integration assumptions.
+This document records Skuld's canonical inputs, outputs, identifiers, invariants, and external integration assumptions.
 
 ## 2. Canonical Inputs
 
@@ -99,8 +98,7 @@ The config file is a JSON object stored next to `services.json`.
 | `columns` | no | List of supported service-table column keys. `skuld config columns` shows the numbered catalog. `skuld config columns default`, `auto`, or `all` removes this preference. |
 | `providers` | no | Object of explicitly enabled read-only providers. Currently supports Linux `nginx` with `{ "enabled": true }`. |
 
-The service registry remains a JSON array. Do not add user preferences to
-`services.json`.
+The service registry remains a JSON array. Do not add user preferences to `services.json`.
 
 ## 6. Events Or Pipeline Steps
 
@@ -122,74 +120,63 @@ The service registry remains a JSON array. Do not add user preferences to
 
 - Skuld commands must resolve operational targets from the registry.
 - `untrack` removes registry state only; it must not remove backend service
-  definitions.
+definitions.
 - `delete` may remove backend service definitions only when the registry entry
-  has `managed_by_skuld=true` and belongs to the current user's supported
-  user/agent scope.
+has `managed_by_skuld=true` and belongs to the current user's supported user/agent scope.
 - `start --name <name> -- <command>` is the only CLI service-definition
-  creation flow. It must create a registry entry marked `managed_by_skuld=true`.
+creation flow. It must create a registry entry marked `managed_by_skuld=true`.
 - Normal CLI registry loads validate and normalize in memory without rewriting
-  an existing registry file.
+an existing registry file.
 - Registry canonicalization is persisted by explicit mutating commands or by
-  `RegistryStore.load(write_back=True)` in code paths that intentionally write.
+`RegistryStore.load(write_back=True)` in code paths that intentionally write.
 - Linux `system:name` and `user:name` are distinct backend identities.
 - The same `display_name` cannot refer to two registry entries.
 - `SKULD_SUDO_PASSWORD` must never be logged.
 - Sudo operations without an explicit password must use the native sudo
-  timestamp non-interactively through `sudo -n`.
+timestamp non-interactively through `sudo -n`.
 - Explicit table-column selection must preserve requested column order and must
-  reject unknown column names.
+reject unknown column names.
 - Explicit table-column selection may use the numbered column catalog or the
-  canonical column keys. Persisted config stores canonical keys.
+canonical column keys. Persisted config stores canonical keys.
 - Table-column precedence is CLI `--columns`, then `$SKULD_HOME/config.json`,
-  then `SKULD_COLUMNS`, then automatic layout.
+then `SKULD_COLUMNS`, then automatic layout.
 - Read-only providers are disabled unless explicitly enabled in config or by
-  a provider-specific CLI activation flow.
+a provider-specific CLI activation flow.
 - Displayed numeric service IDs are zero-padded to the widest visible ID in the
-  rendered service table.
+rendered service table.
 - Optional table columns may expose direct registry metadata (`target`, `scope`,
-  `backend`, `user`, `restart`) and best-effort runtime metadata (`pid`,
-  `runs`, `last`, `next`) without changing the registry schema.
+`backend`, `user`, `restart`) and best-effort runtime metadata (`pid`, `runs`, `last`, `next`) without changing the registry schema.
 - Read-only nginx route discovery does not create registry entries and does not
-  expand the operational target set for `start`, `stop`, `restart`, `exec`,
-  `logs`, or `untrack`.
+expand the operational target set for `start`, `stop`, `restart`, `exec`, `logs`, or `untrack`.
 - macOS `--since`, `--timer`, `--output`, and `--plain` are compatibility flags
-  on logs; some are ignored or rejected as documented by help text and runtime
-  behavior.
+on logs; some are ignored or rejected as documented by help text and runtime behavior.
 
 ## 8. Assumptions Not Fully Validated
 
 - Behavior across Linux distributions and systemd versions is not covered by an
-  automated compatibility matrix.
+automated compatibility matrix.
 - macOS behavior is based on locally visible launchd jobs and may vary by
-  domain, permissions, and plist visibility.
+domain, permissions, and plist visibility.
 - Runtime stats depend on journal retention, event file availability, and host
-  permissions.
+permissions.
 - Native sudo timestamp availability depends on host sudo policy, TTY
-  availability for `skuld sudo auth`, and the sudo timeout configured by the
-  host.
+availability for `skuld sudo auth`, and the sudo timeout configured by the host.
 - Live smoke scripts prove disposable local service-manager paths on hosts where
-  `launchd` or `systemd --user` is available, but they are not a distribution or
-  OS-version compatibility matrix.
+`launchd` or `systemd --user` is available, but they are not a distribution or OS-version compatibility matrix.
 
 ## 9. Contract Breaks
 
-Record changes here when they require registry migration, integration changes,
-restart procedures, or new validation.
+Record changes here when they require registry migration, integration changes, restart procedures, or new validation.
 
 - 2026-04-25: Structural documentation baseline added; no runtime registry
-  schema change was made.
+schema change was made.
 - 2026-04-25: Added opt-in `SKULD_DEBUG` diagnostics, common CLI runner, and
-  no-write registry normalization for audits; no registry schema change was
-  made.
+no-write registry normalization for audits; no registry schema change was made.
 - 2026-04-25: Made no-write registry normalization the default for read paths;
-  explicit mutating commands still persist canonical JSON.
+explicit mutating commands still persist canonical JSON.
 - 2026-04-26: Added native sudo timestamp commands and configurable
-  service-table columns; no registry schema change was made.
+service-table columns; no registry schema change was made.
 - 2026-04-26: Added sibling user `config.json` for persisted table-column
-  preferences and display-only service ID padding; no registry schema change
-  was made.
+preferences and display-only service ID padding; no registry schema change was made.
 - 2026-05-09: Added `managed_by_skuld` to Linux registry normalization and
-  changed macOS external tracked jobs to normalize it as `false`. Added
-  Skuld-managed user service creation through `start --name <name> -- <command>`
-  and safe deletion through `delete`.
+changed macOS external tracked jobs to normalize it as `false`. Added Skuld-managed user service creation through `start --name <name> -- <command>` and safe deletion through `delete`.

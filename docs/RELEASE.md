@@ -1,25 +1,14 @@
 # Release
 
-Skuld releases must prove the checkout CLI and the packaged console command
-before publishing or tagging.
+Skuld releases must prove the checkout CLI and the packaged console command before publishing or tagging.
 
-The CI workflow runs the non-mutating validation matrix on Ubuntu and macOS.
-Release candidates should still be validated locally with the commands below
-before tagging.
+The CI workflow runs the non-mutating validation matrix on Ubuntu and macOS. Release candidates should still be validated locally with the commands below before tagging.
 
 ## Preflight
 
 Run the full non-mutating validation:
 
-```bash
-python3 -m py_compile bin/skuld skuld/*.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py
-python3 -m unittest discover -s tests
-bin/skuld --help
-python3 scripts/check_project_gate.py
-python3 scripts/project_doctor.py
-python3 scripts/project_doctor.py --strict
-python3 scripts/project_doctor.py --audit-config
-bash -n .githooks/pre-commit scripts/install_git_hooks.sh scripts/install_runtime_stats_timer.sh scripts/smoke_macos_launchd.sh scripts/smoke_linux_systemd_user.sh scripts/run_live_smokes.sh
+```bash python3 -m py_compile bin/skuld skuld/*.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py python3 -m unittest discover -s tests bin/skuld --help python3 scripts/check_project_gate.py python3 scripts/project_doctor.py python3 scripts/project_doctor.py --strict python3 scripts/project_doctor.py --audit-config bash -n .githooks/pre-commit scripts/install_git_hooks.sh scripts/install_runtime_stats_timer.sh scripts/smoke_macos_launchd.sh scripts/smoke_linux_systemd_user.sh scripts/run_live_smokes.sh
 ```
 
 Run live smokes only with explicit operator intent:
@@ -32,8 +21,7 @@ scripts/run_live_smokes.sh --macos --linux-host vidar
 
 Build a wheel into a temporary directory:
 
-```bash
-python3 -m pip wheel . --no-deps -w /tmp/skuld-wheelhouse
+```bash python3 -m pip wheel . --no-deps -w /tmp/skuld-wheelhouse
 ```
 
 Install that wheel into a disposable virtual environment and check the console
@@ -48,8 +36,7 @@ python3 -m venv /tmp/skuld-release-venv
 
 Remove the disposable validation environment when done:
 
-```bash
-rm -rf /tmp/skuld-release-venv /tmp/skuld-wheelhouse
+```bash rm -rf /tmp/skuld-release-venv /tmp/skuld-wheelhouse
 ```
 
 ## Versioning

@@ -1,7 +1,6 @@
 # PROJECT GATE
 
-This gate documents why Skuld exists as a repository, what boundary keeps it
-from growing without discipline, and which operational costs are accepted.
+This gate documents why Skuld exists as a repository, what boundary keeps it from growing without discipline, and which operational costs are accepted.
 
 ## 1. Why does this project exist?
 

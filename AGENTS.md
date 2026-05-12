@@ -1,7 +1,6 @@
 # AGENTS.md
 
-This file defines collaboration and coding behavior for contributors and AI
-agents working on Skuld.
+This file defines collaboration and coding behavior for contributors and AI agents working on Skuld.
 
 ## Project Personality
 
@@ -21,36 +20,9 @@ Before significant changes, read these files in order:
 5. `docs/OPERATIONS.md`
 6. `docs/DECISIONS.md`
 7. The touched entrypoint/backend file: `skuld/skuld_entrypoint.py`,
-   `skuld/skuld_linux.py`, `skuld/skuld_macos.py`, or `bin/skuld`
+`skuld/skuld_linux.py`, `skuld/skuld_macos.py`, or `bin/skuld`
 8. Shared helpers when relevant: `skuld/skuld_cli.py`, `skuld/skuld_common.py`,
-   `skuld_config.py`,
-   `skuld_linux_actions.py`, `skuld_linux_catalog.py`,
-   `skuld_linux_context.py`, `skuld_linux_handlers.py`,
-   `skuld_linux_model.py`,
-   `skuld_linux_nginx.py`,
-   `skuld_linux_registry.py`,
-   `skuld_linux_parser.py`,
-   `skuld_linux_commands.py`,
-   `skuld_linux_presenters.py`,
-   `skuld_linux_runtime.py`,
-   `skuld_linux_systemd.py`, `skuld_linux_sync.py`,
-   `skuld_linux_stats.py`,
-   `skuld_linux_timers.py`, `skuld_linux_targets.py`, `skuld_linux_view.py`,
-   `skuld_macos_actions.py`, `skuld_macos_catalog.py`,
-   `skuld_macos_context.py`, `skuld_macos_handlers.py`,
-   `skuld_macos_model.py`,
-   `skuld_macos_registry.py`,
-   `skuld_macos_paths.py`,
-   `skuld_macos_parser.py`,
-   `skuld_macos_commands.py`,
-   `skuld_macos_launchd.py`,
-   `skuld_macos_presenters.py`,
-   `skuld_macos_processes.py`,
-   `skuld_macos_runtime.py`, `skuld_macos_schedules.py`,
-   `skuld_macos_sync.py`,
-   `skuld_macos_targets.py`, `skuld_macos_view.py`,
-   `skuld_observability.py`, `skuld_registry.py`, `skuld_sudo.py`, and
-   `skuld_tables.py`
+`skuld_config.py`, `skuld_linux_actions.py`, `skuld_linux_catalog.py`, `skuld_linux_context.py`, `skuld_linux_handlers.py`, `skuld_linux_model.py`, `skuld_linux_nginx.py`, `skuld_linux_registry.py`, `skuld_linux_parser.py`, `skuld_linux_commands.py`, `skuld_linux_presenters.py`, `skuld_linux_runtime.py`, `skuld_linux_systemd.py`, `skuld_linux_sync.py`, `skuld_linux_stats.py`, `skuld_linux_timers.py`, `skuld_linux_targets.py`, `skuld_linux_view.py`, `skuld_macos_actions.py`, `skuld_macos_catalog.py`, `skuld_macos_context.py`, `skuld_macos_handlers.py`, `skuld_macos_model.py`, `skuld_macos_registry.py`, `skuld_macos_paths.py`, `skuld_macos_parser.py`, `skuld_macos_commands.py`, `skuld_macos_launchd.py`, `skuld_macos_presenters.py`, `skuld_macos_processes.py`, `skuld_macos_runtime.py`, `skuld_macos_schedules.py`, `skuld_macos_sync.py`, `skuld_macos_targets.py`, `skuld_macos_view.py`, `skuld_observability.py`, `skuld_registry.py`, `skuld_sudo.py`, and `skuld_tables.py`
 
 If the change touches host operations, also read:
 
@@ -75,13 +47,11 @@ If the change touches host operations, also read:
 - A fleet manager.
 - A metrics platform.
 - A greenfield starter-shaped package that hides current behavior behind
-  cosmetic directory moves.
+cosmetic directory moves.
 
 ## Layer Rules
 
-The current repository does not have physical `domain / application /
-infrastructure / interfaces` directories. Treat the layers as responsibilities
-inside the existing files until a tested extraction is justified.
+The current repository does not have physical `domain / application / infrastructure / interfaces` directories. Treat the layers as responsibilities inside the existing files until a tested extraction is justified.
 
 - Domain model:
   - `ManagedService`
@@ -92,122 +62,111 @@ inside the existing files until a tested extraction is justified.
   - `build_parser()`
   - `main()`
   - command handlers such as `track`, `sync`, `doctor`, `start_stop`,
-    `exec_now`, `logs`, and `stats`
+`exec_now`, `logs`, and `stats`
 - Infrastructure adapters:
   - `systemctl`, `journalctl`, `launchctl`, `sudo`, `/proc`, `ss`, `lsof`,
-    filesystem reads and writes
+filesystem reads and writes
 - Shared support:
   - `skuld_cli.py` owns common backend main-loop behavior after a backend has
-    built its parser.
+built its parser.
   - `skuld_linux_actions.py` owns Linux host-mutating service action
-    orchestration for `start`, `stop`, `restart`, and `exec`.
+orchestration for `start`, `stop`, `restart`, and `exec`.
   - `skuld_linux_catalog.py` owns Linux systemd catalog discovery, catalog
-    target resolution, and `track` orchestration.
+target resolution, and `track` orchestration.
   - `skuld_linux_managed.py` owns Linux Skuld-managed user service unit
-    rendering, creation, and safe deletion.
+rendering, creation, and safe deletion.
   - `skuld_linux_context.py` owns Linux backend dependency wiring for paths,
-    registry access, output policy, sudo, systemd callbacks, runtime reads, and
-    table callbacks.
+registry access, output policy, sudo, systemd callbacks, runtime reads, and table callbacks.
   - `skuld_linux_handlers.py` owns Linux CLI command handlers and orchestration
-    across the Linux context plus action, catalog, command, and view modules.
+across the Linux context plus action, catalog, command, and view modules.
   - `skuld_linux_model.py` owns Linux service dataclasses, registry
-    normalization, service-name normalization, display-name suggestions, and
-    identifier helpers.
+normalization, service-name normalization, display-name suggestions, and identifier helpers.
   - `skuld_linux_nginx.py` owns Linux read-only nginx route discovery,
-    config parsing, route-to-service correlation, and nginx table rendering.
+config parsing, route-to-service correlation, and nginx table rendering.
   - `skuld_linux_registry.py` owns Linux registry storage wiring and lookup
-    helpers.
+helpers.
   - `skuld_linux_parser.py` owns Linux CLI parser construction, subcommand
-    options, compatibility aliases, and handler registration.
+options, compatibility aliases, and handler registration.
   - `skuld_linux_commands.py` owns extracted Linux registry and read-only
-    command orchestration.
+command orchestration.
   - `skuld_linux_runtime.py` owns Linux runtime stats JSON reads, journald
-    execution counting, restart count formatting, and journal permission hints.
+execution counting, restart count formatting, and journal permission hints.
   - `skuld_linux_presenters.py` owns Linux line-oriented output formatting for
-    selected detail views such as `stats` and `describe`.
+selected detail views such as `stats` and `describe`.
   - `skuld_linux_systemd.py` owns Linux `systemd` command construction,
-    `systemctl`/`journalctl` scope handling, and low-level systemd command
-    execution.
+`systemctl`/`journalctl` scope handling, and low-level systemd command execution.
   - `skuld_linux_sync.py` owns Linux registry backfill from live systemd
-    service and timer metadata.
+service and timer metadata.
   - `skuld_linux_stats.py` owns Linux host overview, unit usage, process/PID
-    inspection, GPU memory parsing, and listening-port inspection.
+inspection, GPU memory parsing, and listening-port inspection.
   - `skuld_linux_timers.py` owns Linux systemd timer metadata reads,
-    directive parsing, duration formatting, and schedule humanization.
+directive parsing, duration formatting, and schedule humanization.
   - `skuld_linux_targets.py` owns Linux target-resolution rules for display
-    names, IDs, scoped unit names, and multi-target de-duplication.
+names, IDs, scoped unit names, and multi-target de-duplication.
   - `skuld_linux_view.py` owns Linux service-table flow, row assembly, and
-    state display mapping.
+state display mapping.
   - `skuld_macos_launchd.py` owns macOS `launchd` command construction,
-    domain/target formatting, launchctl parsing, and low-level launchctl
-    execution.
+domain/target formatting, launchctl parsing, and low-level launchctl execution.
   - `skuld_macos_managed.py` owns macOS Skuld-managed LaunchAgent wrapper,
-    plist rendering, creation, and safe deletion.
+plist rendering, creation, and safe deletion.
   - `skuld_macos_presenters.py` owns macOS line-oriented output formatting for
-    selected detail views such as `status`, `stats`, and `describe`.
+selected detail views such as `status`, `stats`, and `describe`.
   - `skuld_macos_processes.py` owns macOS process-tree inspection,
-    termination, host overview, CPU/memory inspection, and port parsing.
+termination, host overview, CPU/memory inspection, and port parsing.
   - `skuld_macos_runtime.py` owns macOS event stats, runtime stats file
-    updates, recent-run PID extraction, file-log path resolution, and tailing.
+updates, recent-run PID extraction, file-log path resolution, and tailing.
   - `skuld_macos_schedules.py` owns macOS schedule parsing, display
-    humanization, and next-run calculation.
+humanization, and next-run calculation.
   - `skuld_macos_sync.py` owns macOS registry backfill from live launchd plist
-    metadata.
+metadata.
   - `skuld_macos_targets.py` owns macOS target-resolution rules for launchd
-    labels, display names, IDs, discoverable catalog entries, and multi-target
-    de-duplication.
+labels, display names, IDs, discoverable catalog entries, and multi-target de-duplication.
   - `skuld_macos_actions.py` owns macOS host-mutating launchd action
-    orchestration for `start`, `stop`, `restart`, and `exec`.
+orchestration for `start`, `stop`, `restart`, and `exec`.
   - `skuld_macos_catalog.py` owns macOS launchd catalog discovery, catalog
-    rendering, and `track` orchestration.
+rendering, and `track` orchestration.
   - `skuld_macos_context.py` owns macOS backend dependency wiring for paths,
-    registry access, output policy, sudo, launchd callbacks, runtime reads,
-    process reads, and table callbacks.
+registry access, output policy, sudo, launchd callbacks, runtime reads, process reads, and table callbacks.
   - `skuld_macos_handlers.py` owns macOS CLI command handlers and orchestration
-    across the macOS context plus action, catalog, command, and view modules.
+across the macOS context plus action, catalog, command, and view modules.
   - `skuld_macos_model.py` owns macOS service dataclasses, registry
-    normalization, display-name suggestions, and validation helpers.
+normalization, display-name suggestions, and validation helpers.
   - `skuld_macos_registry.py` owns macOS registry storage wiring, runtime stats
-    file initialization, and lookup helpers.
+file initialization, and lookup helpers.
   - `skuld_macos_paths.py` owns macOS launchd label, plist path, and runtime
-    path derivation.
+path derivation.
   - `skuld_macos_parser.py` owns macOS CLI parser construction, subcommand
-    options, compatibility aliases, and handler registration.
+options, compatibility aliases, and handler registration.
   - `skuld_macos_commands.py` owns extracted macOS registry and read-only
-    command orchestration.
+command orchestration.
   - `skuld_macos_view.py` owns macOS service-table flow, row assembly, and
-    state display mapping.
+state display mapping.
   - `skuld_common.py` owns IO-agnostic CLI helpers, formatting, table fitting,
-    subprocess wrappers, and sudo env lookup.
+subprocess wrappers, and sudo env lookup.
   - `skuld_config.py` owns user preference config reads and writes for
-    non-registry CLI settings.
+non-registry CLI settings.
   - `skuld_observability.py` owns opt-in redacted debug output.
   - `skuld_registry.py` owns generic registry load/save/upsert/remove mechanics.
   - `skuld_sudo.py` owns shared CLI orchestration for `sudo check`,
-    `sudo auth`, `sudo forget`, and `sudo run`.
+`sudo auth`, `sudo forget`, and `sudo run`.
   - `skuld_tables.py` owns shared service-table column policy, column catalog,
-    display ID padding, fitting, column selection, sorting, and host-panel
-    rendering helpers.
+display ID padding, fitting, column selection, sorting, and host-panel rendering helpers.
 - Interface:
   - CLI arguments, help text, stdout/stderr output, table rendering
 
-Keep new code close to the smallest existing responsibility that can own it.
-Do not add an abstraction unless it removes real duplication or creates a clear
-testing seam for behavior already present.
+Keep new code close to the smallest existing responsibility that can own it. Do not add an abstraction unless it removes real duplication or creates a clear testing seam for behavior already present.
 
 ## Engineering Principles
 
 - Favor standard library solutions unless an external dependency is clearly
-  justified.
+justified.
 - Keep the CLI stable and backward-compatible when possible.
 - Treat `systemd` and `launchd` operations as high-impact. Prefer explicit
-  commands and clear errors.
+commands and clear errors.
 - Preserve the rule: Skuld only operates services in its registry, except for
-  initial creation of explicitly requested Skuld-managed user/agent services.
+initial creation of explicitly requested Skuld-managed user/agent services.
 - Do not remove existing units, launchd plists, or registry entries unless the
-  user explicitly requests that behavior. `delete` may remove only
-  `managed_by_skuld=true` user/agent service definitions; external services use
-  `untrack`.
+user explicitly requests that behavior. `delete` may remove only `managed_by_skuld=true` user/agent service definitions; external services use `untrack`.
 - Do not log secrets.
 
 ## Code Style
@@ -220,37 +179,35 @@ Use English for:
 - Help text and user-facing messages
 - Comments and documentation
 
-Keep functions focused and small when touching nearby code. The existing backend
-files are large; avoid making them larger through unrelated refactors.
+Keep functions focused and small when touching nearby code. The existing backend files are large; avoid making them larger through unrelated refactors.
 
 ## Documentation Rules
 
 - Human documentation is in en-US.
 - Technical identifiers are in en-US.
 - Update `README.md` when commands, domain boundary, or user-visible behavior
-  change.
+change.
 - Update `docs/ARCHITECTURE.md` when flow, module responsibility, runtime paths,
-  or dependencies change.
+or dependencies change.
 - Update `docs/CONTRACTS.md` when registry fields, identifiers, command inputs,
-  outputs, or integration guarantees change.
+outputs, or integration guarantees change.
 - Update `docs/OPERATIONS.md` when setup, validation, logs, restart, runtime
-  state, or troubleshooting changes.
+state, or troubleshooting changes.
 - Update `docs/INSTALL.md` and `docs/RELEASE.md` when packaging, install,
-  versioning, or release validation changes.
+versioning, or release validation changes.
 - Update `docs/DECISIONS.md` when a change affects how the repository should
-  evolve.
+evolve.
 - Update `docs/WISHLIST.md` when documenting future provider or integration
-  ideas that are not current behavior.
+ideas that are not current behavior.
 - Do not document planned behavior as current behavior.
 
 ## Runtime and Secrets
 
 - Do not version `.env`, runtime state, generated logs, pycache, service
-  registries, user config files, local stats files, dumps, or local config
-  overrides.
+registries, user config files, local stats files, dumps, or local config overrides.
 - Warn users when `.env` or `SKULD_SUDO_PASSWORD` sudo support is involved.
 - Prefer `skuld sudo auth` and the native sudo timestamp over storing a sudo
-  password.
+password.
 - Prefer portable documentation paths such as `bin/skuld`, `$HOME`, and `$(pwd)`.
 - Avoid machine-specific absolute paths unless a user explicitly asks for them.
 
@@ -258,15 +215,7 @@ files are large; avoid making them larger through unrelated refactors.
 
 Run this before finalizing repository-wide structural or operational changes:
 
-```bash
-python3 -m py_compile bin/skuld skuld/*.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py
-python3 -m unittest discover -s tests
-bin/skuld --help
-python3 scripts/check_project_gate.py
-python3 scripts/project_doctor.py
-python3 scripts/project_doctor.py --strict
-python3 scripts/project_doctor.py --audit-config
-bash -n .githooks/pre-commit scripts/install_git_hooks.sh scripts/install_runtime_stats_timer.sh scripts/smoke_macos_launchd.sh scripts/smoke_linux_systemd_user.sh scripts/run_live_smokes.sh
+```bash python3 -m py_compile bin/skuld skuld/*.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py python3 -m unittest discover -s tests bin/skuld --help python3 scripts/check_project_gate.py python3 scripts/project_doctor.py python3 scripts/project_doctor.py --strict python3 scripts/project_doctor.py --audit-config bash -n .githooks/pre-commit scripts/install_git_hooks.sh scripts/install_runtime_stats_timer.sh scripts/smoke_macos_launchd.sh scripts/smoke_linux_systemd_user.sh scripts/run_live_smokes.sh
 ```
 
 For new or changed CLI commands, also run:
@@ -275,18 +224,11 @@ For new or changed CLI commands, also run:
 bin/skuld <subcommand> --help
 ```
 
-If `systemd` is unavailable, state that clearly instead of treating live Linux
-backend validation as complete.
+If `systemd` is unavailable, state that clearly instead of treating live Linux backend validation as complete.
 
-Live smoke scripts mutate only disposable services, but still touch
-`launchctl` or `systemctl --user`. Run them only when the operator explicitly
-authorizes live host validation:
+Live smoke scripts mutate only disposable services, but still touch `launchctl` or `systemctl --user`. Run them only when the operator explicitly authorizes live host validation:
 
-```bash
-scripts/smoke_macos_launchd.sh
-scripts/smoke_linux_systemd_user.sh
-scripts/smoke_linux_systemd_user.sh --host <ssh-host>
-scripts/run_live_smokes.sh --macos --linux-host <ssh-host>
+```bash scripts/smoke_macos_launchd.sh scripts/smoke_linux_systemd_user.sh scripts/smoke_linux_systemd_user.sh --host <ssh-host> scripts/run_live_smokes.sh --macos --linux-host <ssh-host>
 ```
 
 When a real Linux environment is needed for backend validation, `vidar` is an
@@ -297,53 +239,45 @@ scripts/smoke_linux_systemd_user.sh --host vidar
 scripts/run_live_smokes.sh --macos --linux-host vidar
 ```
 
-`vidar` also has a Skuld checkout at `~/.local/src/skuld/`. For iterative
-validation, it is acceptable to update that checkout with `git pull` and run
-tests from there when that is more practical than copying the local tree over
-SSH.
+`vidar` also has a Skuld checkout at `~/.local/src/skuld/`. For iterative validation, it is acceptable to update that checkout with `git pull` and run tests from there when that is more practical than copying the local tree over SSH.
 
 ## Hotspots
 
 - `skuld_linux_context.py` and `skuld_macos_context.py` are high-leverage
-  composition modules. Keep behavior in the named domain/adapters modules and
-  use the contexts only to bind runtime paths, host adapters, output, and
-  callbacks.
+composition modules. Keep behavior in the named domain/adapters modules and use the contexts only to bind runtime paths, host adapters, output, and callbacks.
 - `skuld_linux_handlers.py` and `skuld_macos_handlers.py` still coordinate
-  high-impact commands. Do not let them absorb low-level service-manager,
-  parser, model, or rendering rules.
+high-impact commands. Do not let them absorb low-level service-manager, parser, model, or rendering rules.
 - Registry loads normalize in memory by default. Use explicit writes through
-  `track`, `rename`, `untrack`, `sync`, `save_registry()`, `upsert_registry()`,
-  or `RegistryStore.load(write_back=True)` when canonicalization should be
-  persisted.
+`track`, `rename`, `untrack`, `sync`, `save_registry()`, `upsert_registry()`, or `RegistryStore.load(write_back=True)` when canonicalization should be persisted.
 - `start`, `stop`, `restart`, and `exec` can mutate host service state.
 - Linux journal and port inspection can require permissions that vary by host.
 - macOS logs are only reliable for jobs with compatible Skuld-managed log paths
-  or launchd plists that declare `StandardOutPath`/`StandardErrorPath`.
+or launchd plists that declare `StandardOutPath`/`StandardErrorPath`.
 - `SKULD_SUDO_PASSWORD` support is convenient but sensitive; the preferred path
-  is `skuld sudo auth` plus native sudo timestamp caching.
+is `skuld sudo auth` plus native sudo timestamp caching.
 - The unit suite fakes service-manager commands; live backend smokes still need
-  disposable services and explicit operator intent.
+disposable services and explicit operator intent.
 
 ## Git Workflow
 
 - Work directly on `main` for this repository.
 - Do not create `codex/*` branches unless the user explicitly asks for a branch
-  workflow.
+workflow.
 - Prefer short commits with one clear scope per commit. Split unrelated work
-  instead of bundling broad cleanup with behavior changes.
+instead of bundling broad cleanup with behavior changes.
 - At the end of each work round, commit the completed changes and push them to
-  `origin main` after validation, unless the user explicitly asks not to.
+`origin main` after validation, unless the user explicitly asks not to.
 - When pushing, default to `git push origin main`.
 - Commit messages are in English, imperative mood, and preferably
-  `type(scope): summary`.
+`type(scope): summary`.
 
 ## Architecture Guardrails
 
 - Do not perform a mass directory refactor without tests that prove behavior is
-  preserved.
+preserved.
 - Do not broaden service definition creation beyond Skuld-managed user/agent
-  services without updating contracts, operations docs, and safety checks.
+services without updating contracts, operations docs, and safety checks.
 - Do not broaden Skuld to arbitrary host services outside the registry.
 - Do not add dependencies for formatting, tables, config, or process execution
-  unless the standard library path is demonstrably insufficient.
+unless the standard library path is demonstrably insufficient.
 - Do not hide current weak spots by moving them into docs-only claims.

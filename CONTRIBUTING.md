@@ -1,7 +1,6 @@
 # Contributing to Skuld
 
-Skuld exists to reduce friction when managing selected local services through
-`systemd` or `launchd`, while keeping operations explicit and auditable.
+Skuld exists to reduce friction when managing selected local services through `systemd` or `launchd`, while keeping operations explicit and auditable.
 
 ## Scope and Principles
 
@@ -16,15 +15,9 @@ Skuld exists to reduce friction when managing selected local services through
 
 ## Local Development
 
-The README is the canonical place for the full non-mutating validation command
-set. Run the validation block in `README.md` before proposing changes that
-touch behavior, packaging, docs, operations, or service-manager integration.
+The README is the canonical place for the full non-mutating validation command set. Run the validation block in `README.md` before proposing changes that touch behavior, packaging, docs, operations, or service-manager integration.
 
-```bash
-git clone git@github.com:rod-americo/skuld.git
-cd skuld
-chmod +x bin/skuld
-bin/skuld --help
+```bash git clone git@github.com:rod-americo/skuld.git cd skuld chmod +x bin/skuld bin/skuld --help
 ```
 
 Live smoke checks are intentionally separate because they mutate disposable
@@ -39,9 +32,7 @@ scripts/run_live_smokes.sh --macos --linux-host <ssh-host>
 
 For Linux live validation, `vidar` is an available SSH host:
 
-```bash
-scripts/smoke_linux_systemd_user.sh --host vidar
-scripts/run_live_smokes.sh --macos --linux-host vidar
+```bash scripts/smoke_linux_systemd_user.sh --host vidar scripts/run_live_smokes.sh --macos --linux-host vidar
 ```
 
 `vidar` also keeps a Skuld checkout at `~/.local/src/skuld/`. When remote

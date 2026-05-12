@@ -2,9 +2,7 @@
 
 Skuld can still be run directly from a checkout:
 
-```bash
-chmod +x bin/skuld
-bin/skuld --help
+```bash chmod +x bin/skuld bin/skuld --help
 ```
 
 For user-level installation from a checkout, prefer `pipx`:
@@ -16,11 +14,7 @@ skuld --help
 
 For a local virtual environment:
 
-```bash
-python3 -m venv .venv
-. .venv/bin/activate
-python3 -m pip install .
-skuld --help
+```bash python3 -m venv .venv . .venv/bin/activate python3 -m pip install . skuld --help
 ```
 
 The package exposes the console command `skuld` through
@@ -54,8 +48,7 @@ pipx uninstall skuld-service-cli
 
 With `pip` inside the environment where it was installed:
 
-```bash
-python3 -m pip uninstall skuld-service-cli
+```bash python3 -m pip uninstall skuld-service-cli
 ```
 
 Uninstalling the Python package does not delete registry files, launchd plists,
