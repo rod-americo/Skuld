@@ -72,6 +72,9 @@ def normalize_service(
     managed_by_skuld = common.parse_bool(str(item.get("managed_by_skuld", False)))
     log_dir_default = str(log_dir_for_service(name, scope)) if managed_by_skuld else ""
     log_dir = str(item.get("log_dir", "")).strip() or log_dir_default
+    user = str(item.get("user", "")).strip()
+    if scope == "agent":
+        user = ""
     return ManagedService(
         name=name,
         exec_cmd=str(item.get("exec_cmd", "")).strip(),
@@ -83,7 +86,7 @@ def normalize_service(
         managed_by_skuld=managed_by_skuld,
         schedule=str(item.get("schedule", "")).strip(),
         working_dir=str(item.get("working_dir", "")).strip(),
-        user=str(item.get("user", "")).strip(),
+        user=user,
         restart=str(item.get("restart", "on-failure")).strip() or "on-failure",
         timer_persistent=common.parse_bool(str(item.get("timer_persistent", True))),
         id=common.parse_int(str(item.get("id", 0))),

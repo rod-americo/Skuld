@@ -80,7 +80,7 @@ class MacRegistryTest(unittest.TestCase):
             self.assertEqual(service.id, 1)
             self.assertEqual(state.registry.read_text(encoding="utf-8"), raw)
 
-    def test_agent_registry_entry_cannot_store_user(self) -> None:
+    def test_agent_registry_entry_user_metadata_is_ignored(self) -> None:
         with IsolatedMacContext() as state:
             ctx = state.context
             state.registry.parent.mkdir(parents=True, exist_ok=True)
@@ -100,8 +100,11 @@ class MacRegistryTest(unittest.TestCase):
                 encoding="utf-8",
             )
 
-            with self.assertRaisesRegex(RuntimeError, "'user' is only valid"):
-                ctx.load_registry()
+            [service] = ctx.load_registry(write_back=True)
+
+            self.assertEqual(service.scope, "agent")
+            self.assertEqual(service.user, "")
+            self.assertNotIn('"user": "someone"', state.registry.read_text(encoding="utf-8"))
 
     def test_load_registry_hydrates_schedule_from_plist_hint(self) -> None:
         with IsolatedMacContext() as state:

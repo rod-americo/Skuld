@@ -81,7 +81,7 @@ This document records Skuld's canonical inputs, outputs, identifiers, invariants
 | `managed_by_skuld` | yes after normalization | External tracked jobs are currently stored as `false`. |
 | `schedule` | no | Compatibility schedule cache. When a launchd plist is resolvable, Skuld derives the effective schedule from the live plist and may override this field in memory or during `sync`. |
 | `working_dir` | no | Working directory when known. |
-| `user` | no | Only valid for daemon scope. |
+| `user` | no | Only valid for daemon scope; agent-scope registry metadata is ignored during normalization. |
 | `restart` | no | Restart policy metadata, default `on-failure`. |
 | `timer_persistent` | no | Schedule metadata, default `true`. |
 | `id` | yes after normalization | Positive integer assigned by Skuld. |

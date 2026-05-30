@@ -41,6 +41,22 @@ class MacosModelTest(unittest.TestCase):
         self.assertEqual(service.scope, "daemon")
         self.assertEqual(service.log_dir, "")
 
+    def test_normalize_service_ignores_agent_user_metadata(self) -> None:
+        service = model.normalize_service(
+            {
+                "name": "com.example.worker",
+                "exec_cmd": "/bin/worker",
+                "description": "Worker",
+                "scope": "agent",
+                "user": "rodrigo",
+            },
+            log_dir_for_service=lambda name, scope: Path("/tmp/skuld") / scope / name,
+            service_label=lambda name: f"io.skuld.{name}",
+        )
+
+        self.assertEqual(service.scope, "agent")
+        self.assertEqual(service.user, "")
+
     def test_validate_registry_service_rejects_agent_user(self) -> None:
         service = model.ManagedService(
             "com.example.worker",

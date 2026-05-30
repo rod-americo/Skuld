@@ -510,7 +510,7 @@ Invariants:
 - `display_name` must be valid and unique.
 - IDs are positive integers and are normalized when missing or duplicated.
 - Linux scope must be `system` or `user`.
-- macOS scope must be `agent` or `daemon`; `user` is invalid for `agent` scope.
+- macOS scope must be `agent` or `daemon`; `user` is daemon-only metadata and is ignored when reading agent-scope registry entries.
 
 ## 7. Persistence
 

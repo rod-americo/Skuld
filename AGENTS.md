@@ -215,7 +215,15 @@ password.
 
 Run this before finalizing repository-wide structural or operational changes:
 
-```bash python3 -m py_compile bin/skuld skuld/*.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py python3 -m unittest discover -s tests bin/skuld --help python3 scripts/check_project_gate.py python3 scripts/project_doctor.py python3 scripts/project_doctor.py --strict python3 scripts/project_doctor.py --audit-config bash -n .githooks/pre-commit scripts/install_git_hooks.sh scripts/install_runtime_stats_timer.sh scripts/smoke_macos_launchd.sh scripts/smoke_linux_systemd_user.sh scripts/run_live_smokes.sh
+```bash
+python3 -m py_compile bin/skuld skuld/*.py ./scripts/skuld_journal_stats_collector.py ./scripts/check_project_gate.py ./scripts/project_doctor.py tests/*.py
+python3 -m unittest discover -s tests
+bin/skuld --help
+python3 scripts/check_project_gate.py
+python3 scripts/project_doctor.py
+python3 scripts/project_doctor.py --strict
+python3 scripts/project_doctor.py --audit-config
+bash -n .githooks/pre-commit scripts/install_git_hooks.sh scripts/install_runtime_stats_timer.sh scripts/smoke_macos_launchd.sh scripts/smoke_linux_systemd_user.sh scripts/run_live_smokes.sh
 ```
 
 For new or changed CLI commands, also run:
