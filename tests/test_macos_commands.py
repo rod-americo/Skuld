@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import tempfile
 import types
 import unittest
 from pathlib import Path
@@ -157,6 +158,28 @@ class MacosCommandsTest(unittest.TestCase):
             ],
         )
         self.assertEqual(tailed, [(Path("/tmp"), 25, False)])
+
+    def test_show_logs_deduplicates_shared_stdout_stderr_path(self) -> None:
+        output = []
+        tailed = []
+        with tempfile.TemporaryDirectory() as tmp:
+            log_path = Path(tmp) / "worker.log"
+            log_path.write_text("line\n", encoding="utf-8")
+
+            commands.show_logs(
+                service(),
+                since="",
+                timer=False,
+                follow=False,
+                lines=25,
+                log_paths_for_service=lambda service: (log_path, log_path),
+                tail_file=lambda path, lines, follow: tailed.append((path, lines, follow)),
+                info=output.append,
+                emit=output.append,
+            )
+
+        self.assertEqual(output, [f"==> {log_path}"])
+        self.assertEqual(tailed, [(log_path, 25, False)])
 
     def test_show_status_formats_launchd_info(self) -> None:
         output = []

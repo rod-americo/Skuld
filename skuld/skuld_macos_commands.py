@@ -5,6 +5,22 @@ from typing import Callable, List
 from . import skuld_macos_presenters as presenters
 
 
+def _existing_unique_log_paths(stdout_path: object, stderr_path: object) -> List[Path]:
+    paths: List[Path] = []
+    seen = set()
+    for candidate in (stdout_path, stderr_path):
+        if not isinstance(candidate, Path):
+            continue
+        if not candidate.exists():
+            continue
+        key = str(candidate)
+        if key in seen:
+            continue
+        seen.add(key)
+        paths.append(candidate)
+    return paths
+
+
 def rename_service(
     service: object,
     new_name: str,
@@ -121,31 +137,21 @@ def show_logs(
             "compatible log_dir or the launchd plist declares "
             "StandardOutPath/StandardErrorPath."
         )
-    stdout_exists = bool(stdout_path and stdout_path.exists())
-    stderr_exists = bool(stderr_path and stderr_path.exists())
-    if not stdout_exists and not stderr_exists:
+    log_paths = _existing_unique_log_paths(stdout_path, stderr_path)
+    if not log_paths:
         emit("No logs found.")
         return
 
     if follow:
         workers: List[threading.Thread] = []
-        if stdout_exists and stdout_path:
-            emit(f"==> {stdout_path}")
-            workers.append(
-                threading.Thread(
-                    target=tail_file,
-                    args=(stdout_path, lines, True),
-                    daemon=True,
-                )
-            )
-        if stderr_exists and stderr_path:
-            if stdout_exists:
+        for index, path in enumerate(log_paths):
+            if index > 0:
                 emit("")
-            emit(f"==> {stderr_path}")
+            emit(f"==> {path}")
             workers.append(
                 threading.Thread(
                     target=tail_file,
-                    args=(stderr_path, lines, True),
+                    args=(path, lines, True),
                     daemon=True,
                 )
             )
@@ -158,14 +164,11 @@ def show_logs(
             return
         return
 
-    if stdout_exists and stdout_path:
-        emit(f"==> {stdout_path}")
-        tail_file(stdout_path, lines, False)
-    if stderr_exists and stderr_path:
-        if stdout_exists:
+    for index, path in enumerate(log_paths):
+        if index > 0:
             emit("")
-        emit(f"==> {stderr_path}")
-        tail_file(stderr_path, lines, False)
+        emit(f"==> {path}")
+        tail_file(path, lines, False)
 
 
 def show_status(

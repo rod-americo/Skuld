@@ -131,6 +131,34 @@ class MacOSRuntimeLogsTest(unittest.TestCase):
 
         self.assertEqual(paths, (stdout, stderr))
 
+    def test_external_service_prefers_plist_paths_after_sync_log_dir_backfill(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            stdout = Path(tmp) / "custom.out.log"
+            stderr = Path(tmp) / "custom.err.log"
+            plist = Path(tmp) / "worker.plist"
+            plist.write_text(
+                f"""<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>StandardOutPath</key>
+  <string>{stdout}</string>
+  <key>StandardErrorPath</key>
+  <string>{stderr}</string>
+</dict>
+</plist>
+""",
+                encoding="utf-8",
+            )
+
+            paths = runtime.log_paths_for_service(
+                managed_by_skuld=False,
+                log_dir=str(Path(tmp)),
+                plist_path=plist,
+            )
+
+        self.assertEqual(paths, (stdout, stderr))
+
 
 if __name__ == "__main__":
     unittest.main()

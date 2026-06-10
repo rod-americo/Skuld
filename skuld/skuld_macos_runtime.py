@@ -121,11 +121,14 @@ def log_paths_for_service(
     log_dir: str,
     plist_path: Path,
 ) -> Tuple[Optional[Path], Optional[Path]]:
-    if managed_by_skuld or log_dir:
+    if managed_by_skuld:
         resolved_log_dir = Path(log_dir)
         return resolved_log_dir / "stdout.log", resolved_log_dir / "stderr.log"
 
     if not plist_path.exists():
+        if log_dir:
+            resolved_log_dir = Path(log_dir)
+            return resolved_log_dir / "stdout.log", resolved_log_dir / "stderr.log"
         return None, None
 
     try:
