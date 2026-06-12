@@ -2,6 +2,36 @@
 
 This file records lightweight architectural and operational decisions. Keep new entries factual: context, decision, impact, tradeoff, and rejected alternatives.
 
+## 2026-06-12 - Combine Skuld-Managed macOS Output With Stream Labels
+
+**Context**
+
+Skuld-managed macOS services originally wrote separate stdout and stderr log
+files through launchd. Reading those files together made `skuld logs` noisy:
+snapshots were split by file, and follow mode could interleave concurrent tail
+threads without preserving a useful chronological view.
+
+**Decision**
+
+Have the Skuld-managed LaunchAgent wrapper capture command stdout and stderr,
+prefix each completed line with a UTC timestamp and `[stdout]` or `[stderr]`,
+and append both streams to a single `output.log`. Keep legacy
+`stdout.log`/`stderr.log` discovery for existing services. For external
+launchd jobs, use one multi-file `tail -f` call instead of concurrent tail
+threads when following separate plist-declared files.
+
+**Impact**
+
+- New Skuld-managed macOS services have one chronological log stream.
+- Each line records which stream produced it.
+- Existing split-log services remain readable.
+
+**Tradeoff**
+
+- Ordering is line-arrival based at the wrapper, not sub-line byte ordering.
+- External launchd jobs cannot gain timestamps unless their own log files
+already contain them.
+
 ## 2026-05-09 - Reintroduce Narrow Skuld-Managed Service Creation
 
 **Context**

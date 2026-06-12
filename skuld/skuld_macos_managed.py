@@ -14,20 +14,47 @@ def command_text(command: Sequence[str]) -> str:
     return shlex.join(cleaned)
 
 
-def wrapper_script_text(*, command: Sequence[str], event_file: Path) -> str:
+def wrapper_script_text(
+    *,
+    command: Sequence[str],
+    event_file: Path,
+    output_file: Path,
+) -> str:
     payload = command_text(command)
     event_path = shlex.quote(str(event_file))
     event_dir = shlex.quote(str(event_file.parent))
+    output_path = shlex.quote(str(output_file))
+    output_dir = shlex.quote(str(output_file.parent))
     shell_payload = shlex.quote(payload)
     return "\n".join(
         [
             "#!/bin/sh",
             "set -u",
-            f"mkdir -p {event_dir}",
+            f"mkdir -p {event_dir} {output_dir}",
+            "out_fifo=\"${TMPDIR:-/tmp}/skuld.$$.out\"",
+            "err_fifo=\"${TMPDIR:-/tmp}/skuld.$$.err\"",
+            "cleanup() { rm -f \"$out_fifo\" \"$err_fifo\"; }",
+            "trap cleanup EXIT",
+            "trap 'cleanup; exit 130' INT TERM",
+            "prefix_stream() {",
+            "  stream=\"$1\"",
+            "  while IFS= read -r line || [ -n \"$line\" ]; do",
+            "    ts=\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"",
+            f"    printf '%s [%s] %s\\n' \"$ts\" \"$stream\" \"$line\" >> {output_path}",
+            "  done",
+            "}",
+            "rm -f \"$out_fifo\" \"$err_fifo\"",
+            "mkfifo \"$out_fifo\" \"$err_fifo\" || exit 1",
+            "prefix_stream stdout < \"$out_fifo\" &",
+            "out_reader=$!",
+            "prefix_stream stderr < \"$err_fifo\" &",
+            "err_reader=$!",
             'ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)"',
             f"printf '{{\"event\":\"start\",\"ts\":\"%s\",\"pid\":%s}}\\n' \"$ts\" \"$$\" >> {event_path}",
-            f"/bin/sh -lc {shell_payload}",
+            f"/bin/sh -lc {shell_payload} > \"$out_fifo\" 2> \"$err_fifo\"",
             "status=$?",
+            "wait \"$out_reader\"",
+            "wait \"$err_reader\"",
             'ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)"',
             f"printf '{{\"event\":\"end\",\"ts\":\"%s\",\"exit_status\":%s}}\\n' \"$ts\" \"$status\" >> {event_path}",
             "exit $status",
@@ -113,8 +140,9 @@ def create_agent_service(
     event_file.parent.mkdir(parents=True, exist_ok=True)
     wrapper_path.parent.mkdir(parents=True, exist_ok=True)
     plist_path.parent.mkdir(parents=True, exist_ok=True)
+    output_file = log_dir / "output.log"
     wrapper_path.write_text(
-        wrapper_script_text(command=command, event_file=event_file),
+        wrapper_script_text(command=command, event_file=event_file, output_file=output_file),
         encoding="utf-8",
     )
     wrapper_path.chmod(0o755)
@@ -123,8 +151,8 @@ def create_agent_service(
             label=label,
             wrapper_path=wrapper_path,
             working_dir=cwd,
-            stdout_path=log_dir / "stdout.log",
-            stderr_path=log_dir / "stderr.log",
+            stdout_path=output_file,
+            stderr_path=output_file,
             restart=service.restart,
         )
     )

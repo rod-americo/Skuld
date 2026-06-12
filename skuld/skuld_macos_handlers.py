@@ -117,6 +117,7 @@ class MacOSCommandHandlers:
             lines=lines,
             log_paths_for_service=ctx.log_paths_for_service,
             tail_file=ctx.tail_file,
+            tail_files=ctx.tail_files,
             info=ctx.info,
         )
 

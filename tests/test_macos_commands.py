@@ -131,6 +131,7 @@ class MacosCommandsTest(unittest.TestCase):
                 lines=100,
                 log_paths_for_service=lambda service: (None, None),
                 tail_file=lambda path, lines, follow: None,
+                tail_files=lambda paths, lines, follow: None,
                 info=lambda message: None,
             )
 
@@ -146,6 +147,7 @@ class MacosCommandsTest(unittest.TestCase):
             lines=25,
             log_paths_for_service=lambda service: (Path("/tmp"), None),
             tail_file=lambda path, lines, follow: tailed.append((path, lines, follow)),
+            tail_files=lambda paths, lines, follow: None,
             info=output.append,
             emit=output.append,
         )
@@ -174,12 +176,38 @@ class MacosCommandsTest(unittest.TestCase):
                 lines=25,
                 log_paths_for_service=lambda service: (log_path, log_path),
                 tail_file=lambda path, lines, follow: tailed.append((path, lines, follow)),
+                tail_files=lambda paths, lines, follow: None,
                 info=output.append,
                 emit=output.append,
             )
 
         self.assertEqual(output, [f"==> {log_path}"])
         self.assertEqual(tailed, [(log_path, 25, False)])
+
+    def test_show_logs_follows_all_paths_with_one_tail(self) -> None:
+        output = []
+        tailed = []
+        with tempfile.TemporaryDirectory() as tmp:
+            stdout_path = Path(tmp) / "worker.out"
+            stderr_path = Path(tmp) / "worker.err"
+            stdout_path.write_text("out\n", encoding="utf-8")
+            stderr_path.write_text("err\n", encoding="utf-8")
+
+            commands.show_logs(
+                service(),
+                since="",
+                timer=False,
+                follow=True,
+                lines=25,
+                log_paths_for_service=lambda service: (stdout_path, stderr_path),
+                tail_file=lambda path, lines, follow: None,
+                tail_files=lambda paths, lines, follow: tailed.append((paths, lines, follow)),
+                info=output.append,
+                emit=output.append,
+            )
+
+        self.assertEqual(output, [f"==> {stdout_path}", "", f"==> {stderr_path}"])
+        self.assertEqual(tailed, [([stdout_path, stderr_path], 25, True)])
 
     def test_show_status_formats_launchd_info(self) -> None:
         output = []

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import plistlib
+import re
+import subprocess
 import tempfile
 import types
 import unittest
@@ -49,11 +51,54 @@ class MacOSManagedServicesTest(unittest.TestCase):
         self.assertTrue(service.managed_by_skuld)
         self.assertEqual(saved[0].launchd_label, "io.skuld.api")
         self.assertEqual(plist["ProgramArguments"], [str(root / "api.sh")])
-        self.assertEqual(plist["StandardOutPath"], str(root / "logs/api/stdout.log"))
+        self.assertEqual(plist["StandardOutPath"], str(root / "logs/api/output.log"))
+        self.assertEqual(plist["StandardErrorPath"], str(root / "logs/api/output.log"))
         self.assertIn("python app.py", wrapper)
+        self.assertIn("prefix_stream stdout", wrapper)
+        self.assertIn("prefix_stream stderr", wrapper)
+        self.assertIn("[%s]", wrapper)
+        self.assertIn("output.log", wrapper)
         self.assertIn(("bootstrap", "api"), calls)
         self.assertIn(("kickstart", "api", False), calls)
         self.assertEqual(messages, ["Created and started Skuld-managed LaunchAgent 'api'."])
+
+    def test_wrapper_writes_timestamped_combined_output(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            event_file = root / "events" / "api.jsonl"
+            output_file = root / "logs" / "api" / "output.log"
+            wrapper = root / "api.sh"
+            wrapper.write_text(
+                managed.wrapper_script_text(
+                    command=[
+                        "sh",
+                        "-c",
+                        "printf 'out\\n'; printf 'err\\n' >&2",
+                    ],
+                    event_file=event_file,
+                    output_file=output_file,
+                ),
+                encoding="utf-8",
+            )
+            wrapper.chmod(0o755)
+
+            proc = subprocess.run([str(wrapper)], check=False, text=True, capture_output=True)
+            lines = output_file.read_text(encoding="utf-8").splitlines()
+
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertEqual(len(lines), 2)
+        self.assertTrue(
+            any(
+                re.match(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z \[stdout\] out$", line)
+                for line in lines
+            )
+        )
+        self.assertTrue(
+            any(
+                re.match(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z \[stderr\] err$", line)
+                for line in lines
+            )
+        )
 
     def test_create_agent_service_refuses_existing_plist(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

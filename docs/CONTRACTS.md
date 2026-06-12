@@ -14,7 +14,7 @@ This document records Skuld's canonical inputs, outputs, identifiers, invariants
 | Service catalog | `systemd` or `launchd` | command output | yes for discovery | Linux uses `systemctl list-unit-files`; macOS uses `launchctl list`. |
 | nginx route catalog | Linux `nginx -T` | command output | no | Enabled explicitly as a read-only provider through config or `track --provider nginx`. |
 | Service state | `systemd` or `launchd` | command output | yes for operation views | Used by list, status, doctor, describe, and sync. |
-| Logs | `journalctl` or files | text stream | command-specific | Linux supports journal filters; macOS reads compatible log files or launchd plist log paths. |
+| Logs | `journalctl` or files | text stream | command-specific | Linux supports journal filters; macOS reads compatible log files or launchd plist log paths. Skuld-managed macOS services write timestamped combined output. |
 | Sudo timestamp | native `sudo` cache | host-local state | no | Refreshed with `skuld sudo auth`; used through `sudo -n`. |
 | Sudo credential | env or `.env` | string | no | Compatibility path only; `SKULD_SUDO_PASSWORD` is sensitive and should be short-lived. |
 | Table columns | CLI, config, or env | numbered IDs or keys | no | `--columns`, `$SKULD_HOME/config.json`, or `SKULD_COLUMNS`; default keeps automatic layout. |
@@ -31,7 +31,7 @@ This document records Skuld's canonical inputs, outputs, identifiers, invariants
 | User config update | Skuld config path | JSON object | Written by `skuld config columns ...`; not part of the service registry schema. |
 | Linux nginx route view | stdout | text table or describe section | Best-effort read-only output; enabled explicitly and does not add registry targets. |
 | Backend action | `systemctl` or `launchctl` | service-manager operation | Only targets that resolve from the registry should be operated. |
-| Log output | stdout/stderr | text stream | Mirrors backend/file log availability and permissions. |
+| Log output | stdout/stderr | text stream | Mirrors backend/file log availability and permissions. Skuld-managed macOS output lines are formatted as `<UTC timestamp> [stdout|stderr] <message>`. |
 | Debug output | stderr | redacted text lines | Opt-in only; not a stable machine API. |
 | Linux journal stats | configured stats path | JSON object | Collector writes atomically when run. |
 | macOS event stats | application support path | JSON or JSONL | Available only for compatible Skuld-managed entries. |

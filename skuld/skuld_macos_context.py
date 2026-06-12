@@ -572,6 +572,9 @@ class MacOSBackendContext:
     def tail_file(self, path: Path, lines: int, follow: bool) -> None:
         runtime.tail_file(self.run, path, lines, follow)
 
+    def tail_files(self, paths: List[Path], lines: int, follow: bool) -> None:
+        runtime.tail_files(self.run, paths, lines, follow)
+
     def log_paths_for_service(
         self,
         service: ManagedService,

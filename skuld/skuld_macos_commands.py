@@ -1,4 +1,3 @@
-import threading
 from pathlib import Path
 from typing import Callable, List
 
@@ -123,6 +122,7 @@ def show_logs(
     lines: int,
     log_paths_for_service: Callable[[object], tuple[object, object]],
     tail_file: Callable[[Path, int, bool], None],
+    tail_files: Callable[[List[Path], int, bool], None],
     info: Callable[[str], None],
     emit: Callable[[str], None] = print,
 ) -> None:
@@ -143,25 +143,11 @@ def show_logs(
         return
 
     if follow:
-        workers: List[threading.Thread] = []
         for index, path in enumerate(log_paths):
             if index > 0:
                 emit("")
             emit(f"==> {path}")
-            workers.append(
-                threading.Thread(
-                    target=tail_file,
-                    args=(path, lines, True),
-                    daemon=True,
-                )
-            )
-        for worker in workers:
-            worker.start()
-        try:
-            for worker in workers:
-                worker.join()
-        except KeyboardInterrupt:
-            return
+        tail_files(log_paths, lines, True)
         return
 
     for index, path in enumerate(log_paths):

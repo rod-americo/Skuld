@@ -93,15 +93,49 @@ class MacOSRuntimeLogsTest(unittest.TestCase):
 
         self.assertEqual(calls, [(["tail", "-n", "20", "-f", "/tmp/out.log"], False, False)])
 
-    def test_log_paths_for_managed_service_uses_log_dir(self) -> None:
+    def test_tail_files_uses_single_tail_command_for_multiple_paths(self) -> None:
+        calls = []
+
+        def run_cmd(cmd, check=True, capture=False):
+            calls.append((cmd, check, capture))
+            return completed()
+
+        runtime.tail_files(
+            run_cmd,
+            [Path("/tmp/out.log"), Path("/tmp/err.log")],
+            20,
+            True,
+        )
+
+        self.assertEqual(
+            calls,
+            [(["tail", "-n", "20", "-f", "/tmp/out.log", "/tmp/err.log"], False, False)],
+        )
+
+    def test_log_paths_for_managed_service_uses_combined_output_log(self) -> None:
         stdout_path, stderr_path = runtime.log_paths_for_service(
             managed_by_skuld=True,
             log_dir="/tmp/skuld/logs/worker",
             plist_path=Path("/missing.plist"),
         )
 
-        self.assertEqual(stdout_path, Path("/tmp/skuld/logs/worker/stdout.log"))
-        self.assertEqual(stderr_path, Path("/tmp/skuld/logs/worker/stderr.log"))
+        self.assertEqual(stdout_path, Path("/tmp/skuld/logs/worker/output.log"))
+        self.assertEqual(stderr_path, Path("/tmp/skuld/logs/worker/output.log"))
+
+    def test_log_paths_for_managed_service_keeps_legacy_split_logs(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            log_dir = Path(tmp)
+            (log_dir / "stdout.log").write_text("out\n", encoding="utf-8")
+            (log_dir / "stderr.log").write_text("err\n", encoding="utf-8")
+
+            stdout_path, stderr_path = runtime.log_paths_for_service(
+                managed_by_skuld=True,
+                log_dir=str(log_dir),
+                plist_path=Path("/missing.plist"),
+            )
+
+        self.assertEqual(stdout_path, log_dir / "stdout.log")
+        self.assertEqual(stderr_path, log_dir / "stderr.log")
 
     def test_log_paths_for_external_service_reads_plist_paths(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

@@ -320,9 +320,10 @@ and `sudo`.
 - event stats parsing from JSONL files.
 - runtime stats JSON updates.
 - recent-run root PID extraction from event files.
-- compatible file-log path resolution from Skuld log dirs or launchd plist
+- compatible file-log path resolution from Skuld log dirs, the combined
+  Skuld-managed macOS `output.log`, or launchd plist
   `StandardOutPath`/`StandardErrorPath`.
-- `tail` command invocation for file logs.
+- single-file and multi-file `tail` command invocation for file logs.
 
 `skuld_macos_sync.py` owns macOS registry backfill from launchd plist metadata:
 
@@ -569,9 +570,9 @@ Host-local configuration:
 - `SKULD_DEBUG=1` emits redacted debug lines to stderr for subprocess
   execution and registry writes.
 - Linux logs come from `journalctl`.
-- macOS logs are file-based for compatible Skuld-managed entries and for
-  external launchd jobs whose plist declares `StandardOutPath` or
-  `StandardErrorPath`.
+- macOS logs are file-based. Skuld-managed LaunchAgents write timestamped
+  combined `output.log` lines; external launchd jobs are readable when their
+  plist declares `StandardOutPath` or `StandardErrorPath`.
 - Minimal health checks are CLI help, project doctor, and backend-specific
   `bin/skuld doctor` when the local service manager is available.
 

@@ -2,7 +2,7 @@ import datetime as dt
 import json
 import plistlib
 from pathlib import Path
-from typing import Callable, Dict, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Sequence, Tuple
 
 from . import skuld_common as common
 
@@ -104,15 +104,27 @@ def read_recent_run_root_pids(events: List[Dict[str, object]], limit: int = 3) -
     return list(reversed(starts[-max(1, limit):]))
 
 
-def tail_file(run_cmd: Callable[..., object], path: Path, lines: int, follow: bool) -> None:
+def tail_files(
+    run_cmd: Callable[..., object],
+    paths: Sequence[Path],
+    lines: int,
+    follow: bool,
+) -> None:
+    existing_paths = [str(path) for path in paths]
+    if not existing_paths:
+        return
     cmd = ["tail", "-n", str(lines)]
     if follow:
         cmd.append("-f")
-    cmd.append(str(path))
+    cmd.extend(existing_paths)
     try:
         run_cmd(cmd, check=False)
     except KeyboardInterrupt:
         return
+
+
+def tail_file(run_cmd: Callable[..., object], path: Path, lines: int, follow: bool) -> None:
+    tail_files(run_cmd, [path], lines, follow)
 
 
 def log_paths_for_service(
@@ -123,6 +135,11 @@ def log_paths_for_service(
 ) -> Tuple[Optional[Path], Optional[Path]]:
     if managed_by_skuld:
         resolved_log_dir = Path(log_dir)
+        combined_path = resolved_log_dir / "output.log"
+        stdout_path = resolved_log_dir / "stdout.log"
+        stderr_path = resolved_log_dir / "stderr.log"
+        if combined_path.exists() or not stdout_path.exists() and not stderr_path.exists():
+            return combined_path, combined_path
         return resolved_log_dir / "stdout.log", resolved_log_dir / "stderr.log"
 
     if not plist_path.exists():

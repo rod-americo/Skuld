@@ -207,7 +207,13 @@ bin/skuld logs <name> --lines 200
 bin/skuld logs <name> --follow
 ```
 
-macOS logs are file-based. They work for compatible Skuld-managed entries and for externally tracked launchd jobs whose plist declares `StandardOutPath` or `StandardErrorPath`. Externally tracked jobs without plist log paths may not expose logs through Skuld.
+macOS logs are file-based. Skuld-managed LaunchAgents write a combined
+`output.log` with UTC timestamps and `[stdout]` or `[stderr]` stream labels as
+lines arrive, so `bin/skuld logs <name> --follow` can show one chronological
+file stream. Externally tracked launchd jobs work when their plist declares
+`StandardOutPath` or `StandardErrorPath`; when those paths are separate, Skuld
+can tail both but cannot reconstruct timestamps that the original files did not
+store.
 
 Diagnostic commands:
 

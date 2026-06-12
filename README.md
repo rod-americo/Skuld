@@ -200,7 +200,10 @@ bin/skuld start --name api -- python app.py
 bin/skuld delete api
 ```
 
-macOS logs are file-based. They work for compatible Skuld-managed log paths and externally tracked launchd jobs whose plist declares `StandardOutPath` or `StandardErrorPath`.
+macOS logs are file-based. Skuld-managed LaunchAgents write a combined
+`output.log` with UTC timestamps and `[stdout]` or `[stderr]` stream labels as
+lines arrive. Externally tracked launchd jobs work when their plist declares
+`StandardOutPath` or `StandardErrorPath`.
 
 ## Validation
 
